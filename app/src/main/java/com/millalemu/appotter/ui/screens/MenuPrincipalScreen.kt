@@ -1,5 +1,5 @@
 // 1. Añade el nombre del paquete
-package com.example.appotter.ui.screens
+package com.millalemu.appotter.ui.screens
 
 // 2. Añade TODOS estos imports
 import androidx.compose.foundation.Image
@@ -21,10 +21,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.appotter.R
-import com.example.appotter.navigation.AppRoutes
-import com.example.appotter.ui.components.BotonMenu
-import com.example.appotter.ui.theme.AppOtterTheme
+import com.millalemu.appotter.R
+
+import com.millalemu.appotter.navigation.AppRoutes
+import com.millalemu.appotter.ui.components.BotonMenu
+import com.millalemu.appotter.ui.theme.AppOtterTheme
 
 // 3. Pega tus funciones (ya lo hiciste)
 @Composable

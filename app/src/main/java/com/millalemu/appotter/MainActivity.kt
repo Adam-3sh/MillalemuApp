@@ -1,4 +1,4 @@
-package com.example.appotter
+package com.millalemu.appotter
 
 // ... (tus imports de siempre)
 
@@ -9,8 +9,8 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.appotter.navigation.AppNavigation
-import com.example.appotter.ui.theme.AppOtterTheme
+import com.millalemu.appotter.navigation.AppNavigation
+import com.millalemu.appotter.ui.theme.AppOtterTheme
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 

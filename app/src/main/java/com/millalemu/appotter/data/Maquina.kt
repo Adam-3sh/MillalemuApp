@@ -1,4 +1,4 @@
-package com.example.appotter.data
+package com.millalemu.appotter.data
 
 /**
  * Data class (molde) que representa una máquina de nuestra base de datos.

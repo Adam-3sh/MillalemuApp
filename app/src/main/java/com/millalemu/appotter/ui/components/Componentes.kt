@@ -1,4 +1,4 @@
-package com.example.appotter.ui.components
+package com.millalemu.appotter.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth

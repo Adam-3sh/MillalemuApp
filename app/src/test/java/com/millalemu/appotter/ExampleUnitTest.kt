@@ -1,4 +1,4 @@
-package com.example.appotter
+package com.millalemu.appotter
 
 import org.junit.Test
 

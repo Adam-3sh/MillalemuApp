@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.appotter"
+    namespace = "com.millalemu.appotter"
     compileSdk {
         version = release(36)
     }

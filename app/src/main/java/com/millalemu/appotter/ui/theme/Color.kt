@@ -1,4 +1,4 @@
-package com.example.appotter.ui.theme
+package com.millalemu.appotter.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

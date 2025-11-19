@@ -1,5 +1,7 @@
-package com.example.appotter.ui.screens
+package com.millalemu.appotter.ui.screens
 
+import androidx.compose.material3.MenuAnchorType
+import com.millalemu.appotter.R
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -15,10 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.appotter.R
-import com.example.appotter.data.Maquina // <-- Importamos el molde
-import com.example.appotter.db
-import com.example.appotter.ui.components.LabelAzul
+import com.millalemu.appotter.data.Maquina // <-- Importamos el molde
+import com.millalemu.appotter.db
+import com.millalemu.appotter.ui.components.LabelAzul
 import com.google.firebase.firestore.FieldValue
 
 private const val TAG = "EditarMaquinaScreen"

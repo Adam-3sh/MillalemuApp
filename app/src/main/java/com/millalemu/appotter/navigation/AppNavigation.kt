@@ -1,4 +1,4 @@
-package com.example.appotter.navigation
+package com.millalemu.appotter.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -8,14 +8,14 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.appotter.ui.screens.MenuPrincipalScreen
-import com.example.appotter.ui.screens.PantallaAditamento
-import com.example.appotter.ui.screens.PantallaAdmin
-import com.example.appotter.ui.screens.PantallaIngresarMaquina
-import com.example.appotter.ui.screens.PantallaListaMaquinas
+import com.millalemu.appotter.ui.screens.MenuPrincipalScreen
+import com.millalemu.appotter.ui.screens.PantallaAditamento
+import com.millalemu.appotter.ui.screens.PantallaAdmin
+import com.millalemu.appotter.ui.screens.PantallaIngresarMaquina
+import com.millalemu.appotter.ui.screens.PantallaListaMaquinas
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import com.example.appotter.ui.screens.PantallaEditarMaquina
+import com.millalemu.appotter.ui.screens.PantallaEditarMaquina
 
 object AppRoutes {
     const val MENU = "menu_principal"

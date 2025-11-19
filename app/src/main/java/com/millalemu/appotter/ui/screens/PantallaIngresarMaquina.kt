@@ -1,7 +1,8 @@
 // 1. Nombre del paquete
-package com.example.appotter.ui.screens
+package com.millalemu.appotter.ui.screens
 
 // 2. Todos los imports necesarios
+import androidx.compose.material3.MenuAnchorType
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -36,10 +37,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.appotter.R
-import com.example.appotter.ui.components.LabelAzul
+import com.millalemu.appotter.R
+import com.millalemu.appotter.ui.components.LabelAzul
 //import para la conexion
-import com.example.appotter.db // Para acceder a nuestra variable 'db' de Firebase
+import com.millalemu.appotter.db // Para acceder a nuestra variable 'db' de Firebase
 import com.google.firebase.firestore.FieldValue // Para poner la fecha/hora actual
 
 private const val TAG = "IngresarMaquinaScreen"

@@ -1,5 +1,5 @@
 // 1. Nombre del paquete
-package com.example.appotter.ui.screens
+package com.millalemu.appotter.ui.screens
 
 // 2. Todos los imports necesarios
 import androidx.compose.foundation.layout.Box

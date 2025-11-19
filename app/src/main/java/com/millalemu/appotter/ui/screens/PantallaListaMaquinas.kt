@@ -1,5 +1,6 @@
-package com.example.appotter.ui.screens
+package com.millalemu.appotter.ui.screens
 
+import com.millalemu.appotter.R
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,10 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.appotter.R
-import com.example.appotter.data.Maquina // <-- Importamos nuestro molde
-import com.example.appotter.db // <-- Importamos la base de datos
-import com.example.appotter.navigation.AppRoutes
+import com.millalemu.appotter.data.Maquina // <-- Importamos nuestro molde
+import com.millalemu.appotter.db // <-- Importamos la base de datos
+import com.millalemu.appotter.navigation.AppRoutes
 
 private const val TAG = "ListaMaquinasScreen"
 
