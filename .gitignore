@@ -1,0 +1,32 @@
+# === Original tuyo ===
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# === Corrección mía: eliminar duplicado ===
+# (Ya no incluí la segunda "local.properties")
+
+# === Añadidos NECESARIOS y mínimos que faltaban ===
+
+# Ignorar carpeta build dentro del módulo app/
+app/build/
+
+# Ignorar cualquier build dentro de otros módulos futuros
+*/build/
+
+# Ignorar archivos temporales de Windows
+Thumbs.db
+
+# Ignorar archivos temporales de Linux
+*~
