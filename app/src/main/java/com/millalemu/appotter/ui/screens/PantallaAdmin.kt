@@ -58,19 +58,24 @@ fun PantallaAdmin(modifier: Modifier = Modifier, navController: NavController) {
             BotonMenu(
                 text = "Lista de maquinas",
                 color = Color(0xFF1E88E5),
-                onClick = { navController.navigate(AppRoutes.LISTA_MAQUINAS)}
+                onClick = { navController.navigate(AppRoutes.LISTA_MAQUINAS)
+                }
             )
 
             BotonMenu(
                 text = "Lista de Usuarios",
                 color = Color(0xFF1E88E5),
-                onClick = { /* TODO: Navegar a 'Lista de Usuarios' */ }
+                onClick = {
+                    navController.navigate(AppRoutes.LISTA_USUARIOS)
+                }
             )
 
             BotonMenu(
                 text = "Crear usuario",
                 color = Color(0xFF1E88E5),
-                onClick = { /* TODO: Navegar a 'Crear usuario' */ }
+                onClick = {
+                    navController.navigate(AppRoutes.CREAR_USUARIO)
+                }
             )
 
             // Espacio extra antes del botón "Volver"

@@ -8,8 +8,8 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.example.appotter" />
-                  <option name="mobileSdkAppId" value="1:206445341799:android:cea448763f7bef309a78c2" />
+                  <option name="appId" value="com.millalemu.appotter" />
+                  <option name="mobileSdkAppId" value="1:206445341799:android:fee65eb8827893869a78c2" />
                   <option name="projectId" value="fir-lite-db21f" />
                   <option name="projectNumber" value="206445341799" />
                 </ConnectionSetting>

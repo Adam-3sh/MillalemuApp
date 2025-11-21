@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.appotter"
+        applicationId = "com.millalemu.appotter"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
