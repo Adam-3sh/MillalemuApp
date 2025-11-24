@@ -25,6 +25,7 @@ import com.millalemu.appotter.data.Usuario
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
 import com.millalemu.appotter.utils.formatearRut
+import com.millalemu.appotter.utils.Sesion
 
 @Composable
 fun PantallaLogin(navController: NavController) {
@@ -170,6 +171,9 @@ fun PantallaLogin(navController: NavController) {
                                         val usuario = documents.documents[0].toObject(Usuario::class.java)
 
                                         if (usuario != null) {
+
+                                            Sesion.rutUsuarioActual = usuario.rut // Guardamos el usuario actual
+
                                             if (usuario.tipo_usuario == "Administrador" || usuario.tipo_usuario == "Supervisor") {
                                                 // Si es Admin, va al Menú Principal
                                                 // 'popBackStack' borra el login del historial para que al volver atrás se salga de la app

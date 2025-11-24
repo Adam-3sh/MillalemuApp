@@ -25,6 +25,7 @@ import com.millalemu.appotter.R
 import com.millalemu.appotter.data.Usuario
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
+import com.millalemu.appotter.utils.Sesion
 
 private const val TAG = "ListaUsuariosScreen"
 
@@ -76,7 +77,7 @@ fun PantallaListaUsuarios(modifier: Modifier = Modifier, navController: NavContr
                 Text("RUT", Modifier.weight(1.2f), Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Text("Nombre", Modifier.weight(1.5f), Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Text("Rol", Modifier.weight(1f), Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text("Acción", Modifier.weight(0.8f), Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Acción", Modifier.weight(1.2f), Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
 
             // Lista Scrollable
@@ -88,11 +89,12 @@ fun PantallaListaUsuarios(modifier: Modifier = Modifier, navController: NavContr
                             // Lógica de borrado inmediata
                             db.collection("usuarios").document(usuario.id).delete()
                                 .addOnSuccessListener {
-                                    // Actualizamos la lista visualmente
+                                    // Actualizamos la lista visualmente (sin recargar de Firebase)
                                     listaUsuarios = listaUsuarios.filterNot { it.id == usuario.id }
                                 }
                         },
                         onEdit = {
+                            // Navegamos a la pantalla de edición pasando el ID
                             navController.navigate("${AppRoutes.EDITAR_USUARIO_ROUTE}/${usuario.id}")
                         }
                     )
@@ -115,7 +117,15 @@ fun PantallaListaUsuarios(modifier: Modifier = Modifier, navController: NavContr
 }
 
 @Composable
-fun UsuarioListItem(usuario: Usuario, onDelete: () -> Unit, onEdit: () -> Unit) { // <-- Nuevo parámetro
+fun UsuarioListItem(usuario: Usuario, onDelete: () -> Unit, onEdit: () -> Unit) {
+
+    // --- 1. RUT DEL SUPERUSUARIO (Nunca se borra) ---
+    val rutSuperAdmin = "21891517-5"
+
+    // --- 2. DETECCIÓN DE SESIÓN ACTUAL ---
+    // Verificamos si este usuario de la lista soy YO mismo
+    val esMiPropioUsuario = (usuario.rut == Sesion.rutUsuarioActual)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -127,26 +137,42 @@ fun UsuarioListItem(usuario: Usuario, onDelete: () -> Unit, onEdit: () -> Unit) 
         Text(text = "${usuario.nombre} ${usuario.apellido}", modifier = Modifier.weight(1.5f), fontSize = 12.sp)
         Text(text = usuario.tipo_usuario, modifier = Modifier.weight(1f), fontSize = 12.sp)
 
-        // Columna de Acciones
-        Row(modifier = Modifier.weight(1f)) {
-            // Botón Editar
-            Button(
-                onClick = onEdit,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Blue),
-                modifier = Modifier.weight(1f).height(35.dp).padding(end = 4.dp),
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Text("Edit", fontSize = 10.sp)
-            }
+        // Columna de Acciones (Protegida)
+        Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
 
-            // Botón Borrar
-            Button(
-                onClick = onDelete,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                modifier = Modifier.weight(1f).height(35.dp),
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Text("Borrar", fontSize = 10.sp)
+            // Si es el Jefe Supremo O si soy YO mismo -> No muestro botones de borrar
+            if (usuario.rut == rutSuperAdmin || esMiPropioUsuario) {
+                val textoProtegido = if (esMiPropioUsuario) "Tú" else "Protegido"
+
+                Text(
+                    text = textoProtegido,
+                    color = Color.Gray,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            } else {
+                // Si es cualquier otro usuario -> Muestro acciones
+                Row {
+                    // Botón Editar
+                    Button(
+                        onClick = onEdit,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Blue),
+                        modifier = Modifier.weight(1f).height(35.dp).padding(end = 2.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text("Edit", fontSize = 10.sp)
+                    }
+
+                    // Botón Borrar
+                    Button(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                        modifier = Modifier.weight(1f).height(35.dp).padding(start = 2.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text("Borrar", fontSize = 10.sp)
+                    }
+                }
             }
         }
     }

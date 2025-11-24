@@ -1,33 +1,12 @@
-// 1. Nombre del paquete
 package com.millalemu.appotter.ui.screens
 
-// 2. Todos los imports necesarios
-import androidx.compose.material3.MenuAnchorType
 import android.util.Log
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,29 +17,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.millalemu.appotter.R
+import com.millalemu.appotter.db
 import com.millalemu.appotter.ui.components.LabelAzul
-//import para la conexion
-import com.millalemu.appotter.db // Para acceder a nuestra variable 'db' de Firebase
-import com.google.firebase.firestore.FieldValue // Para poner la fecha/hora actual
+import com.google.firebase.firestore.FieldValue
 
 private const val TAG = "IngresarMaquinaScreen"
 
-// 3. Tu función (ya la pegaste)
-@OptIn(ExperimentalMaterial3Api::class) // Necesario para el Dropdown
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavController) {
 
-    // --- Estados para guardar los valores de los campos ---
+    // --- Estados ---
     val opcionesNombre = listOf("Madereo", "Volteo")
     var expanded by remember { mutableStateOf(false) }
     var nombreSeleccionado by remember { mutableStateOf("Seleccionar") }
     var identificador by remember { mutableStateOf("") }
-    // ---------------------------------------------------
+
+    // Estado para el mensaje de error en pantalla
+    var mensajeErrorUI by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 16.dp), // Padding general
+            .padding(horizontal = 32.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
@@ -90,7 +69,7 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
             verticalAlignment = Alignment.CenterVertically
         ) {
             LabelAzul(text = "Nombre")
-            Spacer(modifier = Modifier.width(8.dp)) // Sin Arrangement
+            Spacer(modifier = Modifier.width(8.dp))
 
             ExposedDropdownMenuBox(
                 expanded = expanded,
@@ -103,7 +82,7 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                    modifier = Modifier.menuAnchor()
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
                 )
 
                 ExposedDropdownMenu(
@@ -132,7 +111,6 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
                 .padding(start = 100.dp)
         )
 
-
         Spacer(modifier = Modifier.height(16.dp))
 
         // 4. Campo "Identificador" (Texto)
@@ -141,87 +119,82 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
             verticalAlignment = Alignment.CenterVertically
         ) {
             LabelAzul(text = "Identificador")
-            Spacer(modifier = Modifier.width(8.dp)) // Sin Arrangement
+            Spacer(modifier = Modifier.width(8.dp))
 
             OutlinedTextField(
                 value = identificador,
                 onValueChange = { identificador = it },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                singleLine = true
             )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // --- MENSAJE DE ERROR VISIBLE ---
+        if (mensajeErrorUI.isNotEmpty()) {
+            Text(
+                text = mensajeErrorUI,
+                color = Color.Red,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+        // -------------------------------
+
         // 5. Botón Ingresar
         Button(
             onClick = {
-                // --- ¡NUEVA LÓGICA DE VALIDACIÓN! ---
+                // Limpiamos error previo
+                mensajeErrorUI = ""
 
-                // 1. Normalizar la entrada: quitamos espacios y la ponemos en mayúsculas
+                // 1. Normalizar la entrada
                 val idNormalizado = identificador.trim().uppercase()
 
-                // 2. Definir el patrón Regex: Dos letras, un guion, dos números
+                // 2. Patrón Regex
                 val regexPatron = Regex("^[A-Z]{2}-\\d{2}$")
 
-                // 3. Variables para la validación
-                var esError = false
-                var mensajeError = ""
-
-                // --- INICIO DE REGLAS ---
+                // --- REGLAS DE VALIDACIÓN ---
                 if (nombreSeleccionado == "Seleccionar") {
-                    esError = true
-                    mensajeError = "Debes seleccionar un Nombre (Madereo o Volteo)."
+                    mensajeErrorUI = "Debes seleccionar un Nombre."
                 }
                 else if (identificador.isBlank()) {
-                    esError = true
-                    mensajeError = "El campo Identificador no puede estar vacío."
+                    mensajeErrorUI = "El campo Identificador no puede estar vacío."
                 }
                 // Regla de Formato
                 else if (!regexPatron.matches(idNormalizado)) {
-                    esError = true
-                    mensajeError = "Formato incorrecto. Debe ser XX-NN (ej: SG-05 o HM-10)."
+                    mensajeErrorUI = "Formato incorrecto. Debe ser XX-NN (ej: SG-05)."
                 }
                 else {
-                    // Si el formato es XX-NN, revisamos la Regla de Contexto
-                    val prefijo = idNormalizado.substring(0, 2) // Extrae las dos letras
+                    // Regla de Contexto
+                    val prefijo = idNormalizado.substring(0, 2)
 
                     if (nombreSeleccionado == "Madereo" && prefijo != "SG") {
-                        esError = true
-                        mensajeError = "Para 'Madereo', el identificador debe empezar con SG-."
+                        mensajeErrorUI = "Para 'Madereo', el ID debe empezar con SG-."
                     }
                     else if (nombreSeleccionado == "Volteo" && (prefijo != "HM" && prefijo != "FM")) {
-                        esError = true
-                        mensajeError = "Para 'Volteo', el identificador debe empezar con HM- o FM-."
+                        mensajeErrorUI = "Para 'Volteo', el ID debe empezar con HM- o FM-."
                     }
-                }
-                // --- FIN DE REGLAS ---
+                    else {
+                        // --- ¡TODO CORRECTO! GUARDAMOS ---
+                        val maquina = hashMapOf(
+                            "nombre" to nombreSeleccionado,
+                            "identificador" to idNormalizado,
+                            "fechaCreacion" to FieldValue.serverTimestamp()
+                        )
 
-
-                // 4. Actuar según la validación
-                if (esError) {
-                    // Si hay CUALQUIER error, lo mostramos en el Logcat
-                    // (Más adelante podemos mostrarlo en la UI)
-                    Log.w(TAG, "Validación fallida: $mensajeError")
-
-                } else {
-                    // ¡Validación exitosa! Guardamos en Firebase
-                    Log.d(TAG, "Validación exitosa. Guardando máquina...")
-
-                    val maquina = hashMapOf(
-                        "nombre" to nombreSeleccionado,
-                        "identificador" to idNormalizado, // Guardamos la versión normalizada
-                        "fechaCreacion" to FieldValue.serverTimestamp()
-                    )
-
-                    db.collection("maquinaria")
-                        .add(maquina)
-                        .addOnSuccessListener { documentReference ->
-                            Log.d(TAG, "Máquina guardada con ID: ${documentReference.id}")
-                            navController.popBackStack() // Volver a la pantalla anterior
-                        }
-                        .addOnFailureListener { e ->
-                            Log.w(TAG, "Error al guardar la máquina", e)
-                        }
+                        db.collection("maquinaria")
+                            .add(maquina)
+                            .addOnSuccessListener { documentReference ->
+                                Log.d(TAG, "Máquina guardada ID: ${documentReference.id}")
+                                navController.popBackStack()
+                            }
+                            .addOnFailureListener { e ->
+                                mensajeErrorUI = "Error al guardar: ${e.message}"
+                                Log.w(TAG, "Error al guardar", e)
+                            }
+                    }
                 }
             },
             modifier = Modifier
@@ -237,9 +210,7 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
 
         // 6. Botón Volver
         Button(
-            onClick = {
-                navController.popBackStack()
-            },
+            onClick = { navController.popBackStack() },
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .height(60.dp),
