@@ -17,6 +17,7 @@ import com.millalemu.appotter.ui.screens.PantallaCalculadora
 import com.millalemu.appotter.ui.screens.PantallaCrearUsuario
 import com.millalemu.appotter.ui.screens.PantallaEditarMaquina
 import com.millalemu.appotter.ui.screens.PantallaEditarUsuario
+import com.millalemu.appotter.ui.screens.PantallaFormularioAditamento
 import com.millalemu.appotter.ui.screens.PantallaIngresarMaquina
 import com.millalemu.appotter.ui.screens.PantallaListaMaquinas
 import com.millalemu.appotter.ui.screens.PantallaListaUsuarios
@@ -38,6 +39,7 @@ object AppRoutes {
     const val EDITAR_USUARIO_ROUTE = "editar_usuario"
     const val EDITAR_USUARIO_ARG_ID = "usuarioId"
     const val CALCULADORA = "calculadora"
+    const val FORMULARIO_ADITAMENTO = "formulario_aditamento"
 }
 
 @Composable
@@ -63,7 +65,7 @@ fun AppNavigation() {
             }
 
             composable(AppRoutes.ADITAMENTO) {
-                PantallaAditamento()
+                PantallaAditamento(navController = navController)
             }
 
             composable(AppRoutes.INGRESAR_MAQUINA) {
@@ -115,6 +117,18 @@ fun AppNavigation() {
 
             composable(AppRoutes.CALCULADORA) {
                 PantallaCalculadora(navController = navController)
+            }
+
+            composable(
+                route = "${AppRoutes.FORMULARIO_ADITAMENTO}/{tipoMaquina}",
+                arguments = listOf(navArgument("tipoMaquina") { type = NavType.StringType })
+            ) { backStackEntry ->
+
+                val tipoMaquina = backStackEntry.arguments?.getString("tipoMaquina") ?: "Desconocido"
+
+                // AQUÍ LLAMAREMOS A LA PRÓXIMA PANTALLA (La crearemos en el siguiente paso)
+                // Por ahora usamos un placeholder para que no de error
+                PantallaFormularioAditamento(navController = navController, tipoMaquina = tipoMaquina)
             }
 
         }
