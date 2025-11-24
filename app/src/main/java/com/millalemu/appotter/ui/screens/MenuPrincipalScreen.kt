@@ -1,48 +1,77 @@
-// 1. Añade el nombre del paquete
 package com.millalemu.appotter.ui.screens
 
-// 2. Añade TODOS estos imports
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.millalemu.appotter.R
-
 import com.millalemu.appotter.navigation.AppRoutes
 import com.millalemu.appotter.ui.components.BotonMenu
-import com.millalemu.appotter.ui.theme.AppOtterTheme
 
-// 3. Pega tus funciones (ya lo hiciste)
 @Composable
 fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavController) {
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 16.dp),
+            .background(Color.White),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        Spacer(modifier = Modifier.height(64.dp))
+        // --- 1. HEADER CON IMAGEN DE BOSQUE (RECTO) ---
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.bosque),
+                contentDescription = "Fondo Bosque",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
 
-        // Columna para los botones
+            // --- NOMBRE Y CARGO ---
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 24.dp, top = 48.dp)
+                    .background(Color.White, shape = RoundedCornerShape(16.dp))
+                    .padding(horizontal = 20.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = "Adam Albornoz (Administrador)",
+                    color = Color.Black,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // --- 2. CUERPO DE BOTONES ---
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(horizontal = 32.dp)
         ) {
             BotonMenu(
                 text = "Administrador",
@@ -64,7 +93,7 @@ fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavControl
                 text = "Historial bitacoras",
                 color = Color(0xFF1E88E5),
                 onClick = {
-                    // navController.navigate(AppRoutes.HISTORIAL)
+                    // TODO: Navegar a historial
                 }
             )
 
@@ -72,37 +101,79 @@ fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavControl
                 text = "Reemplazos",
                 color = Color(0xFF1E88E5),
                 onClick = {
-                    // navController.navigate(AppRoutes.REEMPLAZOS)
+                    // TODO: Navegar a reemplazos
                 }
             )
+
+            // --- 3. BOTONES PEQUEÑOS ---
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                BotonIconoPeque(
+                    iconId = R.drawable.calculadora,
+                    color = Color(0xFF1E88E5),
+                    onClick = {
+                        navController.navigate(AppRoutes.CALCULADORA)
+                    }
+                )
+
+                Spacer(modifier = Modifier.width(80.dp))
+
+                BotonIconoPeque(
+                    iconId = R.drawable.nube,
+                    color = Color(0xFF1E88E5),
+                    onClick = { /* Acción subir datos */ }
+                )
+            }
         }
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // --- Footer con el Logo (sin cambios) ---
+        // --- 4. FOOTER CON LOGO ---
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(bottom = 32.dp)
+            // CAMBIO: Aumentamos el padding bottom a 64.dp para subirlo más
+            modifier = Modifier.padding(bottom = 64.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo_millalemu),
                 contentDescription = "Logo Millalemu",
-                modifier = Modifier.size(300.dp)
-            )
-            Text(
-                text = "Millalemu© derechos reservados",
-                fontSize = 12.sp,
-                color = Color.Gray
+                // CAMBIO: Aumentamos el tamaño a 320.dp
+                modifier = Modifier.width(320.dp),
+                contentScale = ContentScale.Fit
             )
         }
     }
 }
 
-// Preview para ver tu diseño en Android Studio
+@Composable
+fun BotonIconoPeque(
+    iconId: Int,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .width(100.dp)
+            .height(60.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = color),
+        contentPadding = PaddingValues(12.dp)
+    ) {
+        Image(
+            painter = painterResource(id = iconId),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit,
+            colorFilter = ColorFilter.tint(Color.White)
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun MenuPrincipalPreview() {
-    AppOtterTheme {
-        MenuPrincipalScreen(navController = rememberNavController())
-    }
+    MenuPrincipalScreen(navController = rememberNavController())
 }

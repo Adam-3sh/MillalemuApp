@@ -13,6 +13,7 @@ import androidx.navigation.navArgument
 import com.millalemu.appotter.ui.screens.MenuPrincipalScreen
 import com.millalemu.appotter.ui.screens.PantallaAditamento
 import com.millalemu.appotter.ui.screens.PantallaAdmin
+import com.millalemu.appotter.ui.screens.PantallaCalculadora
 import com.millalemu.appotter.ui.screens.PantallaCrearUsuario
 import com.millalemu.appotter.ui.screens.PantallaEditarMaquina
 import com.millalemu.appotter.ui.screens.PantallaEditarUsuario
@@ -36,6 +37,7 @@ object AppRoutes {
     const val LISTA_USUARIOS = "lista_usuarios"
     const val EDITAR_USUARIO_ROUTE = "editar_usuario"
     const val EDITAR_USUARIO_ARG_ID = "usuarioId"
+    const val CALCULADORA = "calculadora"
 }
 
 @Composable
@@ -109,6 +111,10 @@ fun AppNavigation() {
 
             composable(AppRoutes.LISTA_USUARIOS) {
                 PantallaListaUsuarios(navController = navController)
+            }
+
+            composable(AppRoutes.CALCULADORA) {
+                PantallaCalculadora(navController = navController)
             }
 
         }
