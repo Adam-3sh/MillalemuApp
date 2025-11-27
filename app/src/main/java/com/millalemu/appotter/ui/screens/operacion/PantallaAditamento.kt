@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens
+package com.millalemu.appotter.ui.screens.operacion
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -37,7 +37,6 @@ fun PantallaAditamento(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // 1. Logo
         Image(
             painter = painterResource(id = R.drawable.logo_millalemu),
             contentDescription = "Logo Millalemu",
@@ -45,7 +44,6 @@ fun PantallaAditamento(navController: NavController) {
             contentScale = ContentScale.Fit
         )
 
-        // 2. Título
         Text(
             text = "Seleccione Maquinaria:",
             fontSize = 22.sp,
@@ -58,9 +56,10 @@ fun PantallaAditamento(navController: NavController) {
         CardMaquina(
             nombre = "Madereo",
             imagenId = R.drawable.madereo,
-            colorBorde = Color(0xFF1E88E5), // Azul
+            colorBorde = Color(0xFF4CAF50), // Verde
             onClick = {
-                navController.navigate("${AppRoutes.FORMULARIO_ADITAMENTO}/Madereo")
+                // CORRECCIÓN: Escribimos "Madereo" directamente
+                navController.navigate("${AppRoutes.SELECCION_EQUIPO}/Madereo")
             }
         )
 
@@ -72,19 +71,19 @@ fun PantallaAditamento(navController: NavController) {
             imagenId = R.drawable.volteo,
             colorBorde = Color(0xFF1E88E5), // Azul
             onClick = {
-                navController.navigate("${AppRoutes.FORMULARIO_ADITAMENTO}/Volteo")
+                // CORRECCIÓN: Escribimos "Volteo" directamente
+                navController.navigate("${AppRoutes.SELECCION_EQUIPO}/Volteo")
             }
         )
 
         Spacer(modifier = Modifier.weight(1f))
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- BOTÓN VOLVER (AHORA VERDE) ---
+        // Botón Volver
         Button(
             onClick = { navController.popBackStack() },
             modifier = Modifier.fillMaxWidth(0.9f).height(60.dp),
             shape = RoundedCornerShape(8.dp),
-            // CAMBIO: Usamos el mismo verde (0xFF4CAF50)
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
         ) {
             Text(text = "Volver", fontSize = 18.sp, color = Color.White)
@@ -115,7 +114,6 @@ fun CardMaquina(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Imagen de la máquina (ocupa el 70% de la tarjeta)
             Box(
                 modifier = Modifier
                     .weight(0.7f)
@@ -131,7 +129,6 @@ fun CardMaquina(
                 )
             }
 
-            // Texto del nombre (ocupa el 30% de abajo, con fondo de color)
             Box(
                 modifier = Modifier
                     .weight(0.3f)

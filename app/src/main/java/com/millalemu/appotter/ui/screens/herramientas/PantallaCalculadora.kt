@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens
+package com.millalemu.appotter.ui.screens.herramientas
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*

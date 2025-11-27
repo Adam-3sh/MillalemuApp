@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens
+package com.millalemu.appotter.ui.screens.operacion
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -25,12 +25,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.millalemu.appotter.R
+import com.millalemu.appotter.navigation.AppRoutes
 
+// Modelo de datos para la lista visual
 data class ItemAditamento(val nombre: String, val imagenId: Int)
 
 @Composable
-fun PantallaFormularioAditamento(navController: NavController, tipoMaquina: String) {
+fun PantallaFormularioAditamento(
+    navController: NavController,
+    tipoMaquina: String, // Ej: "Volteo"
+    idEquipo: String     // Ej: "VOL-01"
+) {
 
+    // Lista de aditamentos (solo se llenan si es Volteo por ahora)
     val listaAditamentos = if (tipoMaquina == "Volteo") {
         listOf(
             ItemAditamento("Grillete CM Lira", R.drawable.grillete_cm_lira),
@@ -39,6 +46,7 @@ fun PantallaFormularioAditamento(navController: NavController, tipoMaquina: Stri
             ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
             ItemAditamento("Eslabón Salida", R.drawable.eslabon),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
+            ItemAditamento("Eslabón Articulado", R.drawable.eslabon), // Agregué este para que coincida con tu lógica
             ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia)
         )
     } else {
@@ -48,27 +56,27 @@ fun PantallaFormularioAditamento(navController: NavController, tipoMaquina: Stri
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5)) // Fondo gris muy suave para contraste
+            .background(Color(0xFFF5F5F5)) // Fondo gris suave
     ) {
 
-        // 1. Encabezado (Mantenemos el estilo forestal)
+        // 1. Encabezado Verde
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF33691E)) // Un verde un poco más elegante
+                .background(Color(0xFF33691E)) // Verde elegante
                 .padding(vertical = 20.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "EQUIPO ${tipoMaquina.uppercase()}",
+                text = "EQUIPO $idEquipo ($tipoMaquina)", // Título dinámico
                 color = Color.White,
-                fontSize = 22.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
             )
         }
 
-        // 2. Grilla de Aditamentos (Estilo Catálogo)
+        // 2. Grilla de Aditamentos
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(16.dp),
@@ -77,13 +85,20 @@ fun PantallaFormularioAditamento(navController: NavController, tipoMaquina: Stri
             modifier = Modifier.weight(1f)
         ) {
             items(listaAditamentos) { item ->
+                // Llamada al componente visual de la tarjeta
                 CardAditamento(item = item, onClick = {
-                    // TODO: Ir al formulario de medidas
+                    // Lógica de navegación específica
+                    if (item.nombre == "Eslabón Articulado" || item.nombre.contains("Eslabón")) {
+                        // Pasamos Tipo + ID Equipo a la pantalla de registro
+                        navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo")
+                    } else {
+                        // Aquí irían las otras pantallas cuando las creemos
+                    }
                 })
             }
         }
 
-        // 3. Botón Volver (Centrado y limpio)
+        // 3. Botón Volver
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -96,7 +111,7 @@ fun PantallaFormularioAditamento(navController: NavController, tipoMaquina: Stri
                     .fillMaxWidth(0.9f)
                     .height(55.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)) // Azul App
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5))
             ) {
                 Text(text = "Volver", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
@@ -104,12 +119,16 @@ fun PantallaFormularioAditamento(navController: NavController, tipoMaquina: Stri
     }
 }
 
+/**
+ * Componente visual de la tarjeta (Imagen + Texto)
+ * Debe estar fuera de la función principal pero en el mismo archivo.
+ */
 @Composable
 fun CardAditamento(item: ItemAditamento, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp) // Un poco más altas para que respiren
+            .height(190.dp)
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -120,25 +139,23 @@ fun CardAditamento(item: ItemAditamento, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(12.dp),
-            verticalArrangement = Arrangement.Center // Centrar contenido verticalmente
+            verticalArrangement = Arrangement.Center
         ) {
-            // Imagen Libre (Sin círculos)
             Image(
                 painter = painterResource(id = item.imagenId),
                 contentDescription = item.nombre,
                 modifier = Modifier
-                    .size(100.dp) // Buen tamaño
+                    .size(100.dp)
                     .padding(bottom = 12.dp),
                 contentScale = ContentScale.Fit
             )
 
-            // Texto limpio y legible
             Text(
                 text = item.nombre.uppercase(),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
-                color = Color(0xFF424242), // Gris oscuro, más elegante que negro puro
+                color = Color(0xFF424242),
                 lineHeight = 16.sp
             )
         }

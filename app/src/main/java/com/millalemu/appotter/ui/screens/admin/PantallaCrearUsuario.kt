@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens
+package com.millalemu.appotter.ui.screens.admin
 
 import android.util.Log
 import com.millalemu.appotter.db

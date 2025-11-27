@@ -1,5 +1,5 @@
 // 1. Nombre del paquete
-package com.millalemu.appotter.ui.screens
+package com.millalemu.appotter.ui.screens.admin
 
 // 2. Todos los imports necesarios
 import androidx.compose.foundation.Image

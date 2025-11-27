@@ -1,6 +1,5 @@
-package com.millalemu.appotter.ui.screens
+package com.millalemu.appotter.ui.screens.admin
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -93,7 +92,10 @@ fun PantallaEditarUsuario(
         FilaCampoTexto(etiqueta = "Apellido", valor = apellido, onValorChange = { apellido = it })
         Spacer(modifier = Modifier.height(12.dp))
 
-        FilaCampoTexto(etiqueta = "Contraseña", valor = contrasena, onValorChange = { contrasena = it })
+        FilaCampoTexto(
+            etiqueta = "Contraseña",
+            valor = contrasena,
+            onValorChange = { contrasena = it })
         Spacer(modifier = Modifier.height(12.dp))
 
         // Rol

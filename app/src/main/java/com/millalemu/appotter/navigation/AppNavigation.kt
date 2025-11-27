@@ -10,18 +10,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.millalemu.appotter.ui.screens.MenuPrincipalScreen
-import com.millalemu.appotter.ui.screens.PantallaAditamento
-import com.millalemu.appotter.ui.screens.PantallaAdmin
-import com.millalemu.appotter.ui.screens.PantallaCalculadora
-import com.millalemu.appotter.ui.screens.PantallaCrearUsuario
-import com.millalemu.appotter.ui.screens.PantallaEditarMaquina
-import com.millalemu.appotter.ui.screens.PantallaEditarUsuario
-import com.millalemu.appotter.ui.screens.PantallaFormularioAditamento
-import com.millalemu.appotter.ui.screens.PantallaIngresarMaquina
-import com.millalemu.appotter.ui.screens.PantallaListaMaquinas
-import com.millalemu.appotter.ui.screens.PantallaListaUsuarios
-import com.millalemu.appotter.ui.screens.PantallaLogin
+import com.millalemu.appotter.ui.screens.home.MenuPrincipalScreen
+import com.millalemu.appotter.ui.screens.operacion.PantallaAditamento
+import com.millalemu.appotter.ui.screens.admin.PantallaAdmin
+import com.millalemu.appotter.ui.screens.herramientas.PantallaCalculadora
+import com.millalemu.appotter.ui.screens.admin.PantallaCrearUsuario
+import com.millalemu.appotter.ui.screens.operacion.PantallaDimensionesEslabon
+import com.millalemu.appotter.ui.screens.admin.PantallaEditarMaquina
+import com.millalemu.appotter.ui.screens.admin.PantallaEditarUsuario
+import com.millalemu.appotter.ui.screens.operacion.PantallaFormularioAditamento
+import com.millalemu.appotter.ui.screens.admin.PantallaIngresarMaquina
+import com.millalemu.appotter.ui.screens.admin.PantallaListaMaquinas
+import com.millalemu.appotter.ui.screens.admin.PantallaListaUsuarios
+import com.millalemu.appotter.ui.screens.auth.PantallaLogin
+import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroEslabon
+import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroMedidas
+import com.millalemu.appotter.ui.screens.operacion.PantallaSeleccionarEquipo
 
 object AppRoutes {
     const val LOGIN = "login"
@@ -40,6 +44,10 @@ object AppRoutes {
     const val EDITAR_USUARIO_ARG_ID = "usuarioId"
     const val CALCULADORA = "calculadora"
     const val FORMULARIO_ADITAMENTO = "formulario_aditamento"
+    const val REGISTRO_MEDIDAS_ROUTE = "registro_medidas"
+    const val REGISTRO_ESLABON = "registro_eslabon"
+    const val DIMENSIONES_ESLABON = "dimensiones_eslabon"
+    const val SELECCION_EQUIPO = "seleccion_equipo"
 }
 
 @Composable
@@ -119,18 +127,61 @@ fun AppNavigation() {
                 PantallaCalculadora(navController = navController)
             }
 
+            // Ruta ACTUALIZADA: formulario_aditamento/Volteo/VOL-01
             composable(
-                route = "${AppRoutes.FORMULARIO_ADITAMENTO}/{tipoMaquina}",
-                arguments = listOf(navArgument("tipoMaquina") { type = NavType.StringType })
+                route = "${AppRoutes.FORMULARIO_ADITAMENTO}/{tipoMaquina}/{idEquipo}", // <-- Agregamos idEquipo
+                arguments = listOf(
+                    navArgument("tipoMaquina") { type = NavType.StringType },
+                    navArgument("idEquipo") { type = NavType.StringType }
+                )
             ) { backStackEntry ->
+                val tipo = backStackEntry.arguments?.getString("tipoMaquina") ?: ""
+                val idEquipo = backStackEntry.arguments?.getString("idEquipo") ?: ""
 
-                val tipoMaquina = backStackEntry.arguments?.getString("tipoMaquina") ?: "Desconocido"
-
-                // AQUÍ LLAMAREMOS A LA PRÓXIMA PANTALLA (La crearemos en el siguiente paso)
-                // Por ahora usamos un placeholder para que no de error
-                PantallaFormularioAditamento(navController = navController, tipoMaquina = tipoMaquina)
+                PantallaFormularioAditamento(navController, tipo, idEquipo)
             }
 
+            // Ruta: registro_medidas/Volteo/Grillete
+            composable(
+                route = "${AppRoutes.REGISTRO_MEDIDAS_ROUTE}/{tipoMaquina}/{nombreAditamento}",
+                arguments = listOf(
+                    navArgument("tipoMaquina") { type = NavType.StringType },
+                    navArgument("nombreAditamento") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val tipo = backStackEntry.arguments?.getString("tipoMaquina") ?: ""
+                val nombre = backStackEntry.arguments?.getString("nombreAditamento") ?: ""
+
+                PantallaRegistroMedidas(navController, tipo, nombre)
+            }
+
+            // Ruta: registro_eslabon/Volteo/VOL-01
+            composable(
+                route = "${AppRoutes.REGISTRO_ESLABON}/{tipoMaquina}/{idEquipo}", // <-- Agregamos /{idEquipo} a la ruta
+                arguments = listOf(
+                    navArgument("tipoMaquina") { type = NavType.StringType },
+                    navArgument("idEquipo") { type = NavType.StringType }     // <-- Definimos el argumento
+                )
+            ) { backEntry ->
+                val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
+                val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
+
+                // Ahora sí pasamos los 3 parámetros que pide la pantalla
+                PantallaRegistroEslabon(navController, tipo, idEquipo)
+            }
+
+            composable(AppRoutes.DIMENSIONES_ESLABON) {
+                PantallaDimensionesEslabon(navController)
+            }
+
+            composable(
+                route = "${AppRoutes.SELECCION_EQUIPO}/{tipoMaquina}",
+                arguments = listOf(navArgument("tipoMaquina") { type = NavType.StringType })
+            ) { backEntry ->
+                val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
+                PantallaSeleccionarEquipo(navController, tipo)
+            }
+            // Agregar mas
         }
     }
 }
