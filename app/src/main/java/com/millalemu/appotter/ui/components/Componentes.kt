@@ -12,7 +12,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+
 
 @Composable
 fun BotonMenu(
@@ -42,4 +49,39 @@ fun LabelAzul(text: String, modifier: Modifier = Modifier) {
             .background(Color(0xFF1E88E5), RoundedCornerShape(4.dp))
             .padding(horizontal = 16.dp, vertical = 16.dp) // Padding para darle tamaño
     )
+}
+
+@Composable
+fun ToggleSiNo(seleccionado: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .height(35.dp)
+            .width(100.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp))
+    ) {
+        // Lado SI (Verde)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .background(if (seleccionado) Color(0xFF4CAF50) else Color.White)
+                .clickable { onChange(true) },
+            contentAlignment = Alignment.Center
+        ) {
+            Text("SI", color = if (seleccionado) Color.White else Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        }
+
+        // Lado NO (Rojo)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .background(if (!seleccionado) Color(0xFFFF5252) else Color.White)
+                .clickable { onChange(false) },
+            contentAlignment = Alignment.Center
+        ) {
+            Text("NO", color = if (!seleccionado) Color.White else Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        }
+    }
 }

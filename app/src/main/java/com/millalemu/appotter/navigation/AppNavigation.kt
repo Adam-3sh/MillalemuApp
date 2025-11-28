@@ -25,6 +25,7 @@ import com.millalemu.appotter.ui.screens.admin.PantallaListaUsuarios
 import com.millalemu.appotter.ui.screens.auth.PantallaLogin
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroEslabon
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroMedidas
+import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroTerminal
 import com.millalemu.appotter.ui.screens.operacion.PantallaSeleccionarEquipo
 
 object AppRoutes {
@@ -48,6 +49,8 @@ object AppRoutes {
     const val REGISTRO_ESLABON = "registro_eslabon"
     const val DIMENSIONES_ESLABON = "dimensiones_eslabon"
     const val SELECCION_EQUIPO = "seleccion_equipo"
+    const val REGISTRO_TERMINAL = "registro_terminal" // Ruta para la Pantalla 1
+    const val DIMENSIONES_TERMINAL = "dimensiones_terminal" // Ruta para la Pantalla 2
 }
 
 @Composable
@@ -180,6 +183,18 @@ fun AppNavigation() {
             ) { backEntry ->
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 PantallaSeleccionarEquipo(navController, tipo)
+            }
+
+            // Ruta para el Registro de Terminal
+            composable("${AppRoutes.REGISTRO_TERMINAL}/{tipoMaquina}/{idEquipo}") { backEntry ->
+                val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
+                val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
+                PantallaRegistroTerminal(navController, tipo, idEquipo)
+            }
+
+            // Ruta futura para Dimensiones (La crearemos después)
+            composable(AppRoutes.DIMENSIONES_TERMINAL) {
+                // PantallaDimensionesTerminal(navController) // Descomentar cuando la creemos
             }
             // Agregar mas
         }

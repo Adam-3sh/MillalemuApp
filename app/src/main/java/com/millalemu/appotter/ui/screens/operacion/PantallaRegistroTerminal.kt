@@ -29,14 +29,15 @@ import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
 import com.millalemu.appotter.ui.components.LabelAzul
+import com.millalemu.appotter.ui.components.ToggleSiNo
 import com.millalemu.appotter.utils.Sesion
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.millalemu.appotter.ui.components.ToggleSiNo
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaRegistroEslabon(
+fun PantallaRegistroTerminal(
     navController: NavController,
     tipoMaquina: String, // Ej: "Volteo"
     idEquipo: String     // Ej: "VOL-01"
@@ -46,13 +47,16 @@ fun PantallaRegistroEslabon(
     var horometro by remember { mutableStateOf("") }
     var observacion by remember { mutableStateOf("") }
 
+    // Fecha automática
     val fechaHoy = remember {
         SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
     }
 
+    // Estados de Inspección
     var tieneFisura by remember { mutableStateOf(false) }
     var requiereReemplazo by remember { mutableStateOf(false) }
 
+    // Color verde corporativo
     val verdeForestal = Color(0xFF33691E)
 
     Column(
@@ -69,16 +73,17 @@ fun PantallaRegistroEslabon(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 16.dp)
         ) {
+            // Imagen del Terminal
             Box(
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(80.dp)
                     .border(3.dp, verdeForestal, CircleShape)
                     .padding(2.dp)
                     .clip(CircleShape)
                     .background(Color.White)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.eslabon_entrada),
+                    painter = painterResource(id = R.drawable.terminal_de_cuna), // Asegúrate de tener esta imagen
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize().padding(8.dp)
@@ -87,18 +92,19 @@ fun PantallaRegistroEslabon(
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // Título
             Column {
                 Text(
-                    text = "ESLABÓN ARTICULADO",
+                    text = "TERMINAL DE CUÑA",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.Black
                 )
-                HorizontalDivider(color = verdeForestal, thickness = 2.dp, modifier = Modifier.width(150.dp))
+                Divider(color = verdeForestal, thickness = 2.dp, modifier = Modifier.width(150.dp))
             }
         }
 
-        // --- 2. INFO FIJA ---
+        // --- 2. INFORMACIÓN DE EQUIPO ---
         Card(
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -107,17 +113,17 @@ fun PantallaRegistroEslabon(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(verdeForestal)
+                    .background(Color(0xFF1E88E5)) // Azul para datos fijos
                     .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("EQUIPO", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("EQUIPO", color = Color.White.copy(alpha = 0.8f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Text(idEquipo, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("FECHA", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("FECHA", color = Color.White.copy(alpha = 0.8f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Text(fechaHoy, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
@@ -125,7 +131,7 @@ fun PantallaRegistroEslabon(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- 3. FORMULARIO ---
+        // --- 3. FORMULARIO BÁSICO ---
         Card(
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -133,23 +139,22 @@ fun PantallaRegistroEslabon(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
 
+                // Nº de Serie
                 LabelAzul(text = "Nº de Serie", modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
                     value = numeroSerie,
                     onValueChange = { numeroSerie = it },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    placeholder = { Text("Ej: SN-12345") },
-                    // --- CORRECCIÓN DE COLORES ---
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color(0xFFFAFAFA),
-                        unfocusedBorderColor = Color.LightGray
+                        unfocusedContainerColor = Color(0xFFFAFAFA)
                     )
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Horómetro
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         LabelAzul(text = "Horometro", modifier = Modifier.fillMaxWidth())
@@ -160,17 +165,16 @@ fun PantallaRegistroEslabon(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             suffix = { Text("hrs") },
                             singleLine = true,
-                            // --- CORRECCIÓN DE COLORES ---
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color(0xFFFAFAFA),
-                                unfocusedBorderColor = Color.LightGray
+                                unfocusedContainerColor = Color(0xFFFAFAFA)
                             )
                         )
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
 
+                    // Calculadora
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.clickable { navController.navigate(AppRoutes.CALCULADORA) }
@@ -180,7 +184,7 @@ fun PantallaRegistroEslabon(
                             contentDescription = "Calculadora",
                             modifier = Modifier.size(48.dp)
                         )
-                        Text("Ayuda", fontSize = 10.sp, color = Color.Blue)
+                        Text("Calc", fontSize = 10.sp, color = Color.Gray)
                     }
                 }
             }
@@ -188,40 +192,37 @@ fun PantallaRegistroEslabon(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón Dimensiones
+        // --- 4. BOTÓN INGRESAR DIMENSIONES (Navegación a Pantalla 2) ---
         Button(
-            onClick = { navController.navigate(AppRoutes.DIMENSIONES_ESLABON) },
-            modifier = Modifier.fillMaxWidth().height(55.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
-            shape = RoundedCornerShape(12.dp)
+            onClick = {
+                // Navegamos a la pantalla de dimensiones específica para Terminal
+                navController.navigate(AppRoutes.DIMENSIONES_TERMINAL)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)), // Verde fuerte
+            shape = RoundedCornerShape(12.dp),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
         ) {
             Text("INGRESAR DIMENSIONES", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Inspección Visual
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        // --- 5. INSPECCIÓN VISUAL ---
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Inspección Visual", fontWeight = FontWeight.Bold, color = Color.Gray)
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    // Fisura
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("¿Fisura visible?", fontSize = 14.sp)
+                        Text("¿Fisura?", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         ToggleSiNo(seleccionado = tieneFisura, onChange = { tieneFisura = it })
                     }
-
+                    // Reemplazo
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("¿Requiere remplazo?", fontSize = 14.sp)
+                        Text("¿Requiere remplazo?", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         ToggleSiNo(seleccionado = requiereReemplazo, onChange = { requiereReemplazo = it })
                     }
@@ -235,27 +236,20 @@ fun PantallaRegistroEslabon(
         OutlinedTextField(
             value = observacion,
             onValueChange = { observacion = it },
-            label = { Text("Observaciones") },
+            label = { Text("Observación") },
             modifier = Modifier.fillMaxWidth(),
             maxLines = 3,
-            // --- CORRECCIÓN DE COLORES ---
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            )
+            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Botones Finales
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        // --- 6. BOTONES FINALES ---
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Button(
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.weight(1f).height(50.dp).padding(end = 8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text("Volver", fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -263,34 +257,23 @@ fun PantallaRegistroEslabon(
 
             Button(
                 onClick = {
-                    val horometroVal = horometro.toDoubleOrNull() ?: 0.0
-
+                    // Lógica de Guardado (Similar a Eslabón pero con nombre "Terminal de Cuña")
                     val nuevaBitacora = Bitacora(
                         usuarioRut = Sesion.rutUsuarioActual,
                         identificadorMaquina = idEquipo,
-                        tipoMaquina = tipoMaquina, // <--- AHORA SÍ FUNCIONA
-                        tipoAditamento = "Eslabón Articulado",
+                        tipoMaquina = tipoMaquina,
+                        tipoAditamento = "Terminal de Cuña",
                         numeroSerie = numeroSerie,
-                        horometro = horometroVal,
-                        medidaNominal = 50.0,
-                        medidaActual = 48.0,
-                        porcentajeDesgaste = 4.0,
+                        horometro = horometro.toDoubleOrNull() ?: 0.0,
                         tieneFisura = tieneFisura,
                         requiereReemplazo = requiereReemplazo,
                         observacion = observacion
+                        // TODO: Agregar las dimensiones que vengan de la otra pantalla (usando ViewModel o Navigation Result)
                     )
-
-                    db.collection("bitacoras")
-                        .add(nuevaBitacora)
-                        .addOnSuccessListener {
-                            navController.popBackStack()
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("Bitacora", "Error", e)
-                        }
+                    db.collection("bitacoras").add(nuevaBitacora).addOnSuccessListener { navController.popBackStack() }
                 },
                 modifier = Modifier.weight(1f).height(50.dp).padding(start = 8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF388E3C)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text("Ingresar datos", fontSize = 16.sp, fontWeight = FontWeight.Bold)

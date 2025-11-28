@@ -77,7 +77,7 @@ fun PantallaDimensionesEslabon(navController: NavController) {
                     .clip(CircleShape)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.eslabon),
+                    painter = painterResource(id = R.drawable.eslabon_entrada),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

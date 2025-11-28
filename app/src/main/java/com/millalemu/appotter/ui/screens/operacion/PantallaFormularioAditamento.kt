@@ -42,11 +42,11 @@ fun PantallaFormularioAditamento(
         listOf(
             ItemAditamento("Grillete CM Lira", R.drawable.grillete_cm_lira),
             ItemAditamento("Gancho Ojo Fijo", R.drawable.gancho_ojo_fijo),
-            ItemAditamento("Eslabón Entrada", R.drawable.eslabon),
+            ItemAditamento("Eslabón Entrada", R.drawable.eslabon_entrada),
             ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
-            ItemAditamento("Eslabón Salida", R.drawable.eslabon),
+            ItemAditamento("Eslabón Salida", R.drawable.eslabon_salida),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
-            ItemAditamento("Eslabón Articulado", R.drawable.eslabon), // Agregué este para que coincida con tu lógica
+            ItemAditamento("Eslabón Articulado", R.drawable.eslabon_articulado),
             ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia)
         )
     } else {
@@ -87,12 +87,29 @@ fun PantallaFormularioAditamento(
             items(listaAditamentos) { item ->
                 // Llamada al componente visual de la tarjeta
                 CardAditamento(item = item, onClick = {
-                    // Lógica de navegación específica
-                    if (item.nombre == "Eslabón Articulado" || item.nombre.contains("Eslabón")) {
-                        // Pasamos Tipo + ID Equipo a la pantalla de registro
-                        navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo")
-                    } else {
-                        // Aquí irían las otras pantallas cuando las creemos
+
+                    // --- LÓGICA DE NAVEGACIÓN ---
+                    when (item.nombre) {
+                        // Caso 1: Eslabón Articulado
+                        "Eslabón Articulado" -> {
+                            navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo")
+                        }
+
+                        // Caso 2: Terminal de Cuña (¡NUEVO!)
+                        "Terminal de Cuña" -> {
+                            navController.navigate("${AppRoutes.REGISTRO_TERMINAL}/$tipoMaquina/$idEquipo")
+                        }
+
+                        // Caso 3: Cable de Asistencia (Futuro)
+                        "Cable Asistencia" -> {
+                            // TODO: Conectar cuando creemos la pantalla del cable
+                        }
+
+                        // Resto de casos (Por ahora no hacen nada o van a una genérica)
+                        else -> {
+                            // Puedes redirigirlos a Eslabón temporalmente si quieres probar
+                            // navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo")
+                        }
                     }
                 })
             }
@@ -121,7 +138,6 @@ fun PantallaFormularioAditamento(
 
 /**
  * Componente visual de la tarjeta (Imagen + Texto)
- * Debe estar fuera de la función principal pero en el mismo archivo.
  */
 @Composable
 fun CardAditamento(item: ItemAditamento, onClick: () -> Unit) {
