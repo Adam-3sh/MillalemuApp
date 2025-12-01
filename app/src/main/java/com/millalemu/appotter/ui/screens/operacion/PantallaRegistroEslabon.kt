@@ -190,9 +190,21 @@ fun PantallaRegistroEslabon(
 
         // Botón Dimensiones
         Button(
-            onClick = { navController.navigate(AppRoutes.DIMENSIONES_ESLABON) },
-            modifier = Modifier.fillMaxWidth().height(55.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+            onClick = {
+                // 1. Preparamos los datos usando las VARIABLES DE ESTA PANTALLA
+                val obsSegura = if (observacion.isBlank()) "Ninguna" else observacion
+                val horometroSeguro = if (horometro.isBlank()) "0" else horometro
+
+                // 2. Navegamos usando esas mismas variables
+                // Fíjate que aquí usamos $tipoMaquina, $numeroSerie, etc.
+                navController.navigate(
+                    "dimensiones_eslabon/$tipoMaquina/$idEquipo/$numeroSerie/$horometroSeguro/$tieneFisura/$requiereReemplazo/$obsSegura"
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)), // Verde
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("INGRESAR DIMENSIONES", fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -261,40 +273,6 @@ fun PantallaRegistroEslabon(
                 Text("Volver", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
 
-            Button(
-                onClick = {
-                    val horometroVal = horometro.toDoubleOrNull() ?: 0.0
-
-                    val nuevaBitacora = Bitacora(
-                        usuarioRut = Sesion.rutUsuarioActual,
-                        identificadorMaquina = idEquipo,
-                        tipoMaquina = tipoMaquina, // <--- AHORA SÍ FUNCIONA
-                        tipoAditamento = "Eslabón Articulado",
-                        numeroSerie = numeroSerie,
-                        horometro = horometroVal,
-                        medidaNominal = 50.0,
-                        medidaActual = 48.0,
-                        porcentajeDesgaste = 4.0,
-                        tieneFisura = tieneFisura,
-                        requiereReemplazo = requiereReemplazo,
-                        observacion = observacion
-                    )
-
-                    db.collection("bitacoras")
-                        .add(nuevaBitacora)
-                        .addOnSuccessListener {
-                            navController.popBackStack()
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("Bitacora", "Error", e)
-                        }
-                },
-                modifier = Modifier.weight(1f).height(50.dp).padding(start = 8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF388E3C)),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Ingresar datos", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
         }
     }
 }

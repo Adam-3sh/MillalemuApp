@@ -47,10 +47,10 @@ object AppRoutes {
     const val FORMULARIO_ADITAMENTO = "formulario_aditamento"
     const val REGISTRO_MEDIDAS_ROUTE = "registro_medidas"
     const val REGISTRO_ESLABON = "registro_eslabon"
-    const val DIMENSIONES_ESLABON = "dimensiones_eslabon"
+    // const val DIMENSIONES_ESLABON = "dimensiones_eslabon" // <--- YA NO LA USAMOS ASÍ SOLA
     const val SELECCION_EQUIPO = "seleccion_equipo"
-    const val REGISTRO_TERMINAL = "registro_terminal" // Ruta para la Pantalla 1
-    const val DIMENSIONES_TERMINAL = "dimensiones_terminal" // Ruta para la Pantalla 2
+    const val REGISTRO_TERMINAL = "registro_terminal"
+    const val DIMENSIONES_TERMINAL = "dimensiones_terminal"
 }
 
 @Composable
@@ -85,9 +85,7 @@ fun AppNavigation() {
 
             composable(AppRoutes.LISTA_MAQUINAS) {
                 PantallaListaMaquinas(navController = navController)
-            } // <--- ¡AQUÍ SE CIERRA LISTA_MAQUINAS! (Antes no se cerraba)
-
-            // --- AHORA LAS OTRAS RUTAS ESTÁN AFUERA, AL MISMO NIVEL ---
+            }
 
             // Editar maquina
             composable(
@@ -130,9 +128,9 @@ fun AppNavigation() {
                 PantallaCalculadora(navController = navController)
             }
 
-            // Ruta ACTUALIZADA: formulario_aditamento/Volteo/VOL-01
+            // Formulario Aditamento
             composable(
-                route = "${AppRoutes.FORMULARIO_ADITAMENTO}/{tipoMaquina}/{idEquipo}", // <-- Agregamos idEquipo
+                route = "${AppRoutes.FORMULARIO_ADITAMENTO}/{tipoMaquina}/{idEquipo}",
                 arguments = listOf(
                     navArgument("tipoMaquina") { type = NavType.StringType },
                     navArgument("idEquipo") { type = NavType.StringType }
@@ -140,11 +138,10 @@ fun AppNavigation() {
             ) { backStackEntry ->
                 val tipo = backStackEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backStackEntry.arguments?.getString("idEquipo") ?: ""
-
                 PantallaFormularioAditamento(navController, tipo, idEquipo)
             }
 
-            // Ruta: registro_medidas/Volteo/Grillete
+            // Registro Medidas Genérico (Si aún lo usas)
             composable(
                 route = "${AppRoutes.REGISTRO_MEDIDAS_ROUTE}/{tipoMaquina}/{nombreAditamento}",
                 arguments = listOf(
@@ -154,27 +151,55 @@ fun AppNavigation() {
             ) { backStackEntry ->
                 val tipo = backStackEntry.arguments?.getString("tipoMaquina") ?: ""
                 val nombre = backStackEntry.arguments?.getString("nombreAditamento") ?: ""
-
                 PantallaRegistroMedidas(navController, tipo, nombre)
             }
 
-            // Ruta: registro_eslabon/Volteo/VOL-01
+            // Registro Eslabón (Pantalla 1)
             composable(
-                route = "${AppRoutes.REGISTRO_ESLABON}/{tipoMaquina}/{idEquipo}", // <-- Agregamos /{idEquipo} a la ruta
+                route = "${AppRoutes.REGISTRO_ESLABON}/{tipoMaquina}/{idEquipo}",
                 arguments = listOf(
                     navArgument("tipoMaquina") { type = NavType.StringType },
-                    navArgument("idEquipo") { type = NavType.StringType }     // <-- Definimos el argumento
+                    navArgument("idEquipo") { type = NavType.StringType }
                 )
             ) { backEntry ->
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
-
-                // Ahora sí pasamos los 3 parámetros que pide la pantalla
                 PantallaRegistroEslabon(navController, tipo, idEquipo)
             }
 
+            // --- AQUÍ ESTABA EL ERROR: ELIMINAMOS LA VERSIÓN ANTIGUA ---
+            /*
             composable(AppRoutes.DIMENSIONES_ESLABON) {
                 PantallaDimensionesEslabon(navController)
+            }
+            */
+
+            // --- ESTA ES LA VERSIÓN CORRECTA QUE DEBES MANTENER ---
+            composable(
+                route = "dimensiones_eslabon/{tipo}/{id}/{serie}/{horometro}/{fisura}/{reemplazo}/{obs}",
+                arguments = listOf(
+                    navArgument("tipo") { type = NavType.StringType },
+                    navArgument("id") { type = NavType.StringType },
+                    navArgument("serie") { type = NavType.StringType },
+                    navArgument("horometro") { type = NavType.StringType },
+                    navArgument("fisura") { type = NavType.BoolType },
+                    navArgument("reemplazo") { type = NavType.BoolType },
+                    navArgument("obs") { type = NavType.StringType }
+                )
+            ) { backEntry ->
+                val tipo = backEntry.arguments?.getString("tipo") ?: ""
+                val id = backEntry.arguments?.getString("id") ?: ""
+                val serie = backEntry.arguments?.getString("serie") ?: ""
+                val horometro = backEntry.arguments?.getString("horometro") ?: "0.0"
+                val fisura = backEntry.arguments?.getBoolean("fisura") ?: false
+                val reemplazo = backEntry.arguments?.getBoolean("reemplazo") ?: false
+                val obs = backEntry.arguments?.getString("obs") ?: ""
+
+                // Llamada con TODOS los parámetros
+                PantallaDimensionesEslabon(
+                    navController,
+                    tipo, id, serie, horometro, fisura, reemplazo, obs
+                )
             }
 
             composable(
@@ -185,18 +210,15 @@ fun AppNavigation() {
                 PantallaSeleccionarEquipo(navController, tipo)
             }
 
-            // Ruta para el Registro de Terminal
             composable("${AppRoutes.REGISTRO_TERMINAL}/{tipoMaquina}/{idEquipo}") { backEntry ->
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
                 PantallaRegistroTerminal(navController, tipo, idEquipo)
             }
 
-            // Ruta futura para Dimensiones (La crearemos después)
             composable(AppRoutes.DIMENSIONES_TERMINAL) {
-                // PantallaDimensionesTerminal(navController) // Descomentar cuando la creemos
+                // PantallaDimensionesTerminal(navController)
             }
-            // Agregar mas
         }
     }
 }

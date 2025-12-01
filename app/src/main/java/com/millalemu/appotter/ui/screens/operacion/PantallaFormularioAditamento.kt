@@ -46,7 +46,6 @@ fun PantallaFormularioAditamento(
             ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
             ItemAditamento("Eslabón Salida", R.drawable.eslabon_salida),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
-            ItemAditamento("Eslabón Articulado", R.drawable.eslabon_articulado),
             ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia)
         )
     } else {
@@ -85,30 +84,30 @@ fun PantallaFormularioAditamento(
             modifier = Modifier.weight(1f)
         ) {
             items(listaAditamentos) { item ->
-                // Llamada al componente visual de la tarjeta
                 CardAditamento(item = item, onClick = {
 
-                    // --- LÓGICA DE NAVEGACIÓN ---
+                    // --- LÓGICA DE NAVEGACIÓN CORREGIDA ---
                     when (item.nombre) {
-                        // Caso 1: Eslabón Articulado
-                        "Eslabón Articulado" -> {
+
+                        // CASO 1: Agrupamos Entrada y Salida para que vayan a la misma pantalla
+                        "Eslabón Entrada", "Eslabón Salida" -> {
+                            // IMPORTANTE: Aquí deberíamos pasarle cuál es (Entrada o Salida)
+                            // Pero por ahora, para que "entre", usamos la ruta base.
                             navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo")
                         }
 
-                        // Caso 2: Terminal de Cuña (¡NUEVO!)
+                        // CASO 2: Terminal de Cuña
                         "Terminal de Cuña" -> {
                             navController.navigate("${AppRoutes.REGISTRO_TERMINAL}/$tipoMaquina/$idEquipo")
                         }
 
-                        // Caso 3: Cable de Asistencia (Futuro)
+                        // Otros casos futuros...
                         "Cable Asistencia" -> {
-                            // TODO: Conectar cuando creemos la pantalla del cable
+                            // TODO: Conectar pantalla cable
                         }
 
-                        // Resto de casos (Por ahora no hacen nada o van a una genérica)
                         else -> {
-                            // Puedes redirigirlos a Eslabón temporalmente si quieres probar
-                            // navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo")
+                            // Opción por defecto o log de error
                         }
                     }
                 })
