@@ -276,7 +276,7 @@ fun PantallaDimensionesEslabon(
 
             Button(
                 onClick = {
-                    // 1. Convertir todo a números seguros
+                    // 1. Convertir todo a números
                     val kNom = nominalK.replace(',', '.').toDoubleOrNull() ?: 0.0
                     val aNom = nominalA.replace(',', '.').toDoubleOrNull() ?: 0.0
                     val dNom = nominalD.replace(',', '.').toDoubleOrNull() ?: 0.0
@@ -289,37 +289,40 @@ fun PantallaDimensionesEslabon(
 
                     val horometroVal = horometro.toDoubleOrNull() ?: 0.0
 
-                    // 2. Crear objeto Bitacora Completo
+                    // 2. Crear el objeto DetallesEslabon
+                    val detalles = com.millalemu.appotter.data.DetallesEslabon(
+                        kNominal = kNom, aNominal = aNom, dNominal = dNom, bNominal = bNom,
+                        kActual = kAct, aActual = aAct, dActual = dAct, bActual = bAct
+                    )
+
+                    // 3. Crear la Bitácora Principal
                     val nuevaBitacora = Bitacora(
                         usuarioRut = Sesion.rutUsuarioActual,
                         identificadorMaquina = idEquipo,
                         tipoMaquina = tipoMaquina,
-                        tipoAditamento = "Eslabón",
+                        tipoAditamento = "Eslabón Articulado",
                         numeroSerie = numeroSerie,
                         horometro = horometroVal,
-
-                        // Medidas Nominales
-                        kNominal = kNom, aNominal = aNom, dNominal = dNom, bNominal = bNom,
-                        // Medidas Actuales
-                        kActual = kAct, aActual = aAct, dActual = dAct, bActual = bAct,
-
-                        // Inspección
                         tieneFisura = tieneFisura,
                         requiereReemplazo = requiereReemplazo,
-                        observacion = observacion
+                        observacion = observacion,
+
+                        // AQUÍ LA MAGIA: Asignamos el objeto detalle y dejamos cadena en null
+                        detallesEslabon = detalles,
+                        detallesCadena = null
                     )
 
-                    // 3. Guardar en Firebase
+                    // 4. Guardar
                     db.collection("bitacoras")
                         .add(nuevaBitacora)
                         .addOnSuccessListener {
-                            // Volvemos al menú principal para evitar duplicados
                             navController.popBackStack(AppRoutes.MENU, false)
                         }
                         .addOnFailureListener { e ->
-                            Log.e("PantallaDimensiones", "Error al guardar bitácora", e)
+                            Log.e("PantallaDimensiones", "Error al guardar", e)
                         }
                 },
+                // ... (resto de estilos del botón)
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF33691E)),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.weight(1f).padding(start = 8.dp)

@@ -37,13 +37,13 @@ fun PantallaFormularioAditamento(
     idEquipo: String     // Ej: "VOL-01"
 ) {
 
-    // Lista de aditamentos (solo se llenan si es Volteo por ahora)
+    // Lista de aditamentos
     val listaAditamentos = if (tipoMaquina == "Volteo") {
         listOf(
             ItemAditamento("Grillete CM Lira", R.drawable.grillete_cm_lira),
             ItemAditamento("Gancho Ojo Fijo", R.drawable.gancho_ojo_fijo),
             ItemAditamento("Eslabón Entrada", R.drawable.eslabon_entrada),
-            ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
+            ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia), // <-- ESTE ES EL QUE VAMOS A PROBAR
             ItemAditamento("Eslabón Salida", R.drawable.eslabon_salida),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
             ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia)
@@ -55,19 +55,19 @@ fun PantallaFormularioAditamento(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5)) // Fondo gris suave
+            .background(Color(0xFFF5F5F5))
     ) {
 
         // 1. Encabezado Verde
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF33691E)) // Verde elegante
+                .background(Color(0xFF33691E))
                 .padding(vertical = 20.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "EQUIPO $idEquipo ($tipoMaquina)", // Título dinámico
+                text = "EQUIPO $idEquipo ($tipoMaquina)",
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
@@ -86,28 +86,29 @@ fun PantallaFormularioAditamento(
             items(listaAditamentos) { item ->
                 CardAditamento(item = item, onClick = {
 
-                    // --- LÓGICA DE NAVEGACIÓN CORREGIDA ---
+                    // --- LÓGICA DE NAVEGACIÓN ---
                     when (item.nombre) {
 
-                        // CASO 1: Agrupamos Entrada y Salida para que vayan a la misma pantalla
-                        "Eslabón Entrada", "Eslabón Salida" -> {
-                            // IMPORTANTE: Aquí deberíamos pasarle cuál es (Entrada o Salida)
-                            // Pero por ahora, para que "entre", usamos la ruta base.
-                            navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo")
+                        // Caso 1: Cadena de Asistencia (EL NUEVO)
+                        "Cadena Asistencia" -> {
+                            // Navegamos a la nueva pantalla única de registro
+                            navController.navigate("${AppRoutes.REGISTRO_CADENA}/$tipoMaquina/$idEquipo")
                         }
 
-                        // CASO 2: Terminal de Cuña
+                        // Caso 2: Eslabones (Entrada y Salida van al mismo flujo antiguo por ahora)
+                        "Eslabón Entrada", "Eslabón Salida" -> {
+                            // Ahora pasamos el nombre del ítem (item.nombre) en la URL
+                            navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo/${item.nombre}")
+                        }
+
+                        // Caso 3: Terminal de Cuña
                         "Terminal de Cuña" -> {
                             navController.navigate("${AppRoutes.REGISTRO_TERMINAL}/$tipoMaquina/$idEquipo")
                         }
 
-                        // Otros casos futuros...
-                        "Cable Asistencia" -> {
-                            // TODO: Conectar pantalla cable
-                        }
-
+                        // Resto de casos (Futuros)
                         else -> {
-                            // Opción por defecto o log de error
+                            // Por ahora no hacen nada
                         }
                     }
                 })
@@ -136,7 +137,7 @@ fun PantallaFormularioAditamento(
 }
 
 /**
- * Componente visual de la tarjeta (Imagen + Texto)
+ * Componente visual de la tarjeta
  */
 @Composable
 fun CardAditamento(item: ItemAditamento, onClick: () -> Unit) {

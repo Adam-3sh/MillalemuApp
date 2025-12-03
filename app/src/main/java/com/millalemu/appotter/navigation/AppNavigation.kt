@@ -23,6 +23,7 @@ import com.millalemu.appotter.ui.screens.admin.PantallaIngresarMaquina
 import com.millalemu.appotter.ui.screens.admin.PantallaListaMaquinas
 import com.millalemu.appotter.ui.screens.admin.PantallaListaUsuarios
 import com.millalemu.appotter.ui.screens.auth.PantallaLogin
+import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroCadena // <--- IMPORT QUE FALTABA
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroEslabon
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroMedidas
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroTerminal
@@ -47,10 +48,11 @@ object AppRoutes {
     const val FORMULARIO_ADITAMENTO = "formulario_aditamento"
     const val REGISTRO_MEDIDAS_ROUTE = "registro_medidas"
     const val REGISTRO_ESLABON = "registro_eslabon"
-    // const val DIMENSIONES_ESLABON = "dimensiones_eslabon" // <--- YA NO LA USAMOS ASÍ SOLA
+    // const val DIMENSIONES_ESLABON = "dimensiones_eslabon"
     const val SELECCION_EQUIPO = "seleccion_equipo"
     const val REGISTRO_TERMINAL = "registro_terminal"
     const val DIMENSIONES_TERMINAL = "dimensiones_terminal"
+    const val REGISTRO_CADENA = "registro_cadena"
 }
 
 @Composable
@@ -141,7 +143,7 @@ fun AppNavigation() {
                 PantallaFormularioAditamento(navController, tipo, idEquipo)
             }
 
-            // Registro Medidas Genérico (Si aún lo usas)
+            // Registro Medidas Genérico
             composable(
                 route = "${AppRoutes.REGISTRO_MEDIDAS_ROUTE}/{tipoMaquina}/{nombreAditamento}",
                 arguments = listOf(
@@ -154,27 +156,23 @@ fun AppNavigation() {
                 PantallaRegistroMedidas(navController, tipo, nombre)
             }
 
-            // Registro Eslabón (Pantalla 1)
             composable(
-                route = "${AppRoutes.REGISTRO_ESLABON}/{tipoMaquina}/{idEquipo}",
+                route = "${AppRoutes.REGISTRO_ESLABON}/{tipoMaquina}/{idEquipo}/{nombreAditamento}", // <--- NUEVO PARÁMETRO
                 arguments = listOf(
                     navArgument("tipoMaquina") { type = NavType.StringType },
-                    navArgument("idEquipo") { type = NavType.StringType }
+                    navArgument("idEquipo") { type = NavType.StringType },
+                    navArgument("nombreAditamento") { type = NavType.StringType } // <--- DEFINIR TIPO
                 )
             ) { backEntry ->
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
-                PantallaRegistroEslabon(navController, tipo, idEquipo)
+                val nombreAditamento = backEntry.arguments?.getString("nombreAditamento") ?: "Eslabón"
+
+                // Llamamos a la pantalla actualizada
+                PantallaRegistroEslabon(navController, tipo, idEquipo, nombreAditamento)
             }
 
-            // --- AQUÍ ESTABA EL ERROR: ELIMINAMOS LA VERSIÓN ANTIGUA ---
-            /*
-            composable(AppRoutes.DIMENSIONES_ESLABON) {
-                PantallaDimensionesEslabon(navController)
-            }
-            */
-
-            // --- ESTA ES LA VERSIÓN CORRECTA QUE DEBES MANTENER ---
+            // Dimensiones Eslabón (Pantalla 2)
             composable(
                 route = "dimensiones_eslabon/{tipo}/{id}/{serie}/{horometro}/{fisura}/{reemplazo}/{obs}",
                 arguments = listOf(
@@ -195,7 +193,6 @@ fun AppNavigation() {
                 val reemplazo = backEntry.arguments?.getBoolean("reemplazo") ?: false
                 val obs = backEntry.arguments?.getString("obs") ?: ""
 
-                // Llamada con TODOS los parámetros
                 PantallaDimensionesEslabon(
                     navController,
                     tipo, id, serie, horometro, fisura, reemplazo, obs
@@ -218,6 +215,21 @@ fun AppNavigation() {
 
             composable(AppRoutes.DIMENSIONES_TERMINAL) {
                 // PantallaDimensionesTerminal(navController)
+            }
+
+            // --- ESTE ES EL BLOQUE QUE TE FALTABA PARA QUE LA CADENA FUNCIONE ---
+            composable(
+                route = "${AppRoutes.REGISTRO_CADENA}/{tipoMaquina}/{idEquipo}",
+                arguments = listOf(
+                    navArgument("tipoMaquina") { type = NavType.StringType },
+                    navArgument("idEquipo") { type = NavType.StringType }
+                )
+            ) { backEntry ->
+                val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
+                val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
+
+                // Llamamos a tu nueva pantalla única
+                PantallaRegistroCadena(navController, tipo, idEquipo)
             }
         }
     }
