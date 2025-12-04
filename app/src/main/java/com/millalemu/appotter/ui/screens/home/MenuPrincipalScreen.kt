@@ -7,7 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.* // Importante para remember, mutableStateOf y LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,11 +21,51 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.millalemu.appotter.R
+import com.millalemu.appotter.db // Importamos la base de datos
 import com.millalemu.appotter.navigation.AppRoutes
 import com.millalemu.appotter.ui.components.BotonMenu
+import com.millalemu.appotter.utils.Sesion // Importamos tu objeto de sesión
 
 @Composable
 fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavController) {
+
+    // --- ESTADOS PARA LOS DATOS DEL USUARIO ---
+    var nombreUsuario by remember { mutableStateOf("Cargando...") }
+    var tipoUsuario by remember { mutableStateOf("") }
+
+    // --- LÓGICA: BUSCAR DATOS USANDO EL RUT DE LA SESIÓN ---
+    LaunchedEffect(Unit) {
+        val rutActual = Sesion.rutUsuarioActual
+
+        if (rutActual.isNotEmpty()) {
+            // Buscamos en la colección "usuarios" donde el campo "rut" coincida con el de la sesión
+            db.collection("usuarios")
+                .whereEqualTo("rut", rutActual)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (!documents.isEmpty) {
+                        val document = documents.documents[0] // Tomamos el primer resultado
+
+                        val nombre = document.getString("nombre") ?: ""
+                        val apellido = document.getString("apellido") ?: ""
+                        val tipo = document.getString("tipo_usuario") ?: ""
+
+                        // Formateamos para mostrar
+                        nombreUsuario = "$nombre $apellido".trim()
+                        tipoUsuario = if (tipo.isNotEmpty()) "($tipo)" else ""
+
+                        if (nombreUsuario.isBlank()) nombreUsuario = "Usuario"
+                    } else {
+                        nombreUsuario = "Usuario no encontrado"
+                    }
+                }
+                .addOnFailureListener {
+                    nombreUsuario = "Sin conexión"
+                }
+        } else {
+            nombreUsuario = "Modo Invitado"
+        }
+    }
 
     Column(
         modifier = modifier
@@ -34,7 +74,7 @@ fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavControl
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // --- 1. HEADER CON IMAGEN DE BOSQUE (RECTO) ---
+        // --- 1. HEADER CON IMAGEN DE BOSQUE ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -47,7 +87,7 @@ fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavControl
                 contentScale = ContentScale.Crop
             )
 
-            // --- NOMBRE Y CARGO ---
+            // --- NOMBRE Y CARGO (Ahora son dinámicos) ---
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -56,7 +96,7 @@ fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavControl
                     .padding(horizontal = 20.dp, vertical = 10.dp)
             ) {
                 Text(
-                    text = "Adam Albornoz (Administrador)",
+                    text = "$nombreUsuario $tipoUsuario",
                     color = Color.Black,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp
@@ -132,13 +172,11 @@ fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavControl
         // --- 4. FOOTER CON LOGO ---
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            // CAMBIO: Aumentamos el padding bottom a 64.dp para subirlo más
             modifier = Modifier.padding(bottom = 64.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo_millalemu),
                 contentDescription = "Logo Millalemu",
-                // CAMBIO: Aumentamos el tamaño a 320.dp
                 modifier = Modifier.width(320.dp),
                 contentScale = ContentScale.Fit
             )

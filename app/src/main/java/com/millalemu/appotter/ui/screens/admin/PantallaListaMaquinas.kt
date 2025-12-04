@@ -1,199 +1,173 @@
 package com.millalemu.appotter.ui.screens.admin
 
-import com.millalemu.appotter.R
 import android.util.Log
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Build // Icono de Herramienta seguro
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.millalemu.appotter.data.Maquina // <-- Importamos nuestro molde
-import com.millalemu.appotter.db // <-- Importamos la base de datos
+import com.millalemu.appotter.data.Maquina
+import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
 
-private const val TAG = "ListaMaquinasScreen"
+// Colores Corporativos
+private val AzulOscuro = Color(0xFF1565C0)
+private val FondoGris = Color(0xFFF5F5F5)
+private val RojoAlerta = Color(0xFFD32F2F)
 
 @Composable
 fun PantallaListaMaquinas(modifier: Modifier = Modifier, navController: NavController) {
 
-    // --- 1. ESTADO DE LA LISTA ---
-    // Aquí guardaremos las máquinas que traigamos de Firebase.
-    // Empezará como una lista vacía.
     var listaMaquinas by remember { mutableStateOf(emptyList<Maquina>()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    // --- 2. LECTURA DE FIREBASE ---
-    // Este "LaunchedEffect" se ejecuta 1 sola vez cuando la pantalla aparece.
-    // Es el lugar perfecto para pedir datos.
     LaunchedEffect(Unit) {
-        Log.d(TAG, "Buscando máquinas en Firebase...")
-
-        db.collection("maquinaria")
-            .orderBy("identificador") // Opcional: ordenarlas alfabéticamente
-            .get()
+        db.collection("maquinaria").orderBy("identificador").get()
             .addOnSuccessListener { snapshot ->
-                // Éxito: snapshot contiene todos los documentos
-                val maquinas = snapshot.documents.mapNotNull { doc ->
-                    // Convertimos cada documento a nuestro "molde" (data class Maquina)
+                listaMaquinas = snapshot.documents.mapNotNull { doc ->
                     doc.toObject(Maquina::class.java)?.copy(id = doc.id)
                 }
-                listaMaquinas = maquinas // Actualizamos el estado
-                Log.d(TAG, "Máquinas encontradas: ${maquinas.size}")
+                isLoading = false
             }
-            .addOnFailureListener { e ->
-                // Error:
-                Log.w(TAG, "Error al buscar máquinas", e)
-            }
+            .addOnFailureListener { isLoading = false }
     }
 
-    // --- 3. UI (LA PANTALLA) ---
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 16.dp),
+            .background(FondoGris)
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // ENCABEZADO
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Gestión de Maquinaria",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = AzulOscuro
+            )
 
-        // Logo
-        Image(
-            painter = painterResource(id = R.drawable.logo_millalemu),
-            contentDescription = "Logo Millalemu",
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .height(100.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- INICIO DE LA TABLA ---
-        Column(modifier = Modifier.border(1.dp, Color.Gray)) {
-
-            // Cabecera de la tabla (como en tu mockup)
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF1E88E5)) // Fondo azul
-                    .padding(8.dp)
+            // Botón Flotante "Agregar"
+            FloatingActionButton(
+                onClick = { navController.navigate(AppRoutes.INGRESAR_MAQUINA) },
+                containerColor = AzulOscuro,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(48.dp)
             ) {
-                Text(text = "Identificador", modifier = Modifier.weight(1f), color = Color.White, fontWeight = FontWeight.Bold)
-                Text(text = "Nombre", modifier = Modifier.weight(1f), color = Color.White, fontWeight = FontWeight.Bold)
-                Text(text = "Acciones", modifier = Modifier.weight(1f), color = Color.White, fontWeight = FontWeight.Bold)
+                Icon(Icons.Default.Add, contentDescription = "Nueva Máquina")
             }
+        }
 
-            // --- LISTA SCROLLABLE ---
+        if (isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = AzulOscuro)
+            }
+        } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f) // Ocupa todo el espacio disponible
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(listaMaquinas) { maquina ->
-                    // Cada fila de la lista
-                    MaquinaListItem(
+                    MaquinaCard(
                         maquina = maquina,
-                        onEdit = {
-                            // --- ¡CAMBIO AQUÍ! ---
-                            Log.d(TAG, "Editar ${maquina.identificador}")
-                            // Construimos la ruta: "editar_maquina/ID_REAL_DE_LA_MAQUINA"
-                            navController.navigate("${AppRoutes.EDITAR_MAQUINA_ROUTE}/${maquina.id}")
-                            // ---------------------
-                        },
+                        onEdit = { navController.navigate("${AppRoutes.EDITAR_MAQUINA_ROUTE}/${maquina.id}") },
                         onDelete = {
-                            // --- ¡NUEVA LÓGICA DE BORRADO! ---
-                            Log.d(TAG, "Borrando ${maquina.identificador}...")
-
-                            // 1. Mandamos la orden de borrar a Firebase usando el ID
-                            db.collection("maquinaria").document(maquina.id)
-                                .delete()
+                            db.collection("maquinaria").document(maquina.id).delete()
                                 .addOnSuccessListener {
-                                    // 2. ¡Éxito! Firebase lo borró.
-                                    Log.d(TAG, "Máquina borrada de Firebase.")
-
-                                    // 3. Actualizamos nuestra lista local
-                                    // Creamos una NUEVA lista que filtra (excluye)
-                                    // la máquina que acabamos de borrar.
                                     listaMaquinas = listaMaquinas.filterNot { it.id == maquina.id }
                                 }
-                                .addOnFailureListener { e ->
-                                    // 3. Error
-                                    Log.w(TAG, "Error al borrar máquina", e)
-                                }
-                            // ------------------------------------
                         }
                     )
                 }
             }
-        } // --- FIN DE LA TABLA ---
+        }
 
-        Spacer(modifier = Modifier.weight(1f)) // Empuja el botón "Volver" al fondo
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Botón Volver
         Button(
-            onClick = {
-                navController.popBackStack() // Regresa a la pantalla anterior
-            },
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .height(60.dp),
+            onClick = { navController.popBackStack() },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
             shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)) // Azul
+            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+            border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro)
         ) {
-            Text(text = "Volver", fontSize = 18.sp, color = Color.White)
+            Text("Volver al Menú", fontSize = 16.sp, color = AzulOscuro, fontWeight = FontWeight.Bold)
         }
     }
 }
 
-/**
- * Un Composable para cada fila de la lista de máquinas.
- */
 @Composable
-fun MaquinaListItem(
-    maquina: Maquina,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(0.5.dp, Color.LightGray)
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+fun MaquinaCard(maquina: Maquina, onEdit: () -> Unit, onDelete: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Text(text = maquina.identificador, modifier = Modifier.weight(1f))
-        Text(text = maquina.nombre, modifier = Modifier.weight(1f))
-
-        // Columna para los botones de acción
-        Row(modifier = Modifier.weight(1f)) {
-            Button(
-                onClick = onEdit,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Blue),
-                modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .height(35.dp)
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icono Herramienta
+            Surface(
+                shape = CircleShape,
+                color = FondoGris,
+                modifier = Modifier.size(50.dp)
             ) {
-                Text("Editar", fontSize = 10.sp)
+                Icon(
+                    imageVector = Icons.Default.Build,
+                    contentDescription = null,
+                    tint = AzulOscuro,
+                    modifier = Modifier.padding(12.dp)
+                )
             }
 
-            Button(
-                onClick = onDelete,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                modifier = Modifier.height(35.dp)
-            ) {
-                Text("Borrar", fontSize = 10.sp)
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Datos
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = maquina.identificador,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.Black
+                )
+                Text(
+                    text = maquina.nombre, // Tipo (Volteo/Madereo)
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            }
+
+            // Acciones
+            Row {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = AzulOscuro)
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Borrar", tint = RojoAlerta)
+                }
             }
         }
     }

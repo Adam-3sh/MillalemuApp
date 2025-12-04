@@ -1,252 +1,171 @@
 package com.millalemu.appotter.ui.screens.admin
 
-import com.millalemu.appotter.R
 import android.util.Log
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.millalemu.appotter.data.Maquina // <-- Importamos el molde
+import com.millalemu.appotter.data.Maquina
 import com.millalemu.appotter.db
-import com.millalemu.appotter.ui.components.LabelAzul
 import com.google.firebase.firestore.FieldValue
 
-private const val TAG = "EditarMaquinaScreen"
+private val AzulOscuro = Color(0xFF1565C0)
+private val VerdeAccion = Color(0xFF2E7D32)
+private val FondoGris = Color(0xFFF5F5F5)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaEditarMaquina(
-    modifier: Modifier = Modifier,
-    navController: NavController,
-    maquinaId: String // <-- ¡Recibimos el ID!
-) {
+fun PantallaEditarMaquina(modifier: Modifier = Modifier, navController: NavController, maquinaId: String) {
 
-    // --- Estados para los campos ---
     val opcionesNombre = listOf("Madereo", "Volteo")
     var expanded by remember { mutableStateOf(false) }
-    var nombreSeleccionado by remember { mutableStateOf("Seleccionar") }
+    var nombreSeleccionado by remember { mutableStateOf("") }
     var identificador by remember { mutableStateOf("") }
     var mensajeErrorUI by remember { mutableStateOf("") }
 
-    // --- LÓGICA DE CARGA DE DATOS ---
-    // Usamos 'LaunchedEffect' para buscar los datos de ESTA máquina 1 sola vez
+    // Cargar datos
     LaunchedEffect(maquinaId) {
-        Log.d(TAG, "Buscando datos para la máquina ID: $maquinaId")
-
-        db.collection("maquinaria").document(maquinaId)
-            .get()
+        db.collection("maquinaria").document(maquinaId).get()
             .addOnSuccessListener { doc ->
-                if (doc.exists()) {
-                    // ¡Encontramos la máquina!
-                    val maquina = doc.toObject(Maquina::class.java)
-                    if (maquina != null) {
-                        // Rellenamos los campos con los datos actuales
-                        nombreSeleccionado = maquina.nombre
-                        identificador = maquina.identificador
-                        Log.d(TAG, "Máquina cargada: $nombreSeleccionado, $identificador")
-                    }
-                } else {
-                    Log.w(TAG, "No se encontró la máquina con ID: $maquinaId")
+                val maquina = doc.toObject(Maquina::class.java)
+                if (maquina != null) {
+                    nombreSeleccionado = maquina.nombre
+                    identificador = maquina.identificador
                 }
-            }
-            .addOnFailureListener { e ->
-                Log.w(TAG, "Error al cargar la máquina", e)
             }
     }
 
-    // --- UI (Es casi igual a la de Ingresar Maquina) ---
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 16.dp),
+            .background(FondoGris)
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        Image(
-            painter = painterResource(id = R.drawable.logo_millalemu),
-            contentDescription = "Logo Millalemu",
-            modifier = Modifier.fillMaxWidth(0.8f).height(100.dp),
-            contentScale = ContentScale.Fit
-        )
-
+        Icon(Icons.Default.Edit, null, tint = AzulOscuro, modifier = Modifier.size(60.dp))
         Text(
-            text = "Editar maquinaria:", // Título cambiado
-            fontSize = 22.sp,
+            text = "Editar Maquinaria",
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
+            color = AzulOscuro,
             modifier = Modifier.padding(vertical = 16.dp)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Campo "Nombre" (Dropdown)
-        Row(
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            LabelAzul(text = "Nombre")
-            Spacer(modifier = Modifier.width(8.dp))
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.weight(1f)
-            ) {
-                TextField(
-                    value = nombreSeleccionado,
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                    modifier = Modifier.menuAnchor()
-                )
-                ExposedDropdownMenu(
+            Column(Modifier.padding(24.dp)) {
+
+                Text("Tipo de Máquina", color = AzulOscuro, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                ExposedDropdownMenuBox(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                 ) {
-                    opcionesNombre.forEach { opcion ->
-                        DropdownMenuItem(
-                            text = { Text(opcion) },
-                            onClick = {
-                                nombreSeleccionado = opcion
-                                expanded = false
-                            }
-                        )
+                    OutlinedTextField(
+                        value = nombreSeleccionado,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AzulOscuro, unfocusedBorderColor = Color.LightGray),
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        opcionesNombre.forEach { opcion ->
+                            DropdownMenuItem(text = { Text(opcion) }, onClick = { nombreSeleccionado = opcion; expanded = false })
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("Identificador", color = AzulOscuro, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                OutlinedTextField(
+                    value = identificador,
+                    onValueChange = { identificador = it },
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AzulOscuro, unfocusedBorderColor = Color.LightGray)
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Campo "Identificador" (Texto)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            LabelAzul(text = "Identificador")
-            Spacer(modifier = Modifier.width(8.dp))
-            OutlinedTextField(
-                value = identificador,
-                onValueChange = { identificador = it },
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Mostramos el mensaje de error si no está vacío
         if (mensajeErrorUI.isNotEmpty()) {
-            Text(
-                text = mensajeErrorUI,
-                color = Color.Red,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            Text(mensajeErrorUI, color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
         }
 
-        // --- Botón GUARDAR ---
-        Button(
-            onClick = {
-                // 0. Limpiar error previo al hacer clic
-                mensajeErrorUI = ""
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.weight(1f).height(50.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro)
+            ) {
+                Text("Cancelar", color = AzulOscuro, fontWeight = FontWeight.Bold)
+            }
 
-                // 1. Normalizar la entrada: quitamos espacios y la ponemos en mayúsculas
-                val idNormalizado = identificador.trim().uppercase()
+            Button(
+                onClick = {
+                    mensajeErrorUI = ""
+                    val idNormalizado = identificador.trim().uppercase()
+                    val regexPatron = Regex("^[A-Z]{2}-\\d{2}$")
 
-                // 2. Definir el patrón Regex: Dos letras, un guion, dos números
-                val regexPatron = Regex("^[A-Z]{2}-\\d{2}$")
+                    if (identificador.isBlank()) {
+                        mensajeErrorUI = "Identificador obligatorio"
+                    } else if (!regexPatron.matches(idNormalizado)) {
+                        mensajeErrorUI = "Formato inválido (Use XX-00)"
+                    } else {
+                        val prefijo = idNormalizado.substring(0, 2)
+                        var esValido = true
 
-                // 3. Variables para la validación
-                var esError = false
-                var mensajeError = ""
-
-                // --- INICIO DE REGLAS ---
-                if (nombreSeleccionado == "Seleccionar") {
-                    esError = true
-                    mensajeError = "Debes seleccionar un Nombre (Madereo o Volteo)."
-                }
-                else if (identificador.isBlank()) {
-                    esError = true
-                    mensajeError = "El campo Identificador no puede estar vacío."
-                }
-                // Regla de Formato
-                else if (!regexPatron.matches(idNormalizado)) {
-                    esError = true
-                    mensajeError = "Formato incorrecto. Debe ser XX-NN (ej: SG-05)."
-                }
-                else {
-                    // Si el formato es XX-NN, revisamos la Regla de Contexto
-                    val prefijo = idNormalizado.substring(0, 2) // Extrae las dos letras
-
-                    if (nombreSeleccionado == "Madereo" && prefijo != "SG") {
-                        esError = true
-                        mensajeError = "Para 'Madereo', el identificador debe empezar con SG-."
-                    }
-                    else if (nombreSeleccionado == "Volteo" && (prefijo != "HM" && prefijo != "FM")) {
-                        esError = true
-                        mensajeError = "Para 'Volteo', el identificador debe empezar con HM- o FM-."
-                    }
-                }
-                // --- FIN DE REGLAS ---
-
-
-                // 4. Actuar según la validación
-                if (esError) {
-                    // Hay un error, mostrarlo al usuario
-                    Log.w(TAG, "Validación fallida: $mensajeError")
-                    mensajeErrorUI = mensajeError // <-- ¡ACTUALIZA EL ESTADO DE LA UI!
-
-                } else {
-                    // ¡Validación exitosa! Actualizamos en Firebase
-                    Log.d(TAG, "Validación exitosa. Guardando cambios...")
-
-                    val maquinaActualizada = mapOf(
-                        "nombre" to nombreSeleccionado,
-                        "identificador" to idNormalizado, // Guardamos la versión normalizada
-                        "fechaModificacion" to FieldValue.serverTimestamp()
-                    )
-
-                    db.collection("maquinaria").document(maquinaId)
-                        .update(maquinaActualizada) // <-- ¡UPDATE!
-                        .addOnSuccessListener {
-                            Log.d(TAG, "Máquina actualizada con éxito.")
-                            navController.popBackStack() // Volver a la lista
+                        if (nombreSeleccionado == "Madereo" && prefijo != "SG") {
+                            mensajeErrorUI = "Madereo debe empezar con SG-"
+                            esValido = false
+                        } else if (nombreSeleccionado == "Volteo" && (prefijo != "HM" && prefijo != "FM")) {
+                            mensajeErrorUI = "Volteo debe empezar con HM- o FM-"
+                            esValido = false
                         }
-                        .addOnFailureListener { e ->
-                            Log.w(TAG, "Error al actualizar la máquina", e)
-                            // Si falla el guardado, también lo mostramos
-                            mensajeErrorUI = "Error al guardar: ${e.message}"
+
+                        if (esValido) {
+                            val updates = mapOf(
+                                "nombre" to nombreSeleccionado,
+                                "identificador" to idNormalizado,
+                                "fechaModificacion" to FieldValue.serverTimestamp()
+                            )
+                            db.collection("maquinaria").document(maquinaId).update(updates)
+                                .addOnSuccessListener { navController.popBackStack() }
+                                .addOnFailureListener { mensajeErrorUI = "Error: ${it.message}" }
                         }
-                }
-            },
-            modifier = Modifier.fillMaxWidth(0.6f).height(50.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)) // Verde
-        ) {
-            Text(text = "GUARDAR", fontSize = 16.sp, color = Color.White)
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Botón Volver
-        Button(
-            onClick = {
-                navController.popBackStack() // Regresa a la lista
-            },
-            modifier = Modifier.fillMaxWidth(0.9f).height(60.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)) // Azul
-        ) {
-            Text(text = "Volver", fontSize = 18.sp, color = Color.White)
+                    }
+                },
+                modifier = Modifier.weight(1f).height(50.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = VerdeAccion)
+            ) {
+                Text("Guardar", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

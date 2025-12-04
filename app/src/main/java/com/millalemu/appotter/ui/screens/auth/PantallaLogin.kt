@@ -36,12 +36,12 @@ fun PantallaLogin(navController: NavController) {
     var cargando by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 1. IMAGEN DE FONDO (Bosque)
+        // 1. IMAGEN DE FONDO
         Image(
             painter = painterResource(id = R.drawable.bosque),
             contentDescription = "Fondo Bosque",
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop // Para que cubra toda la pantalla
+            contentScale = ContentScale.Crop
         )
 
         // 2. CONTENIDO CENTRADO
@@ -53,8 +53,7 @@ fun PantallaLogin(navController: NavController) {
             verticalArrangement = Arrangement.Center
         ) {
 
-            // Logo (Fuera de la tarjeta, para que resalte sobre el bosque)
-            // Puedes ajustarlo si quieres que esté dentro
+            // Logo
             Image(
                 painter = painterResource(id = R.drawable.logo_millalemu),
                 contentDescription = "Logo",
@@ -71,7 +70,7 @@ fun PantallaLogin(navController: NavController) {
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                modifier = Modifier.fillMaxWidth(0.9f) // Ocupa el 90% del ancho
+                modifier = Modifier.fillMaxWidth(0.9f)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -91,7 +90,8 @@ fun PantallaLogin(navController: NavController) {
                         text = "Rut",
                         modifier = Modifier.fillMaxWidth(),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        color = Color.Black // Texto etiqueta negro
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     TextField(
@@ -99,11 +99,14 @@ fun PantallaLogin(navController: NavController) {
                         onValueChange = { rut = it },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp)), // Bordes redondeados
+                            .clip(RoundedCornerShape(8.dp)),
+                        // CORRECCIÓN: Forzar texto negro para que se vea
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFE0E0E0), // Gris suave
+                            focusedContainerColor = Color(0xFFE0E0E0),
                             unfocusedContainerColor = Color(0xFFE0E0E0),
-                            focusedIndicatorColor = Color.Transparent, // Sin línea abajo
+                            focusedTextColor = Color.Black, // IMPORTANTE
+                            unfocusedTextColor = Color.Black, // IMPORTANTE
+                            focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
                         ),
                         singleLine = true
@@ -116,20 +119,24 @@ fun PantallaLogin(navController: NavController) {
                         text = "Contraseña",
                         modifier = Modifier.fillMaxWidth(),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        color = Color.Black // Texto etiqueta negro
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     TextField(
                         value = contrasena,
                         onValueChange = { contrasena = it },
-                        visualTransformation = PasswordVisualTransformation(), // Oculta el texto (****)
+                        visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp)),
+                        // CORRECCIÓN: Forzar texto negro para que se vea
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color(0xFFE0E0E0),
                             unfocusedContainerColor = Color(0xFFE0E0E0),
+                            focusedTextColor = Color.Black, // IMPORTANTE
+                            unfocusedTextColor = Color.Black, // IMPORTANTE
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
                         ),
@@ -138,7 +145,7 @@ fun PantallaLogin(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Mensaje de Error (Rojo)
+                    // Mensaje de Error
                     if (mensajeError.isNotEmpty()) {
                         Text(
                             text = mensajeError,
@@ -155,7 +162,7 @@ fun PantallaLogin(navController: NavController) {
                             mensajeError = ""
 
                             // Lógica de Login
-                            val rutFormateado = formatearRut(rut) // Aseguramos formato (12345678-9)
+                            val rutFormateado = formatearRut(rut)
 
                             db.collection("usuarios")
                                 .whereEqualTo("rut", rutFormateado)
@@ -171,17 +178,13 @@ fun PantallaLogin(navController: NavController) {
 
                                         if (usuario != null) {
 
-                                            Sesion.rutUsuarioActual = usuario.rut // Guardamos el usuario actual
+                                            Sesion.rutUsuarioActual = usuario.rut // Guardamos el usuario
 
                                             if (usuario.tipo_usuario == "Administrador" || usuario.tipo_usuario == "Supervisor") {
-                                                // Si es Admin, va al Menú Principal
-                                                // 'popBackStack' borra el login del historial para que al volver atrás se salga de la app
                                                 navController.navigate(AppRoutes.MENU) {
                                                     popUpTo(AppRoutes.LOGIN) { inclusive = true }
                                                 }
                                             } else {
-                                                // Si es Operador
-                                                // TODO: Aquí definiremos a dónde va el operador más adelante
                                                 mensajeError = "Hola Operador (Pantalla en construcción)"
                                                 cargando = false
                                             }
@@ -197,7 +200,7 @@ fun PantallaLogin(navController: NavController) {
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2962FF)), // Azul fuerte
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2962FF)),
                         enabled = !cargando
                     ) {
                         if (cargando) {

@@ -1,179 +1,146 @@
 package com.millalemu.appotter.ui.screens.admin
 
-import android.util.Log
-import com.millalemu.appotter.db
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person // USAMOS ESTE QUE ES SEGURO
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.millalemu.appotter.R
-import com.millalemu.appotter.ui.components.LabelAzul
+import com.millalemu.appotter.db
 import com.millalemu.appotter.utils.formatearRut
 import com.millalemu.appotter.utils.validarRut
+
+private val AzulOscuro = Color(0xFF1565C0)
+private val VerdeAccion = Color(0xFF2E7D32)
+private val FondoGris = Color(0xFFF5F5F5)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaCrearUsuario(modifier: Modifier = Modifier, navController: NavController) {
 
-    // --- Estados para los campos del formulario ---
     var rut by remember { mutableStateOf("") }
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
 
-    // Estados para el Dropdown de Rol
     val opcionesRol = listOf("Administrador", "Supervisor", "Operador")
     var expanded by remember { mutableStateOf(false) }
-    var rolSeleccionado by remember { mutableStateOf("Seleccionar") }
+    var rolSeleccionado by remember { mutableStateOf("Operador") }
 
-    //Estado para error
     var mensajeErrorUI by remember { mutableStateOf("") }
-
-    // Scroll por si la pantalla es pequeña
-    val scrollState = rememberScrollState()
+    var isSaving by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 16.dp)
-            .verticalScroll(scrollState), // Habilita scroll si hace falta
+            .background(FondoGris)
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // 1. Logo
-        Image(
-            painter = painterResource(id = R.drawable.logo_millalemu),
-            contentDescription = "Logo Millalemu",
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .height(100.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        // 2. Título
+        // Icono Seguro
+        Icon(Icons.Default.Person, null, tint = AzulOscuro, modifier = Modifier.size(60.dp))
         Text(
-            text = "Nuevo usuario:",
-            fontSize = 22.sp,
+            text = "Crear Nuevo Usuario",
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp)
+            color = AzulOscuro,
+            modifier = Modifier.padding(vertical = 16.dp)
         )
 
-        // 3. Campos del Formulario
-
-        // --- RUT ---
-        FilaCampoTexto(etiqueta = "Rut", valor = rut, onValorChange = { rut = it })
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // --- NOMBRE ---
-        FilaCampoTexto(etiqueta = "Nombre", valor = nombre, onValorChange = { nombre = it })
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // --- APELLIDO ---
-        FilaCampoTexto(etiqueta = "Apellido", valor = apellido, onValorChange = { apellido = it })
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // --- CONTRASEÑA ---
-        // (Nota: Más adelante podemos poner VisualTransformation para que se vean asteriscos)
-        FilaCampoTexto(etiqueta = "Contraseña", valor = contrasena, onValorChange = { contrasena = it })
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // --- ROL (DROPDOWN) ---
-        Row(
+        // Tarjeta Formulario
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            LabelAzul(text = "Rol")
-            Spacer(modifier = Modifier.width(8.dp))
+            Column(Modifier.padding(24.dp)) {
 
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.weight(1f)
-            ) {
-                TextField(
-                    value = rolSeleccionado,
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
-                )
-                ExposedDropdownMenu(
+                InputEstilizado("RUT", rut) { rut = it }
+                Spacer(Modifier.height(12.dp))
+
+                InputEstilizado("Nombre", nombre) { nombre = it }
+                Spacer(Modifier.height(12.dp))
+
+                InputEstilizado("Apellido", apellido) { apellido = it }
+                Spacer(Modifier.height(12.dp))
+
+                InputEstilizado("Contraseña", contrasena) { contrasena = it }
+                Spacer(Modifier.height(16.dp))
+
+                Text("Rol de Usuario", color = AzulOscuro, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                ExposedDropdownMenuBox(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                 ) {
-                    opcionesRol.forEach { opcion ->
-                        DropdownMenuItem(
-                            text = { Text(opcion) },
-                            onClick = {
-                                rolSeleccionado = opcion
-                                expanded = false
-                            }
-                        )
+                    OutlinedTextField(
+                        value = rolSeleccionado,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AzulOscuro, unfocusedBorderColor = Color.LightGray),
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        opcionesRol.forEach { opcion ->
+                            DropdownMenuItem(text = { Text(opcion) }, onClick = { rolSeleccionado = opcion; expanded = false })
+                        }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Mensaje error visual
         if (mensajeErrorUI.isNotEmpty()) {
-            Text(
-                text = mensajeErrorUI,
-                color = Color.Red,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 8.dp).align(Alignment.CenterHorizontally)
-            )
+            Text(mensajeErrorUI, color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
         }
 
+        // Botones
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.weight(1f).height(50.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro)
+            ) {
+                Text("Cancelar", color = AzulOscuro, fontWeight = FontWeight.Bold)
+            }
 
-        // 4. Botón CREAR (Alineado a la derecha, Verde)
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
             Button(
                 onClick = {
+                    isSaving = true
                     mensajeErrorUI = ""
-                    // 1. Validaciones locales (Vacíos, formato RUT, largo contraseña)
-                    if (rut.isBlank() || nombre.isBlank() || apellido.isBlank() ||
-                        contrasena.isBlank() || rolSeleccionado == "Seleccionar") {
-                        mensajeErrorUI = "Por favor, completa todos los campos."
-                    }
-                    else if (!validarRut(rut)) {
-                        mensajeErrorUI = "El RUT ingresado no es válido."
-                    }
-                    else if (contrasena.length < 4) {
-                        mensajeErrorUI = "La contraseña debe tener al menos 4 caracteres."
-                    }
-                    else {
-                        // --- TODO VÁLIDO VISUALMENTE ---
-
-                        val rutFinal = formatearRut(rut) // Ej: 12345678-9
-
-                        // 2. VALIDACIÓN EN BASE DE DATOS (¿Existe el RUT?)
-                        db.collection("usuarios")
-                            .whereEqualTo("rut", rutFinal)
-                            .get()
-                            .addOnSuccessListener { documents ->
-                                if (!documents.isEmpty) {
-                                    // ¡ALERTA! Ya existe un documento con ese RUT
-                                    mensajeErrorUI = "Error: El RUT $rutFinal ya está registrado."
+                    if (rut.isBlank() || nombre.isBlank() || apellido.isBlank() || contrasena.isBlank()) {
+                        mensajeErrorUI = "Por favor completa todos los campos"
+                        isSaving = false
+                    } else if (!validarRut(rut)) {
+                        mensajeErrorUI = "El RUT ingresado no es válido"
+                        isSaving = false
+                    } else {
+                        val rutFinal = formatearRut(rut)
+                        // Verificación básica de duplicado
+                        db.collection("usuarios").whereEqualTo("rut", rutFinal).get()
+                            .addOnSuccessListener { docs ->
+                                if (!docs.isEmpty) {
+                                    mensajeErrorUI = "Este RUT ya está registrado"
+                                    isSaving = false
                                 } else {
-                                    // NO existe, podemos guardar tranquilamente
-
                                     val nuevoUsuario = hashMapOf(
                                         "rut" to rutFinal,
                                         "nombre" to nombre.trim(),
@@ -181,72 +148,43 @@ fun PantallaCrearUsuario(modifier: Modifier = Modifier, navController: NavContro
                                         "contrasena" to contrasena,
                                         "tipo_usuario" to rolSeleccionado
                                     )
-
-                                    Log.d("CrearUsuarioScreen", "Guardando: $nuevoUsuario")
-
-                                    db.collection("usuarios")
-                                        .add(nuevoUsuario)
+                                    db.collection("usuarios").add(nuevoUsuario)
                                         .addOnSuccessListener {
+                                            isSaving = false
                                             navController.popBackStack()
                                         }
-                                        .addOnFailureListener { e ->
-                                            mensajeErrorUI = "Error al guardar: ${e.message}"
+                                        .addOnFailureListener {
+                                            isSaving = false
+                                            mensajeErrorUI = "Error: ${it.message}"
                                         }
                                 }
                             }
-                            .addOnFailureListener { e ->
-                                mensajeErrorUI = "Error al verificar RUT: ${e.message}"
-                            }
                     }
                 },
-                modifier = Modifier
-                    .width(150.dp)
-                    .height(50.dp),
+                modifier = Modifier.weight(1f).height(50.dp),
                 shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)) // Verde
+                colors = ButtonDefaults.buttonColors(containerColor = VerdeAccion),
+                enabled = !isSaving
             ) {
-                Text(text = "CREAR", fontSize = 16.sp, color = Color.White)
+                if(isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                else Text("Crear", fontWeight = FontWeight.Bold)
             }
         }
-
-        // Espaciador flexible para empujar el botón volver abajo
-        Spacer(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(32.dp)) // Margen extra por si acaso
-
-        // 5. Botón VOLVER (Azul)
-        Button(
-            onClick = {
-                navController.popBackStack()
-            },
-            modifier = Modifier
-                .fillMaxWidth(0.5f) // Un poco más chico como en la imagen
-                .height(50.dp)
-                .align(Alignment.Start), // Alineado a la izquierda
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)) // Azul
-        ) {
-            Text(text = "Volver", fontSize = 18.sp, color = Color.White)
-        }
+        Spacer(Modifier.height(32.dp))
     }
 }
 
-/**
- * Helper local para no repetir el código de Row + LabelAzul + TextField 4 veces
- */
 @Composable
-fun FilaCampoTexto(etiqueta: String, valor: String, onValorChange: (String) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        LabelAzul(text = etiqueta)
-        Spacer(modifier = Modifier.width(8.dp))
+private fun InputEstilizado(label: String, value: String, onValueChange: (String) -> Unit) {
+    Column {
+        Text(label, color = AzulOscuro, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         OutlinedTextField(
-            value = valor,
-            onValueChange = onValorChange,
-            modifier = Modifier.weight(1f),
-            singleLine = true
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            shape = RoundedCornerShape(8.dp),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AzulOscuro, unfocusedBorderColor = Color.LightGray)
         )
     }
 }
-

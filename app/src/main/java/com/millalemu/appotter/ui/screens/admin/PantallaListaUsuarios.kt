@@ -1,178 +1,170 @@
 package com.millalemu.appotter.ui.screens.admin
 
 import android.util.Log
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.millalemu.appotter.R
 import com.millalemu.appotter.data.Usuario
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
 import com.millalemu.appotter.utils.Sesion
 
-private const val TAG = "ListaUsuariosScreen"
+// Colores Corporativos
+private val AzulOscuro = Color(0xFF1565C0)
+private val FondoGris = Color(0xFFF5F5F5)
+private val RojoAlerta = Color(0xFFD32F2F)
 
 @Composable
 fun PantallaListaUsuarios(modifier: Modifier = Modifier, navController: NavController) {
 
-    // 1. Estado para la lista
     var listaUsuarios by remember { mutableStateOf(emptyList<Usuario>()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    // 2. Cargar datos de Firebase al iniciar
     LaunchedEffect(Unit) {
-        db.collection("usuarios")
-            .orderBy("nombre") // Ordenarlos alfabéticamente
-            .get()
+        db.collection("usuarios").orderBy("nombre").get()
             .addOnSuccessListener { snapshot ->
-                val usuarios = snapshot.documents.mapNotNull { doc ->
+                listaUsuarios = snapshot.documents.mapNotNull { doc ->
                     doc.toObject(Usuario::class.java)?.copy(id = doc.id)
                 }
-                listaUsuarios = usuarios
+                isLoading = false
             }
-            .addOnFailureListener { e ->
-                Log.w(TAG, "Error al cargar usuarios", e)
-            }
+            .addOnFailureListener { isLoading = false }
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 16.dp),
+            .background(FondoGris)
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        Image(
-            painter = painterResource(id = R.drawable.logo_millalemu),
-            contentDescription = "Logo Millalemu",
-            modifier = Modifier.fillMaxWidth(0.8f).height(100.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- TABLA DE USUARIOS ---
-        Column(modifier = Modifier.border(1.dp, Color.Gray)) {
-
-            // Cabecera Azul
-            Row(
-                Modifier.fillMaxWidth().background(Color(0xFF1E88E5)).padding(8.dp)
+        // ENCABEZADO
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Gestión de Usuarios",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = AzulOscuro
+            )
+            // Botón Flotante "Agregar"
+            FloatingActionButton(
+                onClick = { navController.navigate(AppRoutes.CREAR_USUARIO) },
+                containerColor = AzulOscuro,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(48.dp)
             ) {
-                Text("RUT", Modifier.weight(1.2f), Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text("Nombre", Modifier.weight(1.5f), Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text("Rol", Modifier.weight(1f), Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text("Acción", Modifier.weight(1.2f), Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Icon(Icons.Default.Add, contentDescription = "Crear")
             }
+        }
 
-            // Lista Scrollable
-            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        if (isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = AzulOscuro)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 items(listaUsuarios) { usuario ->
-                    UsuarioListItem(
+                    UsuarioCard(
                         usuario = usuario,
+                        onEdit = { navController.navigate("${AppRoutes.EDITAR_USUARIO_ROUTE}/${usuario.id}") },
                         onDelete = {
-                            // Lógica de borrado inmediata
                             db.collection("usuarios").document(usuario.id).delete()
                                 .addOnSuccessListener {
-                                    // Actualizamos la lista visualmente (sin recargar de Firebase)
                                     listaUsuarios = listaUsuarios.filterNot { it.id == usuario.id }
                                 }
-                        },
-                        onEdit = {
-                            // Navegamos a la pantalla de edición pasando el ID
-                            navController.navigate("${AppRoutes.EDITAR_USUARIO_ROUTE}/${usuario.id}")
                         }
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Botón Volver
         Button(
             onClick = { navController.popBackStack() },
-            modifier = Modifier.fillMaxWidth(0.9f).height(60.dp),
+            modifier = Modifier.fillMaxWidth().height(50.dp),
             shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5))
+            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+            border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro)
         ) {
-            Text("Volver", fontSize = 18.sp, color = Color.White)
+            Text("Volver al Menú", fontSize = 16.sp, color = AzulOscuro, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-fun UsuarioListItem(usuario: Usuario, onDelete: () -> Unit, onEdit: () -> Unit) {
-
-    // --- 1. RUT DEL SUPERUSUARIO (Nunca se borra) ---
+fun UsuarioCard(usuario: Usuario, onEdit: () -> Unit, onDelete: () -> Unit) {
     val rutSuperAdmin = "21891517-5"
+    val esProtegido = (usuario.rut == rutSuperAdmin || usuario.rut == Sesion.rutUsuarioActual)
 
-    // --- 2. DETECCIÓN DE SESIÓN ACTUAL ---
-    // Verificamos si este usuario de la lista soy YO mismo
-    val esMiPropioUsuario = (usuario.rut == Sesion.rutUsuarioActual)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(0.5.dp, Color.LightGray)
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Text(text = usuario.rut, modifier = Modifier.weight(1.2f), fontSize = 12.sp)
-        Text(text = "${usuario.nombre} ${usuario.apellido}", modifier = Modifier.weight(1.5f), fontSize = 12.sp)
-        Text(text = usuario.tipo_usuario, modifier = Modifier.weight(1f), fontSize = 12.sp)
-
-        // Columna de Acciones (Protegida)
-        Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
-
-            // Si es el Jefe Supremo O si soy YO mismo -> No muestro botones de borrar
-            if (usuario.rut == rutSuperAdmin || esMiPropioUsuario) {
-                val textoProtegido = if (esMiPropioUsuario) "Tú" else "Protegido"
-
-                Text(
-                    text = textoProtegido,
-                    color = Color.Gray,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar
+            Surface(
+                shape = CircleShape,
+                color = if (esProtegido) AzulOscuro.copy(alpha = 0.1f) else FondoGris,
+                modifier = Modifier.size(50.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = if (esProtegido) AzulOscuro else Color.Gray,
+                    modifier = Modifier.padding(12.dp)
                 )
-            } else {
-                // Si es cualquier otro usuario -> Muestro acciones
-                Row {
-                    // Botón Editar
-                    Button(
-                        onClick = onEdit,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Blue),
-                        modifier = Modifier.weight(1f).height(35.dp).padding(end = 2.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Text("Edit", fontSize = 10.sp)
-                    }
+            }
 
-                    // Botón Borrar
-                    Button(
-                        onClick = onDelete,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier.weight(1f).height(35.dp).padding(start = 2.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Text("Borrar", fontSize = 10.sp)
-                    }
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Datos
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "${usuario.nombre} ${usuario.apellido}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+                Text(text = usuario.rut, fontSize = 12.sp, color = Color.Gray)
+                Text(text = usuario.tipo_usuario.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AzulOscuro, modifier = Modifier.padding(top = 4.dp))
+            }
+
+            // Acciones
+            if (!esProtegido) {
+                Row {
+                    IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Editar", tint = AzulOscuro) }
+                    IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Borrar", tint = RojoAlerta) }
                 }
+            } else {
+                Text(if(usuario.rut == Sesion.rutUsuarioActual) "Tú" else "Admin", fontSize = 10.sp, color = Color.LightGray, fontWeight = FontWeight.Bold)
             }
         }
     }

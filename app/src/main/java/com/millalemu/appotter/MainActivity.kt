@@ -19,7 +19,6 @@ private const val TAG = "MainActivity"
 private const val TAG2 = "MiAppTag"
 val db = Firebase.firestore
 
-// ... (tu variable 'user' sigue igual)
 val user = hashMapOf(
     "first" to "Ada",
     "last" to "Lovelace",
