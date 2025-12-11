@@ -26,7 +26,7 @@ import com.millalemu.appotter.navigation.AppRoutes
 @Composable
 fun PantallaSeleccionarEquipo(
     navController: NavController,
-    tipoMaquina: String // "Volteo" o "Madereo"
+    tipoMaquina: String // Recibe "Volteo" o "Madereo"
 ) {
     // Estado para la lista de máquinas
     var listaEquipos by remember { mutableStateOf(emptyList<Maquina>()) }
@@ -35,7 +35,9 @@ fun PantallaSeleccionarEquipo(
     // Cargar máquinas de Firebase según el tipo seleccionado
     LaunchedEffect(tipoMaquina) {
         db.collection("maquinaria")
-            .whereEqualTo("nombre", tipoMaquina) // Filtramos por tipo (asegúrate que en BD guardaste "Volteo" o "Madereo")
+            // --- CORRECCIÓN CRÍTICA AQUÍ ---
+            // Antes decías "nombre", ahora filtramos por "tipo" para coincidir con Maquina.kt
+            .whereEqualTo("tipo", tipoMaquina)
             .get()
             .addOnSuccessListener { snapshot ->
                 val equipos = snapshot.documents.mapNotNull { doc ->
@@ -83,7 +85,10 @@ fun PantallaSeleccionarEquipo(
             }
         } else if (listaEquipos.isEmpty()) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text("No se encontraron máquinas de tipo $tipoMaquina", color = Color.Gray)
+                Text(
+                    text = "No se encontraron máquinas de tipo $tipoMaquina",
+                    color = Color.Gray
+                )
             }
         } else {
             // LISTA DE MÁQUINAS
@@ -94,7 +99,7 @@ fun PantallaSeleccionarEquipo(
                 items(listaEquipos) { equipo ->
                     Button(
                         onClick = {
-                            // AQUÍ ESTÁ LA CLAVE: Pasamos Tipo + ID Específico
+                            // Pasamos Tipo + ID Específico al siguiente formulario
                             navController.navigate("${AppRoutes.FORMULARIO_ADITAMENTO}/$tipoMaquina/${equipo.identificador}")
                         },
                         modifier = Modifier
@@ -103,11 +108,21 @@ fun PantallaSeleccionarEquipo(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)) // Azul
                     ) {
-                        Text(
-                            text = equipo.identificador, // Ej: "VOL-01"
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = equipo.identificador, // Ej: "VOL-01"
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            // Opcional: Mostrar el modelo si existe
+                            if (equipo.modelo.isNotEmpty()) {
+                                Text(
+                                    text = equipo.modelo,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Normal
+                                )
+                            }
+                        }
                     }
                 }
             }

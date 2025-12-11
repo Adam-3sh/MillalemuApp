@@ -23,6 +23,11 @@ import com.millalemu.appotter.ui.screens.admin.PantallaIngresarMaquina
 import com.millalemu.appotter.ui.screens.admin.PantallaListaMaquinas
 import com.millalemu.appotter.ui.screens.admin.PantallaListaUsuarios
 import com.millalemu.appotter.ui.screens.auth.PantallaLogin
+import com.millalemu.appotter.ui.screens.operacion.PantallaHistorial
+import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialComponentes
+import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialEquipos
+import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialTipo
+import com.millalemu.appotter.ui.screens.operacion.PantallaListaHistorial
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroCadena // <--- IMPORT QUE FALTABA
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroEslabon
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroMedidas
@@ -34,7 +39,15 @@ object AppRoutes {
     const val MENU = "menu_principal"
     const val ADMIN = "administrador"
     const val ADITAMENTO = "ingresar_aditamento"
-    const val HISTORIAL = "historial_bitacoras"
+
+
+    const val HISTORIAL_TIPO = "historial_tipo" // <--- NUEVA RUTA INICIAL
+    const val HISTORIAL_EQUIPOS = "historial_equipos"
+    const val HISTORIAL_COMPONENTES = "historial_componentes"
+    const val HISTORIAL_LISTA = "historial_lista"
+
+
+
     const val REEMPLAZOS = "reemplazos"
     const val INGRESAR_MAQUINA = "ingresar_maquina"
     const val LISTA_MAQUINAS = "lista_maquinas"
@@ -53,6 +66,7 @@ object AppRoutes {
     const val REGISTRO_TERMINAL = "registro_terminal"
     const val DIMENSIONES_TERMINAL = "dimensiones_terminal"
     const val REGISTRO_CADENA = "registro_cadena"
+
 }
 
 @Composable
@@ -161,12 +175,15 @@ fun AppNavigation() {
                 arguments = listOf(
                     navArgument("tipoMaquina") { type = NavType.StringType },
                     navArgument("idEquipo") { type = NavType.StringType },
-                    navArgument("nombreAditamento") { type = NavType.StringType } // <--- DEFINIR TIPO
+                    navArgument("nombreAditamento") {
+                        type = NavType.StringType
+                    } // <--- DEFINIR TIPO
                 )
             ) { backEntry ->
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
-                val nombreAditamento = backEntry.arguments?.getString("nombreAditamento") ?: "Eslabón"
+                val nombreAditamento =
+                    backEntry.arguments?.getString("nombreAditamento") ?: "Eslabón"
 
                 // Llamamos a la pantalla actualizada
                 PantallaRegistroEslabon(navController, tipo, idEquipo, nombreAditamento)
@@ -230,6 +247,41 @@ fun AppNavigation() {
 
                 // Llamamos a tu nueva pantalla única
                 PantallaRegistroCadena(navController, tipo, idEquipo)
+            }
+
+            // 1. NUEVA PANTALLA INICIAL DEL HISTORIAL (Elegir Tipo)
+            composable(AppRoutes.HISTORIAL_TIPO) {
+                PantallaHistorialTipo(navController)
+            }
+
+            // 2. SELECTOR DE EQUIPOS (Ahora recibe /{tipo})
+            composable(
+                route = "${AppRoutes.HISTORIAL_EQUIPOS}/{tipo}",
+                arguments = listOf(navArgument("tipo") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val tipo = backStackEntry.arguments?.getString("tipo") ?: "Volteo"
+                // Reutilizamos la pantalla que creamos antes, pero ahora es dinámica
+                PantallaHistorialEquipos(navController, tipo)
+            }
+
+            // 3. SELECTOR DE COMPONENTES (Grillete, Cadena...)
+            composable(
+                route = "${AppRoutes.HISTORIAL_COMPONENTES}/{tipo}/{id}",
+                arguments = listOf(navArgument("tipo") {}, navArgument("id") {})
+            ) { backStackEntry ->
+                val tipo = backStackEntry.arguments?.getString("tipo") ?: ""
+                val id = backStackEntry.arguments?.getString("id") ?: ""
+                PantallaHistorialComponentes(navController, tipo, id)
+            }
+
+            // 4. LISTA FINAL
+            composable(
+                route = "${AppRoutes.HISTORIAL_LISTA}/{idEquipo}/{aditamento}",
+                arguments = listOf(navArgument("idEquipo") {}, navArgument("aditamento") {})
+            ) { backStackEntry ->
+                val idEquipo = backStackEntry.arguments?.getString("idEquipo") ?: ""
+                val aditamento = backStackEntry.arguments?.getString("aditamento") ?: ""
+                PantallaListaHistorial(navController, idEquipo, aditamento)
             }
         }
     }

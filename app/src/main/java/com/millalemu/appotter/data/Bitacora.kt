@@ -7,6 +7,7 @@ data class Bitacora(
     @get:Exclude var id: String = "",
 
     val usuarioRut: String = "",
+    val usuarioNombre: String = "",
     val identificadorMaquina: String = "",
     val tipoMaquina: String = "",
     val tipoAditamento: String = "",
@@ -28,6 +29,7 @@ data class Bitacora(
     fun obtenerMapaSinNulos(): Map<String, Any?> {
         val mapa = hashMapOf<String, Any?>(
             "usuarioRut" to usuarioRut,
+            "usuarioNombre" to usuarioNombre,
             "identificadorMaquina" to identificadorMaquina,
             "tipoMaquina" to tipoMaquina,
             "tipoAditamento" to tipoAditamento,

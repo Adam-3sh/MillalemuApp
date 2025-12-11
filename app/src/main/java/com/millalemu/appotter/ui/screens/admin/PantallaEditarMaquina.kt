@@ -29,9 +29,9 @@ private val FondoGris = Color(0xFFF5F5F5)
 @Composable
 fun PantallaEditarMaquina(modifier: Modifier = Modifier, navController: NavController, maquinaId: String) {
 
-    val opcionesNombre = listOf("Madereo", "Volteo")
+    val opcionesTipo = listOf("Madereo", "Volteo") // Cambié nombre de variable para claridad
     var expanded by remember { mutableStateOf(false) }
-    var nombreSeleccionado by remember { mutableStateOf("") }
+    var tipoSeleccionado by remember { mutableStateOf("") } // Antes nombreSeleccionado
     var identificador by remember { mutableStateOf("") }
     var mensajeErrorUI by remember { mutableStateOf("") }
 
@@ -41,7 +41,8 @@ fun PantallaEditarMaquina(modifier: Modifier = Modifier, navController: NavContr
             .addOnSuccessListener { doc ->
                 val maquina = doc.toObject(Maquina::class.java)
                 if (maquina != null) {
-                    nombreSeleccionado = maquina.nombre
+                    // CORRECCIÓN AQUÍ: Usamos .tipo en vez de .nombre
+                    tipoSeleccionado = maquina.tipo
                     identificador = maquina.identificador
                 }
             }
@@ -80,7 +81,7 @@ fun PantallaEditarMaquina(modifier: Modifier = Modifier, navController: NavContr
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                 ) {
                     OutlinedTextField(
-                        value = nombreSeleccionado,
+                        value = tipoSeleccionado,
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -89,8 +90,8 @@ fun PantallaEditarMaquina(modifier: Modifier = Modifier, navController: NavContr
                         shape = RoundedCornerShape(8.dp)
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        opcionesNombre.forEach { opcion ->
-                            DropdownMenuItem(text = { Text(opcion) }, onClick = { nombreSeleccionado = opcion; expanded = false })
+                        opcionesTipo.forEach { opcion ->
+                            DropdownMenuItem(text = { Text(opcion) }, onClick = { tipoSeleccionado = opcion; expanded = false })
                         }
                     }
                 }
@@ -140,17 +141,18 @@ fun PantallaEditarMaquina(modifier: Modifier = Modifier, navController: NavContr
                         val prefijo = idNormalizado.substring(0, 2)
                         var esValido = true
 
-                        if (nombreSeleccionado == "Madereo" && prefijo != "SG") {
+                        if (tipoSeleccionado == "Madereo" && prefijo != "SG") {
                             mensajeErrorUI = "Madereo debe empezar con SG-"
                             esValido = false
-                        } else if (nombreSeleccionado == "Volteo" && (prefijo != "HM" && prefijo != "FM")) {
+                        } else if (tipoSeleccionado == "Volteo" && (prefijo != "HM" && prefijo != "FM")) {
                             mensajeErrorUI = "Volteo debe empezar con HM- o FM-"
                             esValido = false
                         }
 
                         if (esValido) {
+                            // CORRECCIÓN AQUÍ: Actualizamos 'tipo' en lugar de 'nombre'
                             val updates = mapOf(
-                                "nombre" to nombreSeleccionado,
+                                "tipo" to tipoSeleccionado,
                                 "identificador" to idNormalizado,
                                 "fechaModificacion" to FieldValue.serverTimestamp()
                             )

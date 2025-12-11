@@ -91,7 +91,7 @@ fun PantallaLogin(navController: NavController) {
                         modifier = Modifier.fillMaxWidth(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
-                        color = Color.Black // Texto etiqueta negro
+                        color = Color.Black
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     TextField(
@@ -100,12 +100,11 @@ fun PantallaLogin(navController: NavController) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp)),
-                        // CORRECCIÓN: Forzar texto negro para que se vea
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color(0xFFE0E0E0),
                             unfocusedContainerColor = Color(0xFFE0E0E0),
-                            focusedTextColor = Color.Black, // IMPORTANTE
-                            unfocusedTextColor = Color.Black, // IMPORTANTE
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
                         ),
@@ -120,7 +119,7 @@ fun PantallaLogin(navController: NavController) {
                         modifier = Modifier.fillMaxWidth(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
-                        color = Color.Black // Texto etiqueta negro
+                        color = Color.Black
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     TextField(
@@ -131,12 +130,11 @@ fun PantallaLogin(navController: NavController) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp)),
-                        // CORRECCIÓN: Forzar texto negro para que se vea
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color(0xFFE0E0E0),
                             unfocusedContainerColor = Color(0xFFE0E0E0),
-                            focusedTextColor = Color.Black, // IMPORTANTE
-                            unfocusedTextColor = Color.Black, // IMPORTANTE
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
                         ),
@@ -161,7 +159,6 @@ fun PantallaLogin(navController: NavController) {
                             cargando = true
                             mensajeError = ""
 
-                            // Lógica de Login
                             val rutFormateado = formatearRut(rut)
 
                             db.collection("usuarios")
@@ -173,12 +170,14 @@ fun PantallaLogin(navController: NavController) {
                                         mensajeError = "Rut o contraseña incorrectos"
                                         cargando = false
                                     } else {
-                                        // ¡LOGIN EXITOSO!
+                                        // LOGIN EXITOSO
                                         val usuario = documents.documents[0].toObject(Usuario::class.java)
 
                                         if (usuario != null) {
-
-                                            Sesion.rutUsuarioActual = usuario.rut // Guardamos el usuario
+                                            // Guardamos datos en sesión
+                                            Sesion.rutUsuarioActual = usuario.rut
+                                            Sesion.nombreUsuarioActual = usuario.nombre // <-- Guardamos el nombre
+                                            Sesion.rolUsuarioActual = usuario.tipo_usuario
 
                                             if (usuario.tipo_usuario == "Administrador" || usuario.tipo_usuario == "Supervisor") {
                                                 navController.navigate(AppRoutes.MENU) {
@@ -196,9 +195,7 @@ fun PantallaLogin(navController: NavController) {
                                     cargando = false
                                 }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2962FF)),
                         enabled = !cargando

@@ -296,6 +296,7 @@ fun PantallaRegistroEslabon(
 
                         val bitacora = Bitacora(
                             usuarioRut = Sesion.rutUsuarioActual,
+                            usuarioNombre = Sesion.nombreUsuarioActual,
                             identificadorMaquina = idEquipo,
                             tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,

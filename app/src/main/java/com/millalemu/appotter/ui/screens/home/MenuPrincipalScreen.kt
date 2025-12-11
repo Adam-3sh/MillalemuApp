@@ -132,7 +132,7 @@ fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavControl
                 text = "Historial bitacoras",
                 color = Color(0xFF1E88E5),
                 onClick = {
-                    // TODO: Navegar a historial
+                    navController.navigate(AppRoutes.HISTORIAL_TIPO)
                 }
             )
 

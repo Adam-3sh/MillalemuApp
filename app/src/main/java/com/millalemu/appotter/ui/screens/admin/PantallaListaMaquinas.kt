@@ -1,15 +1,10 @@
 package com.millalemu.appotter.ui.screens.admin
 
-import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Build // Icono de Herramienta seguro
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -25,148 +20,116 @@ import com.millalemu.appotter.data.Maquina
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
 
-// Colores Corporativos
-private val AzulOscuro = Color(0xFF1565C0)
-private val FondoGris = Color(0xFFF5F5F5)
-private val RojoAlerta = Color(0xFFD32F2F)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaListaMaquinas(modifier: Modifier = Modifier, navController: NavController) {
+fun PantallaListaMaquinas(navController: NavController) {
+    var listaMaquinas by remember { mutableStateOf<List<Maquina>>(emptyList()) }
+    var cargando by remember { mutableStateOf(true) }
 
-    var listaMaquinas by remember { mutableStateOf(emptyList<Maquina>()) }
-    var isLoading by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        db.collection("maquinaria").orderBy("identificador").get()
-            .addOnSuccessListener { snapshot ->
-                listaMaquinas = snapshot.documents.mapNotNull { doc ->
-                    doc.toObject(Maquina::class.java)?.copy(id = doc.id)
+    // Cargar datos en tiempo real (SnapshotListener)
+    DisposableEffect(Unit) {
+        val listener = db.collection("maquinaria")
+            .orderBy("identificador") // Ordenar alfabéticamente
+            .addSnapshotListener { snapshots, e ->
+                if (e != null) {
+                    cargando = false
+                    return@addSnapshotListener
                 }
-                isLoading = false
+                if (snapshots != null) {
+                    val maquinas = snapshots.documents.mapNotNull { doc ->
+                        val m = doc.toObject(Maquina::class.java)
+                        m?.id = doc.id // Asignar el ID del documento
+                        m
+                    }
+                    listaMaquinas = maquinas
+                    cargando = false
+                }
             }
-            .addOnFailureListener { isLoading = false }
+        onDispose { listener.remove() }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(FondoGris)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // ENCABEZADO
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Gestión de Maquinaria",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = AzulOscuro
-            )
-
-            // Botón Flotante "Agregar"
+    Scaffold(
+        floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate(AppRoutes.INGRESAR_MAQUINA) },
-                containerColor = AzulOscuro,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.size(48.dp)
+                containerColor = Color(0xFF1565C0),
+                contentColor = Color.White
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Nueva Máquina")
+                Icon(Icons.Default.Add, contentDescription = "Agregar")
             }
         }
-
-        if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = AzulOscuro)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(listaMaquinas) { maquina ->
-                    MaquinaCard(
-                        maquina = maquina,
-                        onEdit = { navController.navigate("${AppRoutes.EDITAR_MAQUINA_ROUTE}/${maquina.id}") },
-                        onDelete = {
-                            db.collection("maquinaria").document(maquina.id).delete()
-                                .addOnSuccessListener {
-                                    listaMaquinas = listaMaquinas.filterNot { it.id == maquina.id }
-                                }
-                        }
-                    )
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            if (cargando) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (listaMaquinas.isEmpty()) {
+                Text(
+                    "No hay maquinaria registrada",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.Gray
+                )
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(listaMaquinas) { maquina ->
+                        ItemMaquina(maquina, navController)
+                    }
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = { navController.popBackStack() },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-            border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro)
-        ) {
-            Text("Volver al Menú", fontSize = 16.sp, color = AzulOscuro, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-fun MaquinaCard(maquina: Maquina, onEdit: () -> Unit, onDelete: () -> Unit) {
+fun ItemMaquina(maquina: Maquina, navController: NavController) {
     Card(
+        elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Icono Herramienta
-            Surface(
-                shape = CircleShape,
-                color = FondoGris,
-                modifier = Modifier.size(50.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Build,
-                    contentDescription = null,
-                    tint = AzulOscuro,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Datos
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = maquina.identificador,
+                    text = maquina.identificador, // Ej: VOL-01
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color.Black
+                    fontSize = 18.sp
                 )
+                // CORRECCIÓN: Usamos 'tipo' y mostramos el 'modelo' si existe
+                val subtitulo = if (maquina.modelo.isNotEmpty()) {
+                    "${maquina.tipo} - ${maquina.modelo}"
+                } else {
+                    maquina.tipo
+                }
+
                 Text(
-                    text = maquina.nombre, // Tipo (Volteo/Madereo)
+                    text = subtitulo,
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
             }
 
-            // Acciones
             Row {
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = AzulOscuro)
+                // Botón Editar
+                IconButton(onClick = { navController.navigate("editar_maquina/${maquina.id}") }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF1976D2))
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Borrar", tint = RojoAlerta)
+
+                // Botón Eliminar
+                IconButton(onClick = {
+                    // Borrado simple directo
+                    db.collection("maquinaria").document(maquina.id).delete()
+                }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color(0xFFD32F2F))
                 }
             }
         }
