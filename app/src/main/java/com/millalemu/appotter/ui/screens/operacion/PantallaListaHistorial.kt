@@ -32,6 +32,7 @@ import com.millalemu.appotter.data.DetallesCadena
 import com.millalemu.appotter.data.DetallesEslabon
 import com.millalemu.appotter.data.DetallesGancho
 import com.millalemu.appotter.data.DetallesGrillete // <--- IMPORTANTE
+import com.millalemu.appotter.data.DetallesTerminal
 import com.millalemu.appotter.db
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -227,8 +228,10 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                     TablaCadena(bitacora.detallesCadena)
                 } else if (bitacora.detallesGrillete != null) {
                     TablaGrillete(bitacora.detallesGrillete)
-                } else if (bitacora.detallesGancho != null) { // <--- NUEVO
+                } else if (bitacora.detallesGancho != null) {
                     TablaGancho(bitacora.detallesGancho)
+                } else if (bitacora.detallesTerminal != null) { // <--- NUEVO
+                    TablaTerminal(bitacora.detallesTerminal)
                 } else {
                     Text("Sin datos dimensionales", fontSize = 12.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Color.Gray)
                 }
@@ -334,6 +337,18 @@ fun TablaGancho(det: DetallesGancho) {
         }
 
         FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
+        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
+    }
+}
+
+@Composable
+fun TablaTerminal(det: DetallesTerminal) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
+        HeaderTabla()
+        FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje)
+        FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
+        FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
+        FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
         FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
     }
 }
