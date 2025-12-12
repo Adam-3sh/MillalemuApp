@@ -33,8 +33,7 @@ import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.DetallesCadena
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
-import com.millalemu.appotter.ui.components.* // <--- IMPORTANTE: Importa tus componentes compartidos
-import com.millalemu.appotter.utils.Sesion
+import com.millalemu.appotter.ui.components.* import com.millalemu.appotter.utils.Sesion
 import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -245,6 +244,7 @@ fun PantallaRegistroCadena(
                     Text("Volver", color = AzulOscuro, fontWeight = FontWeight.Bold)
                 }
 
+                // --- BOTÓN GUARDAR CORREGIDO ---
                 Button(
                     onClick = {
                         isSaving = true
@@ -256,19 +256,30 @@ fun PantallaRegistroCadena(
                         )
 
                         val bitacora = Bitacora(
-                            usuarioRut = Sesion.rutUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina, tipoAditamento = "Cadena Asistencia",
-                            numeroSerie = numeroSerie, horometro = horometro.toDoubleOrNull() ?: 0.0, porcentajeDesgasteGeneral = maxDanoVal,
-                            tieneFisura = tieneFisura, requiereReemplazo = requiereReemplazo, observacion = observacion,
-                            detallesCadena = detalles, detallesEslabon = null
+                            usuarioRut = Sesion.rutUsuarioActual,
+                            identificadorMaquina = idEquipo,
+                            tipoMaquina = tipoMaquina,
+                            tipoAditamento = "Cadena Asistencia",
+                            numeroSerie = numeroSerie,
+                            horometro = horometro.toDoubleOrNull() ?: 0.0,
+                            porcentajeDesgasteGeneral = maxDanoVal,
+                            tieneFisura = tieneFisura,
+                            requiereReemplazo = requiereReemplazo,
+                            observacion = observacion,
+                            detallesCadena = detalles, // Objeto directo
+                            detallesEslabon = null
                         )
 
-                        // USANDO FUNCIÓN DE LIMPIEZA
-                        db.collection("bitacoras").add(bitacora.obtenerMapaSinNulos())
+                        // Guardado directo
+                        db.collection("bitacoras").add(bitacora)
                             .addOnSuccessListener {
                                 isSaving = false
                                 navController.popBackStack(AppRoutes.MENU, false)
                             }
-                            .addOnFailureListener { isSaving = false }
+                            .addOnFailureListener { e ->
+                                isSaving = false
+                                Log.e("ERROR", "Error: ${e.message}")
+                            }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton), shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f).height(50.dp)
                 ) {

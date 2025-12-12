@@ -2,6 +2,7 @@ package com.millalemu.appotter.data
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.Exclude
+import com.google.firebase.firestore.PropertyName
 
 data class Bitacora(
     @get:Exclude var id: String = "",
@@ -58,18 +59,76 @@ data class Bitacora(
     }
 }
 
-// --- CLASES ESPECÍFICAS CON PORCENTAJES ---
-
 data class DetallesEslabon(
-    val kNominal: Double = 0.0, val aNominal: Double = 0.0, val dNominal: Double = 0.0, val bNominal: Double = 0.0,
-    val kActual: Double = 0.0,  val aActual: Double = 0.0,  val dActual: Double = 0.0,  val bActual: Double = 0.0,
-    // Resultados guardados
-    val kPorcentaje: Double = 0.0, val aPorcentaje: Double = 0.0, val dPorcentaje: Double = 0.0, val bPorcentaje: Double = 0.0
+
+    @get:PropertyName("knominal") @set:PropertyName("knominal")
+    var kNominal: Double = 0.0,
+
+    @get:PropertyName("kactual") @set:PropertyName("kactual")
+    var kActual: Double = 0.0,
+
+    @get:PropertyName("kporcentaje") @set:PropertyName("kporcentaje")
+    var kPorcentaje: Double = 0.0,
+
+
+    @get:PropertyName("anominal") @set:PropertyName("anominal")
+    var aNominal: Double = 0.0,
+
+    @get:PropertyName("aactual") @set:PropertyName("aactual")
+    var aActual: Double = 0.0,
+
+    @get:PropertyName("aporcentaje") @set:PropertyName("aporcentaje")
+    var aPorcentaje: Double = 0.0,
+
+
+    @get:PropertyName("dnominal") @set:PropertyName("dnominal")
+    var dNominal: Double = 0.0,
+
+    @get:PropertyName("dactual") @set:PropertyName("dactual")
+    var dActual: Double = 0.0,
+
+    @get:PropertyName("dporcentaje") @set:PropertyName("dporcentaje")
+    var dPorcentaje: Double = 0.0,
+
+
+    @get:PropertyName("bnominal") @set:PropertyName("bnominal")
+    var bNominal: Double = 0.0,
+
+    @get:PropertyName("bactual") @set:PropertyName("bactual")
+    var bActual: Double = 0.0,
+
+    @get:PropertyName("bporcentaje") @set:PropertyName("bporcentaje")
+    var bPorcentaje: Double = 0.0
 )
 
 data class DetallesCadena(
-    val bNominal: Double = 0.0, val cNominal: Double = 0.0, val dNominal: Double = 0.0,
-    val bActual: Double = 0.0,  val cActual: Double = 0.0,  val dActual: Double = 0.0,
-    // Resultados guardados
-    val bPorcentaje: Double = 0.0, val cPorcentaje: Double = 0.0, val dPorcentaje: Double = 0.0
+
+    @get:PropertyName("bnominal") @set:PropertyName("bnominal")
+    var bNominal: Double = 0.0,
+
+    @get:PropertyName("bactual") @set:PropertyName("bactual")
+    var bActual: Double = 0.0,
+
+    @get:PropertyName("bporcentaje") @set:PropertyName("bporcentaje")
+    var bPorcentaje: Double = 0.0,
+
+
+    @get:PropertyName("cnominal") @set:PropertyName("cnominal")
+    var cNominal: Double = 0.0,
+
+    @get:PropertyName("cactual") @set:PropertyName("cactual")
+    var cActual: Double = 0.0,
+
+    @get:PropertyName("cporcentaje") @set:PropertyName("cporcentaje")
+    var cPorcentaje: Double = 0.0,
+
+
+    @get:PropertyName("dnominal") @set:PropertyName("dnominal")
+    var dNominal: Double = 0.0,
+
+    @get:PropertyName("dactual") @set:PropertyName("dactual")
+    var dActual: Double = 0.0,
+
+    @get:PropertyName("dporcentaje") @set:PropertyName("dporcentaje")
+    var dPorcentaje: Double = 0.0
 )

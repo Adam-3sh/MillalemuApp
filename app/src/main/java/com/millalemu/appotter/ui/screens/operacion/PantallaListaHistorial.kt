@@ -1,13 +1,21 @@
 package com.millalemu.appotter.ui.screens.operacion
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,10 +28,15 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.firestore.Query
 import com.millalemu.appotter.data.Bitacora
+import com.millalemu.appotter.data.DetallesCadena
+import com.millalemu.appotter.data.DetallesEslabon
 import com.millalemu.appotter.db
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+// ------------------------------------------------------
+// PANTALLA PRINCIPAL — HISTORIAL
+// ------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaListaHistorial(
@@ -33,33 +46,39 @@ fun PantallaListaHistorial(
 ) {
     var lista by remember { mutableStateOf<List<Bitacora>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
-    var mensajeError by remember { mutableStateOf("") }
 
-    // Cargar datos
-    LaunchedEffect(Unit) {
+    LaunchedEffect(idEquipo, nombreAditamento) {
+
         db.collection("bitacoras")
-            .whereEqualTo("identificadorMaquina", idEquipo)
-            .whereEqualTo("tipoAditamento", nombreAditamento)
+            .whereEqualTo("identificadorMaquina", idEquipo.trim())
+            .whereEqualTo("tipoAditamento", nombreAditamento.trim())
             .orderBy("fecha", Query.Direction.DESCENDING)
             .get()
             .addOnSuccessListener { res ->
-                val objetos = res.toObjects(Bitacora::class.java)
-                lista = objetos
+                val items = res.documents.mapNotNull { doc ->
+                    val b = doc.toObject(Bitacora::class.java)
+                    if (b != null) {
+                        b.id = doc.id
+                        b
+                    } else null
+                }
+
+                lista = items
                 cargando = false
             }
-            .addOnFailureListener { e ->
+            .addOnFailureListener {
+                lista = emptyList()
                 cargando = false
-                mensajeError = "Error: ${e.message}"
             }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(nombreAditamento) },
+                title = { Text(nombreAditamento, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -69,145 +88,192 @@ fun PantallaListaHistorial(
                 )
             )
         }
-    ) { p ->
-        Box(modifier = Modifier.padding(p).fillMaxSize().background(Color(0xFFF5F5F5))) {
+    ) { padding ->
 
-            if (cargando) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            }
-            else if (mensajeError.isNotEmpty()) {
-                Column(
-                    modifier = Modifier.align(Alignment.Center).padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("⚠️ Problema al cargar", color = Color.Red, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
-                    Text(mensajeError, color = Color.Red, textAlign = TextAlign.Center, fontSize = 12.sp)
-                }
-            }
-            else if (lista.isEmpty()) {
-                Text(
-                    text = "No hay registros aún.",
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color.Gray
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(lista) { bitacora ->
-                        // AQUÍ LLAMAMOS A LA FUNCIÓN RENOMBRADA
-                        ItemBitacora(bitacora)
-                    }
-                }
-            }
-        }
-    }
-}
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F5))
+        ) {
 
-// --- COMPONENTE VISUAL RENOMBRADO (Para evitar conflictos) ---
-@Composable
-private fun ItemBitacora(bitacora: Bitacora) { // Hacemos 'private' por seguridad
-    // Formatear fecha
-    val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
-    val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "Pendiente" }
-
-    // Determinar Estado Visual (Semáforo)
-    val (colorEstado, textoEstado, fondoEstado) = when {
-        bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "REEMPLAZO", Color(0xFFFFEBEE)) // Rojo
-        bitacora.porcentajeDesgasteGeneral >= 5.0 -> Triple(Color(0xFFEF6C00), "ALERTA", Color(0xFFFFF3E0)) // Naranja
-        else -> Triple(Color(0xFF2E7D32), "OPERATIVO", Color(0xFFE8F5E9)) // Verde
-    }
-
-    Card(
-        elevation = CardDefaults.cardElevation(3.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-
-            // 1. Encabezado: Máquina y Estado
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = bitacora.identificadorMaquina, // Ej: VOL-01
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Color.Black
-                    )
-                    Text(
-                        text = bitacora.tipoAditamento,
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
+            when {
+                cargando -> {
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
                 }
 
-                // Etiqueta de Estado
-                Surface(
-                    color = fondoEstado,
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier.border(1.dp, colorEstado.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
-                ) {
-                    Text(
-                        text = textoEstado,
-                        color = colorEstado,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFEEEEEE))
-
-            // 2. Detalles Técnicos
-            Row(modifier = Modifier.fillMaxWidth()) {
-                // Columna Izquierda
-                Column(modifier = Modifier.weight(1f)) {
-                    // Muestra Nombre si existe, si no muestra RUT
-                    DatoBitacora(label = "Responsable", valor = bitacora.usuarioNombre.ifEmpty { bitacora.usuarioRut })
-                    Spacer(modifier = Modifier.height(8.dp))
-                    DatoBitacora(label = "Fecha", valor = fechaTexto)
-                }
-
-                // Columna Derecha
-                Column(modifier = Modifier.weight(1f)) {
-                    DatoBitacora(label = "Horómetro", valor = "${bitacora.horometro} Hrs")
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Desgaste destacado
-                    Column {
-                        Text("Desgaste", fontSize = 10.sp, color = Color.Gray)
+                lista.isEmpty() -> {
+                    Column(
+                        Modifier.align(Alignment.Center).padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "${String.format("%.1f", bitacora.porcentajeDesgasteGeneral)}%",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = if (bitacora.porcentajeDesgasteGeneral > 0) colorEstado else Color.Black
+                            "No hay registros para $idEquipo - $nombreAditamento",
+                            textAlign = TextAlign.Center,
+                            color = Color.Gray
                         )
                     }
                 }
+
+                else -> {
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(lista) { bitacora ->
+                            ItemBitacoraExpandible(bitacora)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+// ------------------------------------------------------
+// ITEM EXPANDIBLE — TARJETA DE BITÁCORA
+// ------------------------------------------------------
+@Composable
+private fun ItemBitacoraExpandible(bitacora: Bitacora) {
+
+    var expandido by remember { mutableStateOf(false) }
+
+    val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
+    val fechaTexto = try {
+        sdf.format(bitacora.fecha.toDate())
+    } catch (e: Exception) {
+        "--/--/----"
+    }
+
+    val (colorEstado, textoEstado, fondoEstado) = when {
+        bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE))
+        bitacora.porcentajeDesgasteGeneral >= 5.0 -> Triple(Color(0xFFEF6C00), "ALERTA", Color(0xFFFFF3E0))
+        else -> Triple(Color(0xFF2E7D32), "OK", Color(0xFFE8F5E9))
+    }
+
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            )
+            .clickable { expandido = !expandido }
+    ) {
+
+        Column(Modifier.padding(16.dp)) {
+
+            // ---------- CABECERA ----------
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Column {
+                    Text(fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Horómetro: ${bitacora.horometro.toInt()} hrs", fontSize = 13.sp, color = Color.Gray)
+                }
+
+                Surface(
+                    color = fondoEstado,
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.border(1.dp, colorEstado.copy(alpha = 0.3f), RoundedCornerShape(50))
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (bitacora.requiereReemplazo) Icons.Default.Info else Icons.Default.Check,
+                            contentDescription = null,
+                            tint = colorEstado,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(textoEstado, color = colorEstado, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
 
-            // 3. Observación (Opcional)
-            if (bitacora.observacion.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Surface(
-                    color = Color(0xFFF5F5F5),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+            Spacer(Modifier.height(12.dp))
+
+
+            // ---------- BARRA DE DESGASTE ----------
+            Column {
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Desgaste General", fontSize = 12.sp, color = Color.Gray)
                     Text(
-                        text = "Obs: ${bitacora.observacion}",
+                        "${String.format("%.1f", bitacora.porcentajeDesgasteGeneral)}%",
                         fontSize = 12.sp,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                        color = Color.DarkGray,
-                        modifier = Modifier.padding(8.dp)
+                        fontWeight = FontWeight.Bold,
+                        color = colorEstado
+                    )
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                LinearProgressIndicator(
+                    progress = (bitacora.porcentajeDesgasteGeneral / 100f).toFloat(),
+                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                    color = colorEstado,
+                    trackColor = Color(0xFFEEEEEE)
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = if (expandido) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = Color.LightGray
+                )
+            }
+
+
+            // ------------------------------------------------------
+            // DETALLE EXPANDIDO
+            // ------------------------------------------------------
+            if (expandido) {
+
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+                DatoFila("Responsable:", bitacora.usuarioNombre)
+                DatoFila("RUT:", bitacora.usuarioRut)
+                DatoFila("Máquina:", bitacora.identificadorMaquina)
+                DatoFila("Tipo Máquina:", bitacora.tipoMaquina)
+                DatoFila("Aditamento:", bitacora.tipoAditamento)
+                DatoFila("Nº Serie:", bitacora.numeroSerie)
+                DatoFila("Horómetro:", "${bitacora.horometro}")
+                DatoFila("Tiene Fisura:", if (bitacora.tieneFisura) "Sí" else "No")
+                DatoFila("Reemplazo:", if (bitacora.requiereReemplazo) "Sí" else "No")
+
+                if (bitacora.observacion.isNotBlank())
+                    DatoFila("Observación:", bitacora.observacion)
+
+                Spacer(Modifier.height(12.dp))
+
+                Text("Mediciones Técnicas:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
+                Spacer(Modifier.height(8.dp))
+
+                when {
+                    bitacora.detallesEslabon != null -> TablaEslabon(bitacora.detallesEslabon)
+                    bitacora.detallesCadena != null -> TablaCadena(bitacora.detallesCadena)
+                    else -> Text(
+                        "Sin datos dimensionales",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                     )
                 }
             }
@@ -215,11 +281,67 @@ private fun ItemBitacora(bitacora: Bitacora) { // Hacemos 'private' por segurida
     }
 }
 
-// Componente auxiliar renombrado también para evitar problemas
+
+// ------------------------------------------------------
+// COMPONENTES AUXILIARES
+// ------------------------------------------------------
 @Composable
-private fun DatoBitacora(label: String, valor: String) {
-    Column {
-        Text(text = label, fontSize = 10.sp, color = Color.Gray)
-        Text(text = valor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
+fun DatoFila(titulo: String, valor: String) {
+    Row(Modifier.padding(vertical = 2.dp)) {
+        Text(titulo, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.width(110.dp))
+        Text(valor, fontSize = 12.sp, color = Color.Black)
+    }
+}
+
+@Composable
+fun TablaEslabon(det: DetallesEslabon) {
+    Column(
+        Modifier
+            .background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp))
+            .border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp))
+            .padding(8.dp)
+    ) {
+        HeaderTabla()
+        FilaTabla("K", det.kNominal, det.kActual, det.kPorcentaje)
+        FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje)
+        FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
+        FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
+    }
+}
+
+@Composable
+fun TablaCadena(det: DetallesCadena) {
+    Column(
+        Modifier
+            .background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp))
+            .border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp))
+            .padding(8.dp)
+    ) {
+        HeaderTabla()
+        FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
+        FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
+        FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
+    }
+}
+
+@Composable
+fun HeaderTabla() {
+    Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+        Text("MED", Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+        Text("NOM", Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Color.Gray)
+        Text("ACT", Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Color.Gray)
+        Text("% DESG", Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = Color.Gray)
+    }
+    HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
+}
+
+@Composable
+fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double) {
+    val colorAlerta = if (porc >= 5.0) Color.Red else Color.Black
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(nombre, Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
+        Text("$act", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
+        Text("${String.format("%.1f", porc)}%", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorAlerta)
     }
 }

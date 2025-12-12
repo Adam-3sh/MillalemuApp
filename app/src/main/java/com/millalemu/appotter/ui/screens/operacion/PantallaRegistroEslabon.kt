@@ -30,8 +30,7 @@ import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.DetallesEslabon
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
-import com.millalemu.appotter.ui.components.* // <--- IMPORTA LOS COMPONENTES NUEVOS
-import com.millalemu.appotter.utils.Sesion
+import com.millalemu.appotter.ui.components.* import com.millalemu.appotter.utils.Sesion
 import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -285,6 +284,7 @@ fun PantallaRegistroEslabon(
                     Text("Volver", color = AzulOscuro, fontWeight = FontWeight.Bold)
                 }
 
+                // --- BOTÓN GUARDAR CORREGIDO ---
                 Button(
                     onClick = {
                         isSaving = true
@@ -306,16 +306,20 @@ fun PantallaRegistroEslabon(
                             tieneFisura = tieneFisura,
                             requiereReemplazo = requiereReemplazo,
                             observacion = observacion,
-                            detallesEslabon = detalles,
+                            detallesEslabon = detalles, // Pasamos el objeto, NO un mapa
                             detallesCadena = null
                         )
 
-                        db.collection("bitacoras").add(bitacora.obtenerMapaSinNulos())
+                        // Guardamos el objeto directo
+                        db.collection("bitacoras").add(bitacora)
                             .addOnSuccessListener {
                                 isSaving = false
                                 navController.popBackStack(AppRoutes.MENU, false)
                             }
-                            .addOnFailureListener { isSaving = false }
+                            .addOnFailureListener { e ->
+                                isSaving = false
+                                Log.e("ERROR", "Error al guardar: ${e.message}")
+                            }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton),
                     shape = RoundedCornerShape(8.dp),
