@@ -30,6 +30,7 @@ import com.google.firebase.firestore.Query
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.DetallesCadena
 import com.millalemu.appotter.data.DetallesEslabon
+import com.millalemu.appotter.data.DetallesGancho
 import com.millalemu.appotter.data.DetallesGrillete // <--- IMPORTANTE
 import com.millalemu.appotter.db
 import java.text.SimpleDateFormat
@@ -224,8 +225,10 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                     TablaEslabon(bitacora.detallesEslabon)
                 } else if (bitacora.detallesCadena != null) {
                     TablaCadena(bitacora.detallesCadena)
-                } else if (bitacora.detallesGrillete != null) { // <--- AÑADIDO
+                } else if (bitacora.detallesGrillete != null) {
                     TablaGrillete(bitacora.detallesGrillete)
+                } else if (bitacora.detallesGancho != null) { // <--- NUEVO
+                    TablaGancho(bitacora.detallesGancho)
                 } else {
                     Text("Sin datos dimensionales", fontSize = 12.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Color.Gray)
                 }
@@ -274,7 +277,16 @@ fun TablaGrillete(det: DetallesGrillete) {
         HeaderTabla()
         FilaTabla("P (Perno)", det.pNominal, det.pActual, det.pPorcentaje)
         FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
-        FilaTabla("W", det.wNominal, det.wActual, det.wPorcentaje)
+
+        // W ES ESPECIAL (5%) - Usamos lógica manual para el color
+        val colorW = if (det.wPorcentaje >= 5.0) Color.Red else Color.Black
+        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Text("W", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("${det.wNominal.toInt()}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
+            Text("${det.wActual}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
+            Text("${String.format("%.1f", det.wPorcentaje)}%", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorW)
+        }
+
         FilaTabla("R", det.rNominal, det.rActual, det.rPorcentaje)
         FilaTabla("L", det.lNominal, det.lActual, det.lPorcentaje)
         FilaTabla("B (Min)", det.bMinNominal, det.bMinActual, det.bMinPorcentaje)
@@ -301,5 +313,27 @@ fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double) {
         Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
         Text("$act", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
         Text("${String.format("%.1f", porc)}%", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorAlerta)
+    }
+}
+
+@Composable
+fun TablaGancho(det: DetallesGancho) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
+        HeaderTabla()
+        FilaTabla("∅1", det.phi1Nominal, det.phi1Actual, det.phi1Porcentaje)
+        FilaTabla("R", det.rNominal, det.rActual, det.rPorcentaje)
+        FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
+
+        // ∅2 ES ESPECIAL (5%) - Usamos lógica manual para el color
+        val colorPhi2 = if (det.phi2Porcentaje >= 5.0) Color.Red else Color.Black
+        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Text("∅2", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("${det.phi2Nominal.toInt()}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
+            Text("${det.phi2Actual}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
+            Text("${String.format("%.1f", det.phi2Porcentaje)}%", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorPhi2)
+        }
+
+        FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
+        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
     }
 }

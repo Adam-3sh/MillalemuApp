@@ -27,7 +27,8 @@ data class Bitacora(
     // Objetos anidados
     val detallesEslabon: DetallesEslabon? = null,
     val detallesCadena: DetallesCadena? = null,
-    val detallesGrillete: DetallesGrillete? = null
+    val detallesGrillete: DetallesGrillete? = null,
+    val detallesGancho: DetallesGancho? = null
 )
 
 @Keep
@@ -89,4 +90,37 @@ data class DetallesGrillete(
     @get:PropertyName("dnominal") @set:PropertyName("dnominal") var dNominal: Double = 0.0,
     @get:PropertyName("dactual") @set:PropertyName("dactual") var dActual: Double = 0.0,
     @get:PropertyName("dporcentaje") @set:PropertyName("dporcentaje") var dPorcentaje: Double = 0.0
+)
+
+@Keep
+data class DetallesGancho(
+    // ∅1 (Phi1)
+    @get:PropertyName("phi1nominal") @set:PropertyName("phi1nominal") var phi1Nominal: Double = 0.0,
+    @get:PropertyName("phi1actual") @set:PropertyName("phi1actual") var phi1Actual: Double = 0.0,
+    @get:PropertyName("phi1porcentaje") @set:PropertyName("phi1porcentaje") var phi1Porcentaje: Double = 0.0,
+
+    // R
+    @get:PropertyName("rnominal") @set:PropertyName("rnominal") var rNominal: Double = 0.0,
+    @get:PropertyName("ractual") @set:PropertyName("ractual") var rActual: Double = 0.0,
+    @get:PropertyName("rporcentaje") @set:PropertyName("rporcentaje") var rPorcentaje: Double = 0.0,
+
+    // D
+    @get:PropertyName("dnominal") @set:PropertyName("dnominal") var dNominal: Double = 0.0,
+    @get:PropertyName("dactual") @set:PropertyName("dactual") var dActual: Double = 0.0,
+    @get:PropertyName("dporcentaje") @set:PropertyName("dporcentaje") var dPorcentaje: Double = 0.0,
+
+    // ∅2 (Phi2)
+    @get:PropertyName("phi2nominal") @set:PropertyName("phi2nominal") var phi2Nominal: Double = 0.0,
+    @get:PropertyName("phi2actual") @set:PropertyName("phi2actual") var phi2Actual: Double = 0.0,
+    @get:PropertyName("phi2porcentaje") @set:PropertyName("phi2porcentaje") var phi2Porcentaje: Double = 0.0,
+
+    // H
+    @get:PropertyName("hnominal") @set:PropertyName("hnominal") var hNominal: Double = 0.0,
+    @get:PropertyName("hactual") @set:PropertyName("hactual") var hActual: Double = 0.0,
+    @get:PropertyName("hporcentaje") @set:PropertyName("hporcentaje") var hPorcentaje: Double = 0.0,
+
+    // E (Medida Especial: 5% Límite)
+    @get:PropertyName("enominal") @set:PropertyName("enominal") var eNominal: Double = 0.0,
+    @get:PropertyName("eactual") @set:PropertyName("eactual") var eActual: Double = 0.0,
+    @get:PropertyName("eporcentaje") @set:PropertyName("eporcentaje") var ePorcentaje: Double = 0.0
 )

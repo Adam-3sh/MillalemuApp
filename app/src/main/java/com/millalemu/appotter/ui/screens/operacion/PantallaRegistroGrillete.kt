@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Warning // Importante para la alerta
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -62,6 +63,10 @@ fun PantallaRegistroGrillete(
     var porcentajeDanoGlobal by remember { mutableStateOf("") }
     var maxDanoVal by remember { mutableStateOf(0.0) }
     var mostrarResultados by remember { mutableStateOf(false) }
+
+    // Estados de Alerta
+    var esReemplazoCritico by remember { mutableStateOf(false) }
+    var listaFallas by remember { mutableStateOf<List<String>>(emptyList()) }
 
     var tieneFisura by remember { mutableStateOf(false) }
     var requiereReemplazo by remember { mutableStateOf(false) }
@@ -161,13 +166,11 @@ fun PantallaRegistroGrillete(
                     Text("Actual", Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
 
-                // Filas de medidas (P, E, W, R, L, Bmin, D)
-                // Componente Auxiliar Local (CORREGIDO: Sin Box extra para evitar errores de weight)
+                // Componente Auxiliar Local
                 @Composable
                 fun FilaDatos(titulo: String, nom: String, setNom: (String)->Unit, med: String, setMed: (String)->Unit) {
                     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(titulo, Modifier.width(50.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        // CeldaGrid se expande con weight(1f) automáticamente
                         CeldaGrid(nom, setNom, nominalesEditables)
                         CeldaGrid(med, setMed, true, esMedicion = true)
                     }
@@ -175,7 +178,10 @@ fun PantallaRegistroGrillete(
 
                 FilaDatos("P", nomP, { nomP = it }, medP, { medP = it })
                 FilaDatos("E", nomE, { nomE = it }, medE, { medE = it })
+
+                // W es la medida especial (5%)
                 FilaDatos("W", nomW, { nomW = it }, medW, { medW = it })
+
                 FilaDatos("R", nomR, { nomR = it }, medR, { medR = it })
                 FilaDatos("L", nomL, { nomL = it }, medL, { medL = it })
                 FilaDatos("Bmin", nomBMin, { nomBMin = it }, medBMin, { medBMin = it })
@@ -183,7 +189,7 @@ fun PantallaRegistroGrillete(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botón Calcular
+                // BOTÓN CALCULAR (LÓGICA ESPECIAL PARA W)
                 Button(onClick = {
                     fun calc(n: String, a: String): Double {
                         val dN = n.replace(',', '.').toDoubleOrNull() ?: 0.0
@@ -197,8 +203,28 @@ fun PantallaRegistroGrillete(
                     resL = calc(nomL, medL); resBMin = calc(nomBMin, medBMin)
                     resD = calc(nomD, medD)
 
+                    // --- LÓGICA DE ALERTAS ---
+                    val fallasDetectadas = mutableListOf<String>()
+
+                    // 1. Regla Especial: W >= 5%
+                    if (resW >= 5.0) fallasDetectadas.add("W (${String.format("%.1f", resW)}%)")
+
+                    // 2. Regla Estándar: Otros >= 10%
+                    if (resP >= 10.0) fallasDetectadas.add("P")
+                    if (resE >= 10.0) fallasDetectadas.add("E")
+                    if (resR >= 10.0) fallasDetectadas.add("R")
+                    if (resL >= 10.0) fallasDetectadas.add("L")
+                    if (resBMin >= 10.0) fallasDetectadas.add("Bmin")
+                    if (resD >= 10.0) fallasDetectadas.add("D")
+
+                    listaFallas = fallasDetectadas
+                    esReemplazoCritico = listaFallas.isNotEmpty()
+
                     maxDanoVal = listOf(resP, resE, resW, resR, resL, resBMin, resD).maxOrNull() ?: 0.0
                     porcentajeDanoGlobal = "%.1f%%".format(maxDanoVal)
+
+                    if (esReemplazoCritico) requiereReemplazo = true
+
                     mostrarResultados = true
                 }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = AzulOscuro), shape = RoundedCornerShape(8.dp)) {
                     Icon(Icons.Default.PlayArrow, null)
@@ -208,21 +234,47 @@ fun PantallaRegistroGrillete(
 
                 if (mostrarResultados) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Desgaste Máx:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(porcentajeDanoGlobal, color = if(maxDanoVal >= 5) Color.Red else Color(0xFF2E7D32), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+
+                    // MOSTRAR ALERTAS CLARAS
+                    if (esReemplazoCritico) {
+                        Surface(
+                            color = Color(0xFFFFEBEE),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Warning, null, tint = Color.Red)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("¡FALLAS DETECTADAS!", color = Color.Red, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                Text("Medidas fuera de norma: ${listaFallas.joinToString(", ")}", fontSize = 12.sp, color = Color.Black)
+                            }
+                        }
+                    } else {
+                        // Resumen positivo
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                            Text("Todas las medidas dentro de norma.", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    Card(colors = CardDefaults.cardColors(containerColor = if (maxDanoVal >= 10.0) Color.Red else Color(0xFF4CAF50)), modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = if (maxDanoVal >= 10.0) "¡REEMPLAZO REQUERIDO!" else "OPERATIVO",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(12.dp).fillMaxWidth()
-                        )
+                    Card(colors = CardDefaults.cardColors(containerColor = if (esReemplazoCritico) Color.Red else Color(0xFF4CAF50)), modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = if (esReemplazoCritico) "¡REEMPLAZO REQUERIDO!" else "OPERATIVO",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = "Desgaste Máximo: $porcentajeDanoGlobal",
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontSize = 12.sp
+                            )
+                        }
                     }
                 }
             }
@@ -273,7 +325,7 @@ fun PantallaRegistroGrillete(
 
                         val bitacora = Bitacora(
                             usuarioRut = Sesion.rutUsuarioActual,
-                            usuarioNombre = Sesion.nombreUsuarioActual, // <--- AHORA SÍ SE GUARDA EL NOMBRE
+                            usuarioNombre = Sesion.nombreUsuarioActual,
                             identificadorMaquina = idEquipo,
                             tipoMaquina = tipoMaquina,
                             tipoAditamento = "Grillete CM Lira",
