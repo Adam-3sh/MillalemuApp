@@ -174,9 +174,9 @@ fun PantallaLogin(navController: NavController) {
                                         val usuario = documents.documents[0].toObject(Usuario::class.java)
 
                                         if (usuario != null) {
-                                            // Guardamos datos en sesión
+                                            // Guardamos datos en sesión (CORREGIDO: NOMBRE COMPLETO)
                                             Sesion.rutUsuarioActual = usuario.rut
-                                            Sesion.nombreUsuarioActual = usuario.nombre // <-- Guardamos el nombre
+                                            Sesion.nombreUsuarioActual = "${usuario.nombre} ${usuario.apellido}".trim()
                                             Sesion.rolUsuarioActual = usuario.tipo_usuario
 
                                             if (usuario.tipo_usuario == "Administrador" || usuario.tipo_usuario == "Supervisor") {

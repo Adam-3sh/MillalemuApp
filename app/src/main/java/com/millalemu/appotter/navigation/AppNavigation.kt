@@ -28,8 +28,11 @@ import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialComponentes
 import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialEquipos
 import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialTipo
 import com.millalemu.appotter.ui.screens.operacion.PantallaListaHistorial
+import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroCable
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroCadena // <--- IMPORT QUE FALTABA
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroEslabon
+import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroGancho
+import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroGrillete
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroMedidas
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroTerminal
 import com.millalemu.appotter.ui.screens.operacion.PantallaSeleccionarEquipo
@@ -66,6 +69,9 @@ object AppRoutes {
     const val REGISTRO_TERMINAL = "registro_terminal"
     const val DIMENSIONES_TERMINAL = "dimensiones_terminal"
     const val REGISTRO_CADENA = "registro_cadena"
+    const val REGISTRO_GRILLETE = "registro_grillete"
+    const val REGISTRO_GANCHO = "registro_gancho"
+    const val REGISTRO_CABLE = "registro_cable"
 
 }
 
@@ -282,6 +288,44 @@ fun AppNavigation() {
                 val idEquipo = backStackEntry.arguments?.getString("idEquipo") ?: ""
                 val aditamento = backStackEntry.arguments?.getString("aditamento") ?: ""
                 PantallaListaHistorial(navController, idEquipo, aditamento)
+            }
+
+            composable(
+                route = "${AppRoutes.REGISTRO_GRILLETE}/{tipoMaquina}/{idEquipo}",
+                arguments = listOf(
+                    navArgument("tipoMaquina") { type = NavType.StringType },
+                    navArgument("idEquipo") { type = NavType.StringType }
+                )
+            ) { backEntry ->
+                val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
+                val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
+                PantallaRegistroGrillete(navController, tipo, idEquipo)
+            }
+
+            // --- BLOQUE 2: GANCHO (Base) ---
+            composable(
+                route = "${AppRoutes.REGISTRO_GANCHO}/{tipoMaquina}/{idEquipo}",
+                arguments = listOf(
+                    navArgument("tipoMaquina") { type = NavType.StringType },
+                    navArgument("idEquipo") { type = NavType.StringType }
+                )
+            ) { backEntry ->
+                val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
+                val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
+                PantallaRegistroGancho(navController, tipo, idEquipo)
+            }
+
+            // --- BLOQUE 3: CABLE (Base) ---
+            composable(
+                route = "${AppRoutes.REGISTRO_CABLE}/{tipoMaquina}/{idEquipo}",
+                arguments = listOf(
+                    navArgument("tipoMaquina") { type = NavType.StringType },
+                    navArgument("idEquipo") { type = NavType.StringType }
+                )
+            ) { backEntry ->
+                val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
+                val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
+                PantallaRegistroCable(navController, tipo, idEquipo)
             }
         }
     }

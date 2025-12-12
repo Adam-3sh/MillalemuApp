@@ -30,13 +30,11 @@ import com.google.firebase.firestore.Query
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.DetallesCadena
 import com.millalemu.appotter.data.DetallesEslabon
+import com.millalemu.appotter.data.DetallesGrillete // <--- IMPORTANTE
 import com.millalemu.appotter.db
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-// ------------------------------------------------------
-// PANTALLA PRINCIPAL — HISTORIAL
-// ------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaListaHistorial(
@@ -47,27 +45,24 @@ fun PantallaListaHistorial(
     var lista by remember { mutableStateOf<List<Bitacora>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
 
-    LaunchedEffect(idEquipo, nombreAditamento) {
-
+    LaunchedEffect(Unit) {
         db.collection("bitacoras")
-            .whereEqualTo("identificadorMaquina", idEquipo.trim())
-            .whereEqualTo("tipoAditamento", nombreAditamento.trim())
             .orderBy("fecha", Query.Direction.DESCENDING)
+            .limit(50)
             .get()
             .addOnSuccessListener { res ->
-                val items = res.documents.mapNotNull { doc ->
-                    val b = doc.toObject(Bitacora::class.java)
-                    if (b != null) {
-                        b.id = doc.id
-                        b
-                    } else null
-                }
+                val todos = res.toObjects(Bitacora::class.java)
 
-                lista = items
+                // Filtro inteligente (ignora mayúsculas/espacios)
+                lista = todos.filter { bitacora ->
+                    val maquinaCoincide = bitacora.identificadorMaquina.trim().equals(idEquipo.trim(), ignoreCase = true)
+                    val componenteCoincide = bitacora.tipoAditamento.trim().equals(nombreAditamento.trim(), ignoreCase = true)
+
+                    maquinaCoincide && componenteCoincide
+                }
                 cargando = false
             }
             .addOnFailureListener {
-                lista = emptyList()
                 cargando = false
             }
     }
@@ -88,43 +83,31 @@ fun PantallaListaHistorial(
                 )
             )
         }
-    ) { padding ->
+    ) { p ->
+        Box(modifier = Modifier.padding(p).fillMaxSize().background(Color(0xFFF5F5F5))) {
 
-        Box(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
-        ) {
-
-            when {
-                cargando -> {
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+            if (cargando) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (lista.isEmpty()) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center).padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "No hay registros recientes para $idEquipo",
+                        textAlign = TextAlign.Center,
+                        color = Color.Gray
+                    )
                 }
-
-                lista.isEmpty() -> {
-                    Column(
-                        Modifier.align(Alignment.Center).padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            "No hay registros para $idEquipo - $nombreAditamento",
-                            textAlign = TextAlign.Center,
-                            color = Color.Gray
-                        )
-                    }
-                }
-
-                else -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(lista) { bitacora ->
-                            ItemBitacoraExpandible(bitacora)
-                        }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(lista) { bitacora ->
+                        ItemBitacoraExpandible(bitacora)
                     }
                 }
             }
@@ -132,32 +115,23 @@ fun PantallaListaHistorial(
     }
 }
 
-
-// ------------------------------------------------------
-// ITEM EXPANDIBLE — TARJETA DE BITÁCORA
-// ------------------------------------------------------
 @Composable
 private fun ItemBitacoraExpandible(bitacora: Bitacora) {
-
     var expandido by remember { mutableStateOf(false) }
 
     val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
-    val fechaTexto = try {
-        sdf.format(bitacora.fecha.toDate())
-    } catch (e: Exception) {
-        "--/--/----"
-    }
+    val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--/--/----" }
 
     val (colorEstado, textoEstado, fondoEstado) = when {
-        bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE))
-        bitacora.porcentajeDesgasteGeneral >= 5.0 -> Triple(Color(0xFFEF6C00), "ALERTA", Color(0xFFFFF3E0))
-        else -> Triple(Color(0xFF2E7D32), "OK", Color(0xFFE8F5E9))
+        bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE)) // Rojo
+        bitacora.porcentajeDesgasteGeneral >= 5.0 -> Triple(Color(0xFFEF6C00), "ALERTA", Color(0xFFFFF3E0)) // Naranja
+        else -> Triple(Color(0xFF2E7D32), "OK", Color(0xFFE8F5E9)) // Verde
     }
 
     Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(Color.White),
         elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(
@@ -168,19 +142,17 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
             )
             .clickable { expandido = !expandido }
     ) {
+        Column(modifier = Modifier.padding(16.dp)) {
 
-        Column(Modifier.padding(16.dp)) {
-
-            // ---------- CABECERA ----------
+            // CABECERA
             Row(
-                Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
                 Column {
-                    Text(fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("Horómetro: ${bitacora.horometro.toInt()} hrs", fontSize = 13.sp, color = Color.Gray)
+                    Text(text = fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+                    Text(text = "Horómetro: ${bitacora.horometro.toInt()} hrs", fontSize = 13.sp, color = Color.Gray)
                 }
 
                 Surface(
@@ -189,7 +161,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                     modifier = Modifier.border(1.dp, colorEstado.copy(alpha = 0.3f), RoundedCornerShape(50))
                 ) {
                     Row(
-                        Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -198,109 +170,84 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                             tint = colorEstado,
                             modifier = Modifier.size(14.dp)
                         )
-                        Spacer(Modifier.width(4.dp))
-                        Text(textoEstado, color = colorEstado, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = textoEstado, color = colorEstado, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-
-            // ---------- BARRA DE DESGASTE ----------
+            // Barra de Desgaste
             Column {
-
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Desgaste General", fontSize = 12.sp, color = Color.Gray)
                     Text(
                         "${String.format("%.1f", bitacora.porcentajeDesgasteGeneral)}%",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colorEstado
+                        color = if (bitacora.porcentajeDesgasteGeneral > 0) colorEstado else Color.Black
                     )
                 }
-
-                Spacer(Modifier.height(4.dp))
-
+                Spacer(modifier = Modifier.height(4.dp))
                 LinearProgressIndicator(
-                    progress = (bitacora.porcentajeDesgasteGeneral / 100f).toFloat(),
+                    progress = { (bitacora.porcentajeDesgasteGeneral / 100).toFloat() },
                     modifier = Modifier.fillMaxWidth().height(6.dp),
                     color = colorEstado,
-                    trackColor = Color(0xFFEEEEEE)
+                    trackColor = Color(0xFFEEEEEE),
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = if (expandido) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
+                    contentDescription = "Ver más",
                     tint = Color.LightGray
                 )
             }
 
-
-            // ------------------------------------------------------
-            // DETALLE EXPANDIDO
-            // ------------------------------------------------------
+            // DETALLE DESPLEGABLE
             if (expandido) {
-
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                 DatoFila("Responsable:", bitacora.usuarioNombre)
-                DatoFila("RUT:", bitacora.usuarioRut)
-                DatoFila("Máquina:", bitacora.identificadorMaquina)
-                DatoFila("Tipo Máquina:", bitacora.tipoMaquina)
-                DatoFila("Aditamento:", bitacora.tipoAditamento)
-                DatoFila("Nº Serie:", bitacora.numeroSerie)
-                DatoFila("Horómetro:", "${bitacora.horometro}")
-                DatoFila("Tiene Fisura:", if (bitacora.tieneFisura) "Sí" else "No")
-                DatoFila("Reemplazo:", if (bitacora.requiereReemplazo) "Sí" else "No")
-
-                if (bitacora.observacion.isNotBlank())
+                if (bitacora.observacion.isNotBlank()) {
                     DatoFila("Observación:", bitacora.observacion)
+                }
 
-                Spacer(Modifier.height(12.dp))
-
+                Spacer(modifier = Modifier.height(12.dp))
                 Text("Mediciones Técnicas:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
-                Spacer(Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                when {
-                    bitacora.detallesEslabon != null -> TablaEslabon(bitacora.detallesEslabon)
-                    bitacora.detallesCadena != null -> TablaCadena(bitacora.detallesCadena)
-                    else -> Text(
-                        "Sin datos dimensionales",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                    )
+                // Lógica de visualización corregida: Ahora incluye Grillete
+                if (bitacora.detallesEslabon != null) {
+                    TablaEslabon(bitacora.detallesEslabon)
+                } else if (bitacora.detallesCadena != null) {
+                    TablaCadena(bitacora.detallesCadena)
+                } else if (bitacora.detallesGrillete != null) { // <--- AÑADIDO
+                    TablaGrillete(bitacora.detallesGrillete)
+                } else {
+                    Text("Sin datos dimensionales", fontSize = 12.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Color.Gray)
                 }
             }
         }
     }
 }
 
+// === COMPONENTES AUXILIARES ===
 
-// ------------------------------------------------------
-// COMPONENTES AUXILIARES
-// ------------------------------------------------------
 @Composable
 fun DatoFila(titulo: String, valor: String) {
-    Row(Modifier.padding(vertical = 2.dp)) {
-        Text(titulo, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.width(110.dp))
-        Text(valor, fontSize = 12.sp, color = Color.Black)
+    Row(modifier = Modifier.padding(vertical = 2.dp)) {
+        Text(text = titulo, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.width(90.dp))
+        Text(text = valor, fontSize = 12.sp, color = Color.Black)
     }
 }
 
+// Tabla para Eslabón
 @Composable
 fun TablaEslabon(det: DetallesEslabon) {
-    Column(
-        Modifier
-            .background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp))
-            .border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp))
-            .padding(8.dp)
-    ) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
         HeaderTabla()
         FilaTabla("K", det.kNominal, det.kActual, det.kPorcentaje)
         FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje)
@@ -309,14 +256,10 @@ fun TablaEslabon(det: DetallesEslabon) {
     }
 }
 
+// Tabla para Cadena
 @Composable
 fun TablaCadena(det: DetallesCadena) {
-    Column(
-        Modifier
-            .background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp))
-            .border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp))
-            .padding(8.dp)
-    ) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
         HeaderTabla()
         FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
         FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
@@ -324,9 +267,24 @@ fun TablaCadena(det: DetallesCadena) {
     }
 }
 
+// Tabla para Grillete (NUEVO)
+@Composable
+fun TablaGrillete(det: DetallesGrillete) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
+        HeaderTabla()
+        FilaTabla("P (Perno)", det.pNominal, det.pActual, det.pPorcentaje)
+        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
+        FilaTabla("W", det.wNominal, det.wActual, det.wPorcentaje)
+        FilaTabla("R", det.rNominal, det.rActual, det.rPorcentaje)
+        FilaTabla("L", det.lNominal, det.lActual, det.lPorcentaje)
+        FilaTabla("B (Min)", det.bMinNominal, det.bMinActual, det.bMinPorcentaje)
+        FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
+    }
+}
+
 @Composable
 fun HeaderTabla() {
-    Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
         Text("MED", Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
         Text("NOM", Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Color.Gray)
         Text("ACT", Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Color.Gray)
@@ -338,7 +296,7 @@ fun HeaderTabla() {
 @Composable
 fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double) {
     val colorAlerta = if (porc >= 5.0) Color.Red else Color.Black
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(nombre, Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
         Text("$act", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)

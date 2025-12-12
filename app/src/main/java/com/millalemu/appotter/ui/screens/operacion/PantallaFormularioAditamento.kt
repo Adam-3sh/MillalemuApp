@@ -89,26 +89,24 @@ fun PantallaFormularioAditamento(
                     // --- LÓGICA DE NAVEGACIÓN ---
                     when (item.nombre) {
 
-                        // Caso 1: Cadena de Asistencia (EL NUEVO)
                         "Cadena Asistencia" -> {
-                            // Navegamos a la nueva pantalla única de registro
                             navController.navigate("${AppRoutes.REGISTRO_CADENA}/$tipoMaquina/$idEquipo")
                         }
-
-                        // Caso 2: Eslabones (Entrada y Salida van al mismo flujo antiguo por ahora)
                         "Eslabón Entrada", "Eslabón Salida" -> {
-                            // Ahora pasamos el nombre del ítem (item.nombre) en la URL
                             navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo/${item.nombre}")
                         }
-
-                        // Caso 3: Terminal de Cuña
                         "Terminal de Cuña" -> {
                             navController.navigate("${AppRoutes.REGISTRO_TERMINAL}/$tipoMaquina/$idEquipo")
                         }
-
-                        // Resto de casos (Futuros)
-                        else -> {
-                            // Por ahora no hacen nada
+                        // --- NUEVOS CASOS CONECTADOS ---
+                        "Grillete CM Lira" -> {
+                            navController.navigate("${AppRoutes.REGISTRO_GRILLETE}/$tipoMaquina/$idEquipo")
+                        }
+                        "Gancho Ojo Fijo" -> {
+                            navController.navigate("${AppRoutes.REGISTRO_GANCHO}/$tipoMaquina/$idEquipo")
+                        }
+                        "Cable Asistencia" -> {
+                            navController.navigate("${AppRoutes.REGISTRO_CABLE}/$tipoMaquina/$idEquipo")
                         }
                     }
                 })
