@@ -1,5 +1,6 @@
 package com.millalemu.appotter.data
 
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.Exclude
 
 /**
@@ -14,7 +15,8 @@ data class Maquina(
     @get:Exclude var id: String = "",
 
     val identificador: String = "", // Ej: "VOL-01"
-    val tipo: String = "",          // Ej: "Volteo" (Antes era 'nombre', cámbialo a 'tipo' para consistencia)
-    val modelo: String = "",        // Ej: "Komatsu 931XC" (Este faltaba)
-    val horometro: Double = 0.0     // Útil para mostrarlo en las listas
+    val tipo: String = "",          // Ej: "Volteo" (Antes era 'nombre', cámbialo a 'tipo' para consistencia)     // Ej: "Komatsu 931XC" (Este faltaba)
+    val horometro: Double = 0.0 ,   // Útil para mostrarlo en las listas
+    val fechaCreacion: Timestamp? = null
+
 )

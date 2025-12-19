@@ -2,7 +2,6 @@ package com.millalemu.appotter.ui.screens.operacion
 
 import android.util.Log
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,9 +34,7 @@ fun PantallaSeleccionarEquipo(
     // Cargar máquinas de Firebase según el tipo seleccionado
     LaunchedEffect(tipoMaquina) {
         db.collection("maquinaria")
-            // --- CORRECCIÓN CRÍTICA AQUÍ ---
-            // Antes decías "nombre", ahora filtramos por "tipo" para coincidir con Maquina.kt
-            .whereEqualTo("tipo", tipoMaquina)
+            .whereEqualTo("tipo", tipoMaquina) // Filtramos por el campo 'tipo'
             .get()
             .addOnSuccessListener { snapshot ->
                 val equipos = snapshot.documents.mapNotNull { doc ->
@@ -108,21 +105,12 @@ fun PantallaSeleccionarEquipo(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)) // Azul
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = equipo.identificador, // Ej: "VOL-01"
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            // Opcional: Mostrar el modelo si existe
-                            if (equipo.modelo.isNotEmpty()) {
-                                Text(
-                                    text = equipo.modelo,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Normal
-                                )
-                            }
-                        }
+                        // Eliminamos la referencia a 'modelo' que causaba el error
+                        Text(
+                            text = equipo.identificador, // Ej: "SG-01"
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

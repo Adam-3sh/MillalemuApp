@@ -14,19 +14,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.millalemu.appotter.data.Maquina
 import com.millalemu.appotter.db
+import com.google.firebase.firestore.FieldValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavController) {
 
-    // Estados del formulario
-    val opcionesTipo = listOf("Madereo", "Volteo", "Transporte")
+    // Volvemos a solo dos opciones
+    val opcionesTipo = listOf("Madereo", "Volteo")
     var expanded by remember { mutableStateOf(false) }
     var tipoSeleccionado by remember { mutableStateOf(opcionesTipo[0]) }
     var identificador by remember { mutableStateOf("") }
-    var modelo by remember { mutableStateOf("") } // NUEVO CAMPO
+
+    // Eliminado: var modelo ...
 
     var mensajeError by remember { mutableStateOf("") }
     var guardando by remember { mutableStateOf(false) }
@@ -85,22 +86,10 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 2. Campo Identificador
-                Text("Identificador (Ej: VOL-01)", fontWeight = FontWeight.Bold)
+                Text("Identificador (Ej: SG-01)", fontWeight = FontWeight.Bold)
                 OutlinedTextField(
                     value = identificador,
                     onValueChange = { identificador = it },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 3. Campo Modelo (NUEVO)
-                Text("Modelo (Ej: Komatsu 931XC)", fontWeight = FontWeight.Bold)
-                OutlinedTextField(
-                    value = modelo,
-                    onValueChange = { modelo = it },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
@@ -114,15 +103,13 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón Guardar con Validaciones
+        // Botón Guardar
         Button(
             onClick = {
                 mensajeError = ""
                 val idNormalizado = identificador.trim().uppercase()
-                val modeloNormalizado = modelo.trim()
 
-                // 1. Validación de Formato (Regex)
-                // Permite XX-00 (Ej: SG-04, HM-02)
+                // 1. Validación de Formato
                 val regex = Regex("^[A-Z]{2}-\\d{2}$")
 
                 if (!regex.matches(idNormalizado)) {
@@ -130,7 +117,7 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
                     return@Button
                 }
 
-                // 2. Validación de Regla de Negocio (Prefijos)
+                // 2. Validación de Prefijos
                 val prefijo = idNormalizado.take(2)
                 var esValido = true
 
@@ -145,16 +132,16 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
                 if (esValido) {
                     guardando = true
 
-                    // CREAMOS EL OBJETO CON LA NUEVA ESTRUCTURA
-                    val nuevaMaquina = Maquina(
-                        identificador = idNormalizado,
-                        tipo = tipoSeleccionado, // Usamos 'tipo', no 'nombre'
-                        modelo = modeloNormalizado,
-                        horometro = 0.0 // Inicializamos en 0
+                    // USAMOS UN HASHMAP PARA ASEGURAR LA FECHA DEL SERVIDOR
+                    val nuevaMaquinaMap = hashMapOf(
+                        "identificador" to idNormalizado,
+                        "tipo" to tipoSeleccionado,
+                        "horometro" to 0.0,
+                        "fechaCreacion" to FieldValue.serverTimestamp() // ¡Esto arregla la fecha!
                     )
 
                     db.collection("maquinaria")
-                        .add(nuevaMaquina)
+                        .add(nuevaMaquinaMap)
                         .addOnSuccessListener {
                             guardando = false
                             navController.popBackStack()

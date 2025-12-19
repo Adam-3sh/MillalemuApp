@@ -29,7 +29,8 @@ data class Bitacora(
     val detallesCadena: DetallesCadena? = null,
     val detallesGrillete: DetallesGrillete? = null,
     val detallesGancho: DetallesGancho? = null,
-    val detallesTerminal: DetallesTerminal? = null
+    val detallesTerminal: DetallesTerminal? = null,
+    val detallesCable: DetallesCable? = null
 )
 
 @Keep
@@ -147,4 +148,14 @@ data class DetallesTerminal(
     @get:PropertyName("enominal") @set:PropertyName("enominal") var eNominal: Double = 0.0,
     @get:PropertyName("eactual") @set:PropertyName("eactual") var eActual: Double = 0.0,
     @get:PropertyName("eporcentaje") @set:PropertyName("eporcentaje") var ePorcentaje: Double = 0.0
+)
+
+@Keep
+data class DetallesCable(
+    @get:PropertyName("metrosdisponible") @set:PropertyName("metrosdisponible") var metrosDisponible: Double = 0.0,
+    @get:PropertyName("metrosrevisado") @set:PropertyName("metrosrevisado") var metrosRevisado: Double = 0.0,
+    @get:PropertyName("alambresrotos6d") @set:PropertyName("alambresrotos6d") var alambresRotos6d: Double = 0.0,
+    @get:PropertyName("alambresrotos30d") @set:PropertyName("alambresrotos30d") var alambresRotos30d: Double = 0.0,
+    @get:PropertyName("porcentajereduccion") @set:PropertyName("porcentajereduccion") var porcentajeReduccion: Double = 0.0,
+    @get:PropertyName("porcentajecorrosion") @set:PropertyName("porcentajecorrosion") var porcentajeCorrosion: Double = 0.0
 )

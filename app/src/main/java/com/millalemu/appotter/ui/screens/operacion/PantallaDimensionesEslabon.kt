@@ -290,6 +290,7 @@ fun PantallaDimensionesEslabon(
                     val horometroVal = horometro.toDoubleOrNull() ?: 0.0
 
                     // 2. Crear el objeto DetallesEslabon
+                    // Usamos la ruta completa o asegúrate de importar com.millalemu.appotter.data.DetallesEslabon
                     val detalles = com.millalemu.appotter.data.DetallesEslabon(
                         kNominal = kNom, aNominal = aNom, dNominal = dNom, bNominal = bNom,
                         kActual = kAct, aActual = aAct, dActual = dAct, bActual = bAct
@@ -298,31 +299,33 @@ fun PantallaDimensionesEslabon(
                     // 3. Crear la Bitácora Principal
                     val nuevaBitacora = Bitacora(
                         usuarioRut = Sesion.rutUsuarioActual,
+                        usuarioNombre = Sesion.nombreUsuarioActual, // <--- AGREGADO: Importante para el historial
                         identificadorMaquina = idEquipo,
                         tipoMaquina = tipoMaquina,
-                        tipoAditamento = "Eslabón Articulado",
+                        tipoAditamento = "Eslabón Articulado", // Nombre exacto para el filtro
                         numeroSerie = numeroSerie,
                         horometro = horometroVal,
                         tieneFisura = tieneFisura,
                         requiereReemplazo = requiereReemplazo,
                         observacion = observacion,
 
-                        // AQUÍ LA MAGIA: Asignamos el objeto detalle y dejamos cadena en null
-                        detallesEslabon = detalles,
-                        detallesCadena = null
+                        // AQUÍ LA CORRECCIÓN:
+                        detallesEslabon = detalles
+                        // Eliminamos 'detallesCadena = null' porque ya es null por defecto.
+                        // Al eliminarlo, el error desaparecerá.
                     )
 
-                    // 4. Guardar
+                    // 4. Guardar en Firestore
                     db.collection("bitacoras")
                         .add(nuevaBitacora)
                         .addOnSuccessListener {
+                            // Volver al menú principal borrando la pila para no regresar al formulario
                             navController.popBackStack(AppRoutes.MENU, false)
                         }
                         .addOnFailureListener { e ->
                             Log.e("PantallaDimensiones", "Error al guardar", e)
                         }
                 },
-                // ... (resto de estilos del botón)
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF33691E)),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.weight(1f).padding(start = 8.dp)

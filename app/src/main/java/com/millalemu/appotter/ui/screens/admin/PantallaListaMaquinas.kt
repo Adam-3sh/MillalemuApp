@@ -26,10 +26,10 @@ fun PantallaListaMaquinas(navController: NavController) {
     var listaMaquinas by remember { mutableStateOf<List<Maquina>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
 
-    // Cargar datos en tiempo real (SnapshotListener)
+    // Cargar datos en tiempo real
     DisposableEffect(Unit) {
         val listener = db.collection("maquinaria")
-            .orderBy("identificador") // Ordenar alfabéticamente
+            .orderBy("identificador")
             .addSnapshotListener { snapshots, e ->
                 if (e != null) {
                     cargando = false
@@ -38,7 +38,7 @@ fun PantallaListaMaquinas(navController: NavController) {
                 if (snapshots != null) {
                     val maquinas = snapshots.documents.mapNotNull { doc ->
                         val m = doc.toObject(Maquina::class.java)
-                        m?.id = doc.id // Asignar el ID del documento
+                        m?.id = doc.id
                         m
                     }
                     listaMaquinas = maquinas
@@ -100,33 +100,24 @@ fun ItemMaquina(maquina: Maquina, navController: NavController) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = maquina.identificador, // Ej: VOL-01
+                    text = maquina.identificador, // Ej: SG-01
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
-                // CORRECCIÓN: Usamos 'tipo' y mostramos el 'modelo' si existe
-                val subtitulo = if (maquina.modelo.isNotEmpty()) {
-                    "${maquina.tipo} - ${maquina.modelo}"
-                } else {
-                    maquina.tipo
-                }
-
+                // Volvemos a mostrar solo el tipo limpio
                 Text(
-                    text = subtitulo,
+                    text = maquina.tipo,
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
             }
 
             Row {
-                // Botón Editar
                 IconButton(onClick = { navController.navigate("editar_maquina/${maquina.id}") }) {
                     Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF1976D2))
                 }
 
-                // Botón Eliminar
                 IconButton(onClick = {
-                    // Borrado simple directo
                     db.collection("maquinaria").document(maquina.id).delete()
                 }) {
                     Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color(0xFFD32F2F))
