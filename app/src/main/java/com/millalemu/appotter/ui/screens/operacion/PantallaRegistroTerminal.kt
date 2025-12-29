@@ -41,10 +41,9 @@ import kotlin.math.abs
 fun PantallaRegistroTerminal(
     navController: NavController,
     tipoMaquina: String,
-    idEquipo: String
+    idEquipo: String,
+    nombreAditamento: String
 ) {
-    val nombreAditamento = "Terminal de Cuña"
-
     var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
@@ -159,26 +158,45 @@ fun PantallaRegistroTerminal(
                 }
             }) {
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                    Text("", Modifier.weight(0.5f))
-                    listOf("A", "B", "C", "D", "E").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
+                    Text("", Modifier.weight(0.6f))
+                    listOf("A", "B", "C").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Inic", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    CeldaGrid(nomA, { nomA = it }, nominalesEditables); CeldaGrid(nomB, { nomB = it }, nominalesEditables); CeldaGrid(nomC, { nomC = it }, nominalesEditables); CeldaGrid(nomD, { nomD = it }, nominalesEditables); CeldaGrid(nomE, { nomE = it }, nominalesEditables)
+                    Text("Inic", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    CeldaGrid(nomA, { nomA = it }, nominalesEditables); CeldaGrid(nomB, { nomB = it }, nominalesEditables); CeldaGrid(nomC, { nomC = it }, nominalesEditables)
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Act", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    CeldaGrid(medA, { medA = it }, true, true); CeldaGrid(medB, { medB = it }, true, true); CeldaGrid(medC, { medC = it }, true, true); CeldaGrid(medD, { medD = it }, true, true); CeldaGrid(medE, { medE = it }, true, true)
+                    Text("Act", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    CeldaGrid(medA, { medA = it }, true, true); CeldaGrid(medB, { medB = it }, true, true); CeldaGrid(medC, { medC = it }, true, true)
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                    Text("", Modifier.weight(0.6f))
+                    listOf("D", "E").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
+                    Spacer(Modifier.weight(1f))
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Inic", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    CeldaGrid(nomD, { nomD = it }, nominalesEditables); CeldaGrid(nomE, { nomE = it }, nominalesEditables); Spacer(Modifier.weight(1f))
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Act", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    CeldaGrid(medD, { medD = it }, true, true); CeldaGrid(medE, { medE = it }, true, true); Spacer(Modifier.weight(1f))
                 }
 
                 if (mostrarResultados) {
                     Spacer(Modifier.height(16.dp)); Divider(color = Color.LightGray, thickness = 1.dp); Spacer(Modifier.height(8.dp))
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Daño", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Red)
-                        CeldaResultado(resA_txt); CeldaResultado(resB_txt); CeldaResultado(resC_txt); CeldaResultado(resD_txt); CeldaResultado(resE_txt)
+                    Text("Resultados:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth()) {
+                        Spacer(Modifier.weight(0.6f))
+                        CeldaResultado(resA_txt); CeldaResultado(resB_txt); CeldaResultado(resC_txt)
+                    }
+                    Row(Modifier.fillMaxWidth()) {
+                        Spacer(Modifier.weight(0.6f))
+                        CeldaResultado(resD_txt); CeldaResultado(resE_txt); Spacer(Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
-                    Card(colors = CardDefaults.cardColors(containerColor = if (maxDanoVal >= 10.0) Color.Red else Color(0xFF4CAF50)), modifier = Modifier.fillMaxWidth()) {
+                    Card(colors = CardDefaults.cardColors(containerColor = if (esCritico) Color.Red else Color(0xFF4CAF50)), modifier = Modifier.fillMaxWidth()) {
                         Text("Daño Máximo: $porcentajeDanoGlobal", color = Color.White, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(8.dp).fillMaxWidth())
                     }
                 }
@@ -219,14 +237,14 @@ fun PantallaRegistroTerminal(
                 Button(
                     onClick = {
                         isSaving = true; mensajeError = ""
-                        // VALIDACIÓN
                         if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
-                        val h = cleanDouble(horometro); val nA = cleanDouble(nomA); val nB = cleanDouble(nomB); val nC = cleanDouble(nomC); val nD = cleanDouble(nomD); val nE = cleanDouble(nomE)
+                        val h = cleanDouble(horometro)
+                        val nA = cleanDouble(nomA); val nB = cleanDouble(nomB); val nC = cleanDouble(nomC); val nD = cleanDouble(nomD); val nE = cleanDouble(nomE)
                         val mA = cleanDouble(medA); val mB = cleanDouble(medB); val mC = cleanDouble(medC); val mD = cleanDouble(medD); val mE = cleanDouble(medE)
 
                         if (h <= 0) { mensajeError = "Falta horómetro."; isSaving = false; return@Button }
-                        if (nA <= 0 || nB <= 0 || nC <= 0 || nD <= 0 || nE <= 0) { mensajeError = "Faltan medidas NOMINALES (no pueden ser 0)."; isSaving = false; return@Button }
-                        if (mA <= 0 || mB <= 0 || mC <= 0 || mD <= 0 || mE <= 0) { mensajeError = "Faltan medidas ACTUALES (no pueden ser 0)."; isSaving = false; return@Button }
+                        if (nA <= 0 || nB <= 0 || nC <= 0 || nD <= 0 || nE <= 0) { mensajeError = "Faltan medidas NOMINALES."; isSaving = false; return@Button }
+                        if (mA <= 0 || mB <= 0 || mC <= 0 || mD <= 0 || mE <= 0) { mensajeError = "Faltan medidas ACTUALES."; isSaving = false; return@Button }
 
                         val detalles = DetallesTerminal(aNominal = nA, bNominal = nB, cNominal = nC, dNominal = nD, eNominal = nE, aActual = mA, bActual = mB, cActual = mC, dActual = mD, eActual = mE, aPorcentaje = valA, bPorcentaje = valB, cPorcentaje = valC, dPorcentaje = valD, ePorcentaje = valE)
                         val bitacora = Bitacora(

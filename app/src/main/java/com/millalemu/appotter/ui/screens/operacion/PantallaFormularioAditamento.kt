@@ -1,5 +1,6 @@
 package com.millalemu.appotter.ui.screens.operacion
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,29 +29,48 @@ import androidx.navigation.NavController
 import com.millalemu.appotter.R
 import com.millalemu.appotter.navigation.AppRoutes
 
-// Modelo de datos para la lista visual
 data class ItemAditamento(val nombre: String, val imagenId: Int)
 
 @Composable
 fun PantallaFormularioAditamento(
     navController: NavController,
-    tipoMaquina: String, // Ej: "Volteo"
-    idEquipo: String     // Ej: "VOL-01"
+    tipoMaquina: String,
+    idEquipo: String
 ) {
+    val context = LocalContext.current
 
-    // Lista de aditamentos
-    val listaAditamentos = if (tipoMaquina == "Volteo") {
-        listOf(
+    val listaAditamentos = when (tipoMaquina) {
+        "Volteo" -> listOf(
             ItemAditamento("Grillete CM Lira", R.drawable.grillete_cm_lira),
             ItemAditamento("Gancho Ojo Fijo", R.drawable.gancho_ojo_fijo),
             ItemAditamento("Eslabón Entrada", R.drawable.eslabon_entrada),
-            ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia), // <-- ESTE ES EL QUE VAMOS A PROBAR
+            ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
             ItemAditamento("Eslabón Salida", R.drawable.eslabon_salida),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
             ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia)
         )
-    } else {
-        emptyList()
+        "Madereo" -> listOf(
+            // Nombre unificado
+            ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia),
+            ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
+            ItemAditamento("Eslabón Articulado 1", R.drawable.eslabon_articulado),
+            ItemAditamento("Cadena 1", R.drawable.cadena_asistencia),
+            ItemAditamento("Eslabón Articulado 2", R.drawable.eslabon_articulado),
+            ItemAditamento("Gancho de Ojo", R.drawable.gancho_ojo_fijo),
+            ItemAditamento("Grillete Lira", R.drawable.grillete_cm_lira),
+            ItemAditamento("Roldana", R.drawable.logo_millalemu),
+            ItemAditamento("Grillete 1", R.drawable.grillete_cm_lira),
+            ItemAditamento("Grillete 2", R.drawable.grillete_cm_lira),
+            ItemAditamento("Eslabón 1", R.drawable.eslabon_entrada),
+            ItemAditamento("Eslabón 2", R.drawable.eslabon_entrada),
+            ItemAditamento("Cadena 2", R.drawable.cadena_asistencia),
+            ItemAditamento("Cadena 3", R.drawable.cadena_asistencia),
+            ItemAditamento("Eslabón 3", R.drawable.eslabon_entrada),
+            ItemAditamento("Eslabón 4", R.drawable.eslabon_entrada),
+            ItemAditamento("Grillete 3", R.drawable.grillete_cm_lira),
+            ItemAditamento("Grillete 4", R.drawable.grillete_cm_lira)
+        )
+        else -> emptyList()
     }
 
     Column(
@@ -57,8 +78,6 @@ fun PantallaFormularioAditamento(
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
     ) {
-
-        // 1. Encabezado Verde
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -75,7 +94,6 @@ fun PantallaFormularioAditamento(
             )
         }
 
-        // 2. Grilla de Aditamentos
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(16.dp),
@@ -85,35 +103,26 @@ fun PantallaFormularioAditamento(
         ) {
             items(listaAditamentos) { item ->
                 CardAditamento(item = item, onClick = {
+                    val nombre = item.nombre
 
-                    // --- LÓGICA DE NAVEGACIÓN ---
-                    when (item.nombre) {
+                    when {
+                        nombre.startsWith("Eslabón") -> navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo/$nombre")
+                        nombre.startsWith("Cadena") -> navController.navigate("${AppRoutes.REGISTRO_CADENA}/$tipoMaquina/$idEquipo/$nombre")
+                        nombre.startsWith("Grillete") -> navController.navigate("${AppRoutes.REGISTRO_GRILLETE}/$tipoMaquina/$idEquipo/$nombre")
+                        nombre.startsWith("Gancho") -> navController.navigate("${AppRoutes.REGISTRO_GANCHO}/$tipoMaquina/$idEquipo/$nombre")
 
-                        "Cadena Asistencia" -> {
-                            navController.navigate("${AppRoutes.REGISTRO_CADENA}/$tipoMaquina/$idEquipo")
-                        }
-                        "Eslabón Entrada", "Eslabón Salida" -> {
-                            navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo/${item.nombre}")
-                        }
-                        "Terminal de Cuña" -> {
-                            navController.navigate("${AppRoutes.REGISTRO_TERMINAL}/$tipoMaquina/$idEquipo")
-                        }
-                        // --- NUEVOS CASOS CONECTADOS ---
-                        "Grillete CM Lira" -> {
-                            navController.navigate("${AppRoutes.REGISTRO_GRILLETE}/$tipoMaquina/$idEquipo")
-                        }
-                        "Gancho Ojo Fijo" -> {
-                            navController.navigate("${AppRoutes.REGISTRO_GANCHO}/$tipoMaquina/$idEquipo")
-                        }
-                        "Cable Asistencia" -> {
+                        // CABLE (Ahora ruta simple)
+                        nombre.startsWith("Cable") -> {
                             navController.navigate("${AppRoutes.REGISTRO_CABLE}/$tipoMaquina/$idEquipo")
                         }
+
+                        nombre.startsWith("Terminal") -> navController.navigate("${AppRoutes.REGISTRO_TERMINAL}/$tipoMaquina/$idEquipo/$nombre")
+                        nombre == "Roldana" -> Toast.makeText(context, "Pantalla de Roldana en construcción", Toast.LENGTH_SHORT).show()
                     }
                 })
             }
         }
 
-        // 3. Botón Volver
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -134,9 +143,6 @@ fun PantallaFormularioAditamento(
     }
 }
 
-/**
- * Componente visual de la tarjeta
- */
 @Composable
 fun CardAditamento(item: ItemAditamento, onClick: () -> Unit) {
     Card(
@@ -163,7 +169,6 @@ fun CardAditamento(item: ItemAditamento, onClick: () -> Unit) {
                     .padding(bottom = 12.dp),
                 contentScale = ContentScale.Fit
             )
-
             Text(
                 text = item.nombre.uppercase(),
                 fontSize = 13.sp,

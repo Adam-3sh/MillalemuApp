@@ -41,10 +41,9 @@ import kotlin.math.abs
 fun PantallaRegistroGancho(
     navController: NavController,
     tipoMaquina: String,
-    idEquipo: String
+    idEquipo: String,
+    nombreAditamento: String
 ) {
-    val nombreAditamento = "Gancho Ojo Fijo"
-
     var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
@@ -241,15 +240,14 @@ fun PantallaRegistroGancho(
                 Button(
                     onClick = {
                         isSaving = true; mensajeError = ""
-                        // VALIDACIÓN
                         if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
                         val h = cleanDouble(horometro)
                         val nP1 = cleanDouble(nomPhi1); val nR = cleanDouble(nomR); val nD = cleanDouble(nomD); val nP2 = cleanDouble(nomPhi2); val nH = cleanDouble(nomH); val nE = cleanDouble(nomE)
                         val mP1 = cleanDouble(medPhi1); val mR = cleanDouble(medR); val mD = cleanDouble(medD); val mP2 = cleanDouble(medPhi2); val mH = cleanDouble(medH); val mE = cleanDouble(medE)
 
                         if (h <= 0) { mensajeError = "Falta horómetro."; isSaving = false; return@Button }
-                        if (nP1 <= 0 || nR <= 0 || nD <= 0 || nP2 <= 0 || nH <= 0 || nE <= 0) { mensajeError = "Faltan medidas NOMINALES (no pueden ser 0)."; isSaving = false; return@Button }
-                        if (mP1 <= 0 || mR <= 0 || mD <= 0 || mP2 <= 0 || mH <= 0 || mE <= 0) { mensajeError = "Faltan medidas ACTUALES (no pueden ser 0)."; isSaving = false; return@Button }
+                        if (nP1 <= 0 || nR <= 0 || nD <= 0 || nP2 <= 0 || nH <= 0 || nE <= 0) { mensajeError = "Faltan medidas NOMINALES."; isSaving = false; return@Button }
+                        if (mP1 <= 0 || mR <= 0 || mD <= 0 || mP2 <= 0 || mH <= 0 || mE <= 0) { mensajeError = "Faltan medidas ACTUALES."; isSaving = false; return@Button }
 
                         val detalles = DetallesGancho(phi1Nominal = nP1, rNominal = nR, dNominal = nD, phi2Nominal = nP2, hNominal = nH, eNominal = nE, phi1Actual = mP1, rActual = mR, dActual = mD, phi2Actual = mP2, hActual = mH, eActual = mE, phi1Porcentaje = valPhi1, rPorcentaje = valR, dPorcentaje = valD, phi2Porcentaje = valPhi2, hPorcentaje = valH, ePorcentaje = valE)
                         val bitacora = Bitacora(

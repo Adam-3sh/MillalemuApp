@@ -41,10 +41,9 @@ import kotlin.math.abs
 fun PantallaRegistroCadena(
     navController: NavController,
     tipoMaquina: String,
-    idEquipo: String
+    idEquipo: String,
+    nombreAditamento: String
 ) {
-    val nombreAditamento = "Cadena Asistencia"
-
     var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
@@ -209,18 +208,19 @@ fun PantallaRegistroCadena(
                 Button(
                     onClick = {
                         isSaving = true; mensajeError = ""
-                        // VALIDACIÓN
                         if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
-                        val h = cleanDouble(horometro); val nB = cleanDouble(nomB); val nC = cleanDouble(nomC); val nD = cleanDouble(nomD)
+                        val h = cleanDouble(horometro)
+                        val nB = cleanDouble(nomB); val nC = cleanDouble(nomC); val nD = cleanDouble(nomD)
                         val mB = cleanDouble(medB); val mC = cleanDouble(medC); val mD = cleanDouble(medD)
 
                         if (h <= 0) { mensajeError = "Falta horómetro."; isSaving = false; return@Button }
-                        if (nB <= 0 || nC <= 0 || nD <= 0) { mensajeError = "Faltan medidas NOMINALES (no pueden ser 0)."; isSaving = false; return@Button }
-                        if (mB <= 0 || mC <= 0 || mD <= 0) { mensajeError = "Faltan medidas ACTUALES (no pueden ser 0)."; isSaving = false; return@Button }
+                        if (nB <= 0 || nC <= 0 || nD <= 0) { mensajeError = "Faltan medidas NOMINALES."; isSaving = false; return@Button }
+                        if (mB <= 0 || mC <= 0 || mD <= 0) { mensajeError = "Faltan medidas ACTUALES."; isSaving = false; return@Button }
 
                         val detalles = DetallesCadena(bNominal = nB, cNominal = nC, dNominal = nD, bActual = mB, cActual = mC, dActual = mD, bPorcentaje = valB, cPorcentaje = valC, dPorcentaje = valD)
                         val bitacora = Bitacora(
-                            usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina, tipoAditamento = nombreAditamento,
+                            usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina,
+                            tipoAditamento = nombreAditamento,
                             numeroSerie = numeroSerie, horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
                             requiereReemplazo = requiereReemplazo, observacion = observacion, detallesCadena = detalles,
                             detallesEslabon = null, detallesGrillete = null, detallesGancho = null, detallesTerminal = null, detallesCable = null

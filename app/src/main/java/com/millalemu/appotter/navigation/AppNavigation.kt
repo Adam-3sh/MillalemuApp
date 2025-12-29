@@ -29,7 +29,7 @@ import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialEquipos
 import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialTipo
 import com.millalemu.appotter.ui.screens.operacion.PantallaListaHistorial
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroCable
-import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroCadena // <--- IMPORT QUE FALTABA
+import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroCadena
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroEslabon
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroGancho
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroGrillete
@@ -42,16 +42,10 @@ object AppRoutes {
     const val MENU = "menu_principal"
     const val ADMIN = "administrador"
     const val ADITAMENTO = "ingresar_aditamento"
-
-
-    const val HISTORIAL_TIPO = "historial_tipo" // <--- NUEVA RUTA INICIAL
+    const val HISTORIAL_TIPO = "historial_tipo"
     const val HISTORIAL_EQUIPOS = "historial_equipos"
     const val HISTORIAL_COMPONENTES = "historial_componentes"
     const val HISTORIAL_LISTA = "historial_lista"
-
-
-
-    const val REEMPLAZOS = "reemplazos"
     const val INGRESAR_MAQUINA = "ingresar_maquina"
     const val LISTA_MAQUINAS = "lista_maquinas"
     const val EDITAR_MAQUINA_ROUTE = "editar_maquina"
@@ -64,15 +58,12 @@ object AppRoutes {
     const val FORMULARIO_ADITAMENTO = "formulario_aditamento"
     const val REGISTRO_MEDIDAS_ROUTE = "registro_medidas"
     const val REGISTRO_ESLABON = "registro_eslabon"
-    // const val DIMENSIONES_ESLABON = "dimensiones_eslabon"
     const val SELECCION_EQUIPO = "seleccion_equipo"
     const val REGISTRO_TERMINAL = "registro_terminal"
-    const val DIMENSIONES_TERMINAL = "dimensiones_terminal"
     const val REGISTRO_CADENA = "registro_cadena"
     const val REGISTRO_GRILLETE = "registro_grillete"
     const val REGISTRO_GANCHO = "registro_gancho"
     const val REGISTRO_CABLE = "registro_cable"
-
 }
 
 @Composable
@@ -85,72 +76,35 @@ fun AppNavigation() {
             startDestination = AppRoutes.LOGIN,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(AppRoutes.LOGIN) {
-                PantallaLogin(navController = navController)
-            }
+            composable(AppRoutes.LOGIN) { PantallaLogin(navController = navController) }
+            composable(AppRoutes.MENU) { MenuPrincipalScreen(navController = navController) }
+            composable(AppRoutes.ADMIN) { PantallaAdmin(navController = navController) }
+            composable(AppRoutes.ADITAMENTO) { PantallaAditamento(navController = navController) }
+            composable(AppRoutes.INGRESAR_MAQUINA) { PantallaIngresarMaquina(navController = navController) }
+            composable(AppRoutes.LISTA_MAQUINAS) { PantallaListaMaquinas(navController = navController) }
 
-            composable(AppRoutes.MENU) {
-                MenuPrincipalScreen(navController = navController)
-            }
-
-            composable(AppRoutes.ADMIN) {
-                PantallaAdmin(navController = navController)
-            }
-
-            composable(AppRoutes.ADITAMENTO) {
-                PantallaAditamento(navController = navController)
-            }
-
-            composable(AppRoutes.INGRESAR_MAQUINA) {
-                PantallaIngresarMaquina(navController = navController)
-            }
-
-            composable(AppRoutes.LISTA_MAQUINAS) {
-                PantallaListaMaquinas(navController = navController)
-            }
-
-            // Editar maquina
             composable(
                 route = "${AppRoutes.EDITAR_MAQUINA_ROUTE}/{${AppRoutes.EDITAR_MAQUINA_ARG_ID}}",
-                arguments = listOf(navArgument(AppRoutes.EDITAR_MAQUINA_ARG_ID) {
-                    type = NavType.StringType
-                })
+                arguments = listOf(navArgument(AppRoutes.EDITAR_MAQUINA_ARG_ID) { type = NavType.StringType })
             ) { backStackEntry ->
                 val maquinaId = backStackEntry.arguments?.getString(AppRoutes.EDITAR_MAQUINA_ARG_ID)
-                requireNotNull(maquinaId) { "El ID de la máquina no puede ser nulo" }
-
-                PantallaEditarMaquina(
-                    navController = navController,
-                    maquinaId = maquinaId
-                )
+                requireNotNull(maquinaId)
+                PantallaEditarMaquina(navController = navController, maquinaId = maquinaId)
             }
 
-            // Editar usuario
             composable(
                 route = "${AppRoutes.EDITAR_USUARIO_ROUTE}/{${AppRoutes.EDITAR_USUARIO_ARG_ID}}",
-                arguments = listOf(navArgument(AppRoutes.EDITAR_USUARIO_ARG_ID) {
-                    type = NavType.StringType
-                })
+                arguments = listOf(navArgument(AppRoutes.EDITAR_USUARIO_ARG_ID) { type = NavType.StringType })
             ) { backStackEntry ->
                 val usuarioId = backStackEntry.arguments?.getString(AppRoutes.EDITAR_USUARIO_ARG_ID)
                 requireNotNull(usuarioId)
-
                 PantallaEditarUsuario(navController = navController, usuarioId = usuarioId)
             }
 
-            composable(AppRoutes.CREAR_USUARIO) {
-                PantallaCrearUsuario(navController = navController)
-            }
+            composable(AppRoutes.CREAR_USUARIO) { PantallaCrearUsuario(navController = navController) }
+            composable(AppRoutes.LISTA_USUARIOS) { PantallaListaUsuarios(navController = navController) }
+            composable(AppRoutes.CALCULADORA) { PantallaCalculadora(navController = navController) }
 
-            composable(AppRoutes.LISTA_USUARIOS) {
-                PantallaListaUsuarios(navController = navController)
-            }
-
-            composable(AppRoutes.CALCULADORA) {
-                PantallaCalculadora(navController = navController)
-            }
-
-            // Formulario Aditamento
             composable(
                 route = "${AppRoutes.FORMULARIO_ADITAMENTO}/{tipoMaquina}/{idEquipo}",
                 arguments = listOf(
@@ -163,7 +117,6 @@ fun AppNavigation() {
                 PantallaFormularioAditamento(navController, tipo, idEquipo)
             }
 
-            // Registro Medidas Genérico
             composable(
                 route = "${AppRoutes.REGISTRO_MEDIDAS_ROUTE}/{tipoMaquina}/{nombreAditamento}",
                 arguments = listOf(
@@ -177,25 +130,19 @@ fun AppNavigation() {
             }
 
             composable(
-                route = "${AppRoutes.REGISTRO_ESLABON}/{tipoMaquina}/{idEquipo}/{nombreAditamento}", // <--- NUEVO PARÁMETRO
+                route = "${AppRoutes.REGISTRO_ESLABON}/{tipoMaquina}/{idEquipo}/{nombreAditamento}",
                 arguments = listOf(
                     navArgument("tipoMaquina") { type = NavType.StringType },
                     navArgument("idEquipo") { type = NavType.StringType },
-                    navArgument("nombreAditamento") {
-                        type = NavType.StringType
-                    } // <--- DEFINIR TIPO
+                    navArgument("nombreAditamento") { type = NavType.StringType }
                 )
             ) { backEntry ->
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
-                val nombreAditamento =
-                    backEntry.arguments?.getString("nombreAditamento") ?: "Eslabón"
-
-                // Llamamos a la pantalla actualizada
+                val nombreAditamento = backEntry.arguments?.getString("nombreAditamento") ?: "Eslabón"
                 PantallaRegistroEslabon(navController, tipo, idEquipo, nombreAditamento)
             }
 
-            // Dimensiones Eslabón (Pantalla 2)
             composable(
                 route = "dimensiones_eslabon/{tipo}/{id}/{serie}/{horometro}/{fisura}/{reemplazo}/{obs}",
                 arguments = listOf(
@@ -216,10 +163,7 @@ fun AppNavigation() {
                 val reemplazo = backEntry.arguments?.getBoolean("reemplazo") ?: false
                 val obs = backEntry.arguments?.getString("obs") ?: ""
 
-                PantallaDimensionesEslabon(
-                    navController,
-                    tipo, id, serie, horometro, fisura, reemplazo, obs
-                )
+                PantallaDimensionesEslabon(navController, tipo, id, serie, horometro, fisura, reemplazo, obs)
             }
 
             composable(
@@ -230,47 +174,46 @@ fun AppNavigation() {
                 PantallaSeleccionarEquipo(navController, tipo)
             }
 
-            composable("${AppRoutes.REGISTRO_TERMINAL}/{tipoMaquina}/{idEquipo}") { backEntry ->
-                val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
-                val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
-                PantallaRegistroTerminal(navController, tipo, idEquipo)
-            }
-
-            composable(AppRoutes.DIMENSIONES_TERMINAL) {
-                // PantallaDimensionesTerminal(navController)
-            }
-
-            // --- ESTE ES EL BLOQUE QUE TE FALTABA PARA QUE LA CADENA FUNCIONE ---
+            // --- TERMINAL ---
             composable(
-                route = "${AppRoutes.REGISTRO_CADENA}/{tipoMaquina}/{idEquipo}",
+                route = "${AppRoutes.REGISTRO_TERMINAL}/{tipoMaquina}/{idEquipo}/{nombreAditamento}",
                 arguments = listOf(
                     navArgument("tipoMaquina") { type = NavType.StringType },
-                    navArgument("idEquipo") { type = NavType.StringType }
+                    navArgument("idEquipo") { type = NavType.StringType },
+                    navArgument("nombreAditamento") { type = NavType.StringType }
                 )
             ) { backEntry ->
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
-
-                // Llamamos a tu nueva pantalla única
-                PantallaRegistroCadena(navController, tipo, idEquipo)
+                val nombre = backEntry.arguments?.getString("nombreAditamento") ?: "Terminal"
+                PantallaRegistroTerminal(navController, tipo, idEquipo, nombre)
             }
 
-            // 1. NUEVA PANTALLA INICIAL DEL HISTORIAL (Elegir Tipo)
-            composable(AppRoutes.HISTORIAL_TIPO) {
-                PantallaHistorialTipo(navController)
+            // --- CADENA ---
+            composable(
+                route = "${AppRoutes.REGISTRO_CADENA}/{tipoMaquina}/{idEquipo}/{nombreAditamento}",
+                arguments = listOf(
+                    navArgument("tipoMaquina") { type = NavType.StringType },
+                    navArgument("idEquipo") { type = NavType.StringType },
+                    navArgument("nombreAditamento") { type = NavType.StringType }
+                )
+            ) { backEntry ->
+                val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
+                val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
+                val nombre = backEntry.arguments?.getString("nombreAditamento") ?: "Cadena"
+                PantallaRegistroCadena(navController, tipo, idEquipo, nombre)
             }
 
-            // 2. SELECTOR DE EQUIPOS (Ahora recibe /{tipo})
+            composable(AppRoutes.HISTORIAL_TIPO) { PantallaHistorialTipo(navController) }
+
             composable(
                 route = "${AppRoutes.HISTORIAL_EQUIPOS}/{tipo}",
                 arguments = listOf(navArgument("tipo") { type = NavType.StringType })
             ) { backStackEntry ->
                 val tipo = backStackEntry.arguments?.getString("tipo") ?: "Volteo"
-                // Reutilizamos la pantalla que creamos antes, pero ahora es dinámica
                 PantallaHistorialEquipos(navController, tipo)
             }
 
-            // 3. SELECTOR DE COMPONENTES (Grillete, Cadena...)
             composable(
                 route = "${AppRoutes.HISTORIAL_COMPONENTES}/{tipo}/{id}",
                 arguments = listOf(navArgument("tipo") {}, navArgument("id") {})
@@ -280,7 +223,6 @@ fun AppNavigation() {
                 PantallaHistorialComponentes(navController, tipo, id)
             }
 
-            // 4. LISTA FINAL
             composable(
                 route = "${AppRoutes.HISTORIAL_LISTA}/{idEquipo}/{aditamento}",
                 arguments = listOf(navArgument("idEquipo") {}, navArgument("aditamento") {})
@@ -290,32 +232,37 @@ fun AppNavigation() {
                 PantallaListaHistorial(navController, idEquipo, aditamento)
             }
 
+            // --- GRILLETE ---
             composable(
-                route = "${AppRoutes.REGISTRO_GRILLETE}/{tipoMaquina}/{idEquipo}",
+                route = "${AppRoutes.REGISTRO_GRILLETE}/{tipoMaquina}/{idEquipo}/{nombreAditamento}",
                 arguments = listOf(
                     navArgument("tipoMaquina") { type = NavType.StringType },
-                    navArgument("idEquipo") { type = NavType.StringType }
+                    navArgument("idEquipo") { type = NavType.StringType },
+                    navArgument("nombreAditamento") { type = NavType.StringType }
                 )
             ) { backEntry ->
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
-                PantallaRegistroGrillete(navController, tipo, idEquipo)
+                val nombre = backEntry.arguments?.getString("nombreAditamento") ?: "Grillete"
+                PantallaRegistroGrillete(navController, tipo, idEquipo, nombre)
             }
 
-            // --- BLOQUE 2: GANCHO (Base) ---
+            // --- GANCHO ---
             composable(
-                route = "${AppRoutes.REGISTRO_GANCHO}/{tipoMaquina}/{idEquipo}",
+                route = "${AppRoutes.REGISTRO_GANCHO}/{tipoMaquina}/{idEquipo}/{nombreAditamento}",
                 arguments = listOf(
                     navArgument("tipoMaquina") { type = NavType.StringType },
-                    navArgument("idEquipo") { type = NavType.StringType }
+                    navArgument("idEquipo") { type = NavType.StringType },
+                    navArgument("nombreAditamento") { type = NavType.StringType }
                 )
             ) { backEntry ->
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
-                PantallaRegistroGancho(navController, tipo, idEquipo)
+                val nombre = backEntry.arguments?.getString("nombreAditamento") ?: "Gancho"
+                PantallaRegistroGancho(navController, tipo, idEquipo, nombre)
             }
 
-            // --- BLOQUE 3: CABLE (Base) ---
+            // --- CABLE (REVERTIDO A SIMPLE) ---
             composable(
                 route = "${AppRoutes.REGISTRO_CABLE}/{tipoMaquina}/{idEquipo}",
                 arguments = listOf(
@@ -325,6 +272,8 @@ fun AppNavigation() {
             ) { backEntry ->
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
+
+                // Llamada simple, sin nombreAditamento
                 PantallaRegistroCable(navController, tipo, idEquipo)
             }
         }
