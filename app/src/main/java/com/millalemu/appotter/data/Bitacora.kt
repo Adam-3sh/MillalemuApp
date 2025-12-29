@@ -30,7 +30,8 @@ data class Bitacora(
     val detallesGrillete: DetallesGrillete? = null,
     val detallesGancho: DetallesGancho? = null,
     val detallesTerminal: DetallesTerminal? = null,
-    val detallesCable: DetallesCable? = null
+    val detallesCable: DetallesCable? = null,
+    val detallesRoldana: DetallesRoldana? = null
 )
 
 @Keep
@@ -158,4 +159,19 @@ data class DetallesCable(
     @get:PropertyName("alambresrotos30d") @set:PropertyName("alambresrotos30d") var alambresRotos30d: Double = 0.0,
     @get:PropertyName("porcentajereduccion") @set:PropertyName("porcentajereduccion") var porcentajeReduccion: Double = 0.0,
     @get:PropertyName("porcentajecorrosion") @set:PropertyName("porcentajecorrosion") var porcentajeCorrosion: Double = 0.0
+)
+
+@Keep
+data class DetallesRoldana(
+    @get:PropertyName("anominal") @set:PropertyName("anominal") var aNominal: Double = 0.0,
+    @get:PropertyName("aactual") @set:PropertyName("aactual") var aActual: Double = 0.0,
+    @get:PropertyName("aporcentaje") @set:PropertyName("aporcentaje") var aPorcentaje: Double = 0.0,
+
+    @get:PropertyName("bnominal") @set:PropertyName("bnominal") var bNominal: Double = 0.0,
+    @get:PropertyName("bactual") @set:PropertyName("bactual") var bActual: Double = 0.0,
+    @get:PropertyName("bporcentaje") @set:PropertyName("bporcentaje") var bPorcentaje: Double = 0.0,
+
+    @get:PropertyName("cnominal") @set:PropertyName("cnominal") var cNominal: Double = 0.0,
+    @get:PropertyName("cactual") @set:PropertyName("cactual") var cActual: Double = 0.0,
+    @get:PropertyName("cporcentaje") @set:PropertyName("cporcentaje") var cPorcentaje: Double = 0.0
 )

@@ -34,6 +34,7 @@ import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroEslabon
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroGancho
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroGrillete
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroMedidas
+import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroRoldana
 import com.millalemu.appotter.ui.screens.operacion.PantallaRegistroTerminal
 import com.millalemu.appotter.ui.screens.operacion.PantallaSeleccionarEquipo
 
@@ -64,6 +65,7 @@ object AppRoutes {
     const val REGISTRO_GRILLETE = "registro_grillete"
     const val REGISTRO_GANCHO = "registro_gancho"
     const val REGISTRO_CABLE = "registro_cable"
+    const val REGISTRO_ROLDANA = "registro_roldana"
 }
 
 @Composable
@@ -275,6 +277,18 @@ fun AppNavigation() {
 
                 // Llamada simple, sin nombreAditamento
                 PantallaRegistroCable(navController, tipo, idEquipo)
+            }
+
+            composable(
+                route = "${AppRoutes.REGISTRO_ROLDANA}/{tipoMaquina}/{idEquipo}",
+                arguments = listOf(
+                    navArgument("tipoMaquina") { type = NavType.StringType },
+                    navArgument("idEquipo") { type = NavType.StringType }
+                )
+            ) { backEntry ->
+                val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
+                val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
+                PantallaRegistroRoldana(navController, tipo, idEquipo) // Asegúrate de importar la pantalla
             }
         }
     }

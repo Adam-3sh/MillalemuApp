@@ -58,7 +58,7 @@ fun PantallaFormularioAditamento(
             ItemAditamento("Eslabón Articulado 2", R.drawable.eslabon_articulado),
             ItemAditamento("Gancho de Ojo", R.drawable.gancho_ojo_fijo),
             ItemAditamento("Grillete Lira", R.drawable.grillete_cm_lira),
-            ItemAditamento("Roldana", R.drawable.logo_millalemu),
+            ItemAditamento("Roldana", R.drawable.roldana),
             ItemAditamento("Grillete 1", R.drawable.grillete_cm_lira),
             ItemAditamento("Grillete 2", R.drawable.grillete_cm_lira),
             ItemAditamento("Eslabón 1", R.drawable.eslabon_entrada),
@@ -117,7 +117,9 @@ fun PantallaFormularioAditamento(
                         }
 
                         nombre.startsWith("Terminal") -> navController.navigate("${AppRoutes.REGISTRO_TERMINAL}/$tipoMaquina/$idEquipo/$nombre")
-                        nombre == "Roldana" -> Toast.makeText(context, "Pantalla de Roldana en construcción", Toast.LENGTH_SHORT).show()
+                        nombre == "Roldana" -> {
+                            navController.navigate("${AppRoutes.REGISTRO_ROLDANA}/$tipoMaquina/$idEquipo")
+                        }
                     }
                 })
             }
