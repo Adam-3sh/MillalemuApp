@@ -181,17 +181,24 @@ fun RowScope.CeldaGrid(value: String, onValueChange: (String) -> Unit, enabled: 
     }
 }
 
+// --- VERSIÓN CORREGIDA: Acepta esCritica para pintar rojo ---
 @Composable
-fun RowScope.CeldaResultado(text: String) {
+fun RowScope.CeldaResultado(text: String, esCritica: Boolean = false) {
+
+    // Si es crítica (ej: >= 5%), fondo rojo claro. Si no, verde claro.
+    val colorFondo = if (esCritica) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
+    val colorBorde = if (esCritica) Color.Red else Color(0xFF4CAF50)
+    val colorTexto = if (esCritica) Color.Red else Color(0xFF1B5E20)
+
     Box(
         modifier = Modifier
             .weight(1f)
             .padding(4.dp)
             .height(40.dp)
-            .background(Color(0xFFE8F5E9), RoundedCornerShape(4.dp))
-            .border(1.dp, Color(0xFF4CAF50), RoundedCornerShape(4.dp)),
+            .background(colorFondo, RoundedCornerShape(4.dp))
+            .border(1.dp, colorBorde, RoundedCornerShape(4.dp)),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = text, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
+        Text(text = text, fontWeight = FontWeight.Bold, color = colorTexto)
     }
 }
