@@ -33,18 +33,25 @@ import com.millalemu.appotter.utils.Sesion
 
 @Composable
 fun MenuPrincipalScreen(navController: NavController) {
-    // --- ESTADOS PARA LOS DATOS DEL USUARIO ---
+    // --- ESTADOS ---
     var nombreUsuario by remember { mutableStateOf("Cargando...") }
-    var tipoUsuario by remember { mutableStateOf("") }
+    var tipoUsuarioDisplay by remember { mutableStateOf("") }
+
+    // Estado para controlar visibilidad del botón Admin
+    var esAdmin by remember { mutableStateOf(false) }
 
     // --- LÓGICA DE USUARIO ---
     LaunchedEffect(Unit) {
         val rutActual = Sesion.rutUsuarioActual
         if (rutActual.isNotEmpty()) {
+            // Si ya tenemos datos en Sesión (login previo), los usamos
             if (Sesion.nombreUsuarioActual.isNotEmpty()) {
                 nombreUsuario = Sesion.nombreUsuarioActual
-                tipoUsuario = Sesion.rolUsuarioActual
+                tipoUsuarioDisplay = "(${Sesion.rolUsuarioActual})"
+                // VERIFICACIÓN DE ROL: Solo "Administrador" ve el botón
+                esAdmin = Sesion.rolUsuarioActual.equals("Administrador", ignoreCase = true)
             } else {
+                // Si no, buscamos en DB (por seguridad)
                 db.collection("usuarios")
                     .whereEqualTo("rut", rutActual)
                     .get()
@@ -53,17 +60,27 @@ fun MenuPrincipalScreen(navController: NavController) {
                             val document = documents.documents[0]
                             val nombre = document.getString("nombre") ?: ""
                             val apellido = document.getString("apellido") ?: ""
-                            val tipo = document.getString("tipo_usuario") ?: ""
+                            val tipo = document.getString("tipo_usuario") ?: "Operador"
+
                             val nombreCompleto = "$nombre $apellido".trim()
+
+                            // Guardamos en Sesión
                             Sesion.nombreUsuarioActual = nombreCompleto
                             Sesion.rolUsuarioActual = tipo
+
+                            // Actualizamos UI
                             nombreUsuario = nombreCompleto
-                            tipoUsuario = if (tipo.isNotEmpty()) "($tipo)" else ""
-                        } else { nombreUsuario = "Usuario" }
+                            tipoUsuarioDisplay = "($tipo)"
+                            esAdmin = tipo.equals("Administrador", ignoreCase = true)
+                        } else {
+                            nombreUsuario = "Usuario"
+                        }
                     }
                     .addOnFailureListener { nombreUsuario = "Usuario" }
             }
-        } else { nombreUsuario = "Modo Invitado" }
+        } else {
+            nombreUsuario = "Modo Invitado"
+        }
     }
 
     val fondoGris = Color(0xFFF5F5F5)
@@ -78,39 +95,30 @@ fun MenuPrincipalScreen(navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp) // Altura ideal para mostrar el bosque
-                // Recortamos las esquinas inferiores para mantener el estilo "curvo"
+                .height(220.dp)
                 .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
         ) {
-            // A. IMAGEN DE FONDO (Bosque)
             Image(
-                painter = painterResource(id = R.drawable.bosque),
+                painter = painterResource(id = R.drawable.bosque), // Asegúrate de tener esta imagen
                 contentDescription = "Fondo Bosque",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-
-            // B. CAPA OSCURA (Para que el texto blanco se lea bien sobre el bosque)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.4f))
             )
-
-            // C. CONTENIDO CENTRADO (Logo + Texto)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // LOGO RECTANGULAR
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Color.White,
-                    modifier = Modifier
-                        .width(150.dp)
-                        .height(80.dp),
+                    modifier = Modifier.width(150.dp).height(80.dp),
                     shadowElevation = 8.dp
                 ) {
                     Image(
@@ -120,27 +128,22 @@ fun MenuPrincipalScreen(navController: NavController) {
                         modifier = Modifier.padding(12.dp)
                     )
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Textos
                 Text(
                     text = "Bienvenido, $nombreUsuario",
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
-                if (tipoUsuario.isNotEmpty()) {
-                    Text(
-                        text = tipoUsuario,
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 13.sp
-                    )
-                }
+                Text(
+                    text = tipoUsuarioDisplay,
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 13.sp
+                )
             }
         }
 
-        // --- 2. CUERPO COMPACTO ---
+        // --- 2. CUERPO (Con lógica de permisos) ---
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -155,35 +158,38 @@ fun MenuPrincipalScreen(navController: NavController) {
                 modifier = Modifier.padding(bottom = 4.dp)
             )
 
-            // Botón 1: NUEVA INSPECCIÓN
+            // Botón 1: NUEVA INSPECCIÓN (Visible para todos: Admin, Supervisor, Operador)
             MenuCard(
                 titulo = "Nueva Inspección",
                 subtitulo = "Ingresar bitácora de equipo",
                 icono = Icons.Default.Add,
                 colorIcono = Color.White,
-                colorFondoIcono = Color(0xFF1976D2), // Azul
+                colorFondoIcono = Color(0xFF1976D2),
                 onClick = { navController.navigate(AppRoutes.ADITAMENTO) }
             )
 
-            // Botón 2: HISTORIAL
+            // Botón 2: HISTORIAL (Visible para todos, pero el contenido se filtra después)
             MenuCard(
                 titulo = "Historial",
                 subtitulo = "Ver bitácoras anteriores",
                 icono = Icons.Default.DateRange,
                 colorIcono = Color.White,
-                colorFondoIcono = Color(0xFFFFA000), // Naranja
+                colorFondoIcono = Color(0xFFFFA000),
                 onClick = { navController.navigate(AppRoutes.HISTORIAL_TIPO) }
             )
 
-            // Botón 3: ADMINISTRACIÓN
-            MenuCard(
-                titulo = "Administración",
-                subtitulo = "Gestionar usuarios y máquinas",
-                icono = Icons.Default.Settings,
-                colorIcono = Color.White,
-                colorFondoIcono = Color(0xFFE53935), // Rojo
-                onClick = { navController.navigate(AppRoutes.ADMIN) }
-            )
+            // Botón 3: ADMINISTRACIÓN (SOLO VISIBLE SI ES ADMIN)
+            // Supervisor y Operador NO verán este botón
+            if (esAdmin) {
+                MenuCard(
+                    titulo = "Administración",
+                    subtitulo = "Gestionar usuarios y máquinas",
+                    icono = Icons.Default.Settings,
+                    colorIcono = Color.White,
+                    colorFondoIcono = Color(0xFFE53935),
+                    onClick = { navController.navigate(AppRoutes.ADMIN) }
+                )
+            }
 
             // FILA DE HERRAMIENTAS
             Row(
@@ -206,7 +212,7 @@ fun MenuPrincipalScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // --- BOTÓN CERRAR SESIÓN (Estilo Texto Limpio) ---
+            // BOTÓN CERRAR SESIÓN
             TextButton(
                 onClick = {
                     Sesion.cerrarSesion()
@@ -228,45 +234,18 @@ fun MenuPrincipalScreen(navController: NavController) {
     }
 }
 
-// --- COMPONENTES VISUALES ---
-
+// ... (Componentes MenuCard y MiniCard se mantienen igual)
 @Composable
-fun MenuCard(
-    titulo: String,
-    subtitulo: String,
-    icono: ImageVector,
-    colorIcono: Color,
-    colorFondoIcono: Color,
-    onClick: () -> Unit
-) {
+fun MenuCard(titulo: String, subtitulo: String, icono: ImageVector, colorIcono: Color, colorFondoIcono: Color, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(85.dp)
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().height(85.dp).clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = colorFondoIcono,
-                modifier = Modifier.size(45.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icono,
-                        contentDescription = null,
-                        tint = colorIcono,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+        Row(modifier = Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = CircleShape, color = colorFondoIcono, modifier = Modifier.size(45.dp)) {
+                Box(contentAlignment = Alignment.Center) { Icon(imageVector = icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(24.dp)) }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(verticalArrangement = Arrangement.Center) {
@@ -278,31 +257,15 @@ fun MenuCard(
 }
 
 @Composable
-fun MiniCard(
-    titulo: String,
-    icono: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun MiniCard(titulo: String, icono: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier
-            .height(75.dp)
-            .clickable { onClick() },
+        modifier = modifier.height(75.dp).clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Image(
-                painter = painterResource(id = icono),
-                contentDescription = null,
-                modifier = Modifier.size(28.dp),
-                contentScale = ContentScale.Fit
-            )
+        Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Image(painter = painterResource(id = icono), contentDescription = null, modifier = Modifier.size(28.dp), contentScale = ContentScale.Fit)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = titulo, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
         }

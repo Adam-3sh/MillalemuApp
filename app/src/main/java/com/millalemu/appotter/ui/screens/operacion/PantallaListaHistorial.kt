@@ -36,6 +36,7 @@ import com.millalemu.appotter.data.DetallesGrillete
 import com.millalemu.appotter.data.DetallesRoldana
 import com.millalemu.appotter.data.DetallesTerminal
 import com.millalemu.appotter.db
+import com.millalemu.appotter.utils.Sesion // Importamos Sesion para obtener rol y RUT
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -50,26 +51,43 @@ fun PantallaListaHistorial(
     var cargando by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
+        // Obtenemos los datos de la sesión actual
+        val rolActual = Sesion.rolUsuarioActual
+        val rutActual = Sesion.rutUsuarioActual
+        // Definimos si es operador para aplicar el filtro estricto
+        val esOperador = rolActual.equals("Operador", ignoreCase = true)
+
         db.collection("bitacoras")
             .orderBy("fecha", Query.Direction.DESCENDING)
-            .limit(100) // Aumentamos un poco el límite por si hay muchos registros
+            .limit(100)
             .get()
             .addOnSuccessListener { res ->
                 val todos = res.toObjects(Bitacora::class.java)
 
-                // Filtro inteligente para coincidir nombres exactos
+                // --- FILTRADO INTELIGENTE (RBAC) ---
                 lista = todos.filter { bitacora ->
-                    val maquinaCoincide = bitacora.identificadorMaquina.trim().equals(idEquipo.trim(), ignoreCase = true)
+                    // 1. Coincidir Máquina
+                    val maquinaOk = bitacora.identificadorMaquina.trim().equals(idEquipo.trim(), ignoreCase = true)
 
-                    // Normalización simple para comparar
+                    // 2. Coincidir Componente (Aditamento)
                     val nombreBuscado = nombreAditamento.trim()
                     val nombreEnBitacora = bitacora.tipoAditamento.trim()
 
-                    // Comparación exacta o parcial segura
-                    val componenteCoincide = nombreEnBitacora.equals(nombreBuscado, ignoreCase = true) ||
-                            (nombreBuscado == "Cable" && nombreEnBitacora.contains("Cable"))
+                    // Lógica flexible para coincidir nombres (ej: "Cable" con "Cable Asistencia")
+                    val componenteOk = nombreEnBitacora.equals(nombreBuscado, ignoreCase = true) ||
+                            (nombreBuscado == "Cable" && nombreEnBitacora.contains("Cable")) ||
+                            (nombreBuscado.startsWith("Cable") && nombreEnBitacora.startsWith("Cable"))
 
-                    maquinaCoincide && componenteCoincide
+                    // 3. FILTRO POR ROL (La clave para Operador vs Supervisor/Admin)
+                    // Si es Operador, SOLO ve registros donde usuarioRut == su rut.
+                    // Si NO es Operador (es decir, es Admin o Supervisor), ve todo (true).
+                    val permisosOk = if (esOperador) {
+                        bitacora.usuarioRut == rutActual
+                    } else {
+                        true // Admin y Supervisor ven el historial global
+                    }
+
+                    maquinaOk && componenteOk && permisosOk
                 }
                 cargando = false
             }
@@ -107,9 +125,20 @@ fun PantallaListaHistorial(
                     Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "No hay registros recientes para $idEquipo - $nombreAditamento",
+                        text = "No se encontraron registros.",
                         textAlign = TextAlign.Center,
-                        color = Color.Gray
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // Mensaje explicativo según el rol
+                    Text(
+                        text = if (Sesion.rolUsuarioActual.equals("Operador", true))
+                            "(Como Operador, solo ves tus propios registros)"
+                        else "(Sin datos disponibles para este componente)",
+                        textAlign = TextAlign.Center,
+                        color = Color.Gray,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
             } else {
@@ -126,6 +155,7 @@ fun PantallaListaHistorial(
     }
 }
 
+// ... (El resto de ItemBitacoraExpandible, Tablas, etc. se mantiene idéntico al código anterior)
 @Composable
 private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }

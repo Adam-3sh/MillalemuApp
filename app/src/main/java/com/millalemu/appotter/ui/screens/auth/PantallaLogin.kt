@@ -174,18 +174,15 @@ fun PantallaLogin(navController: NavController) {
                                         val usuario = documents.documents[0].toObject(Usuario::class.java)
 
                                         if (usuario != null) {
-                                            // Guardamos datos en sesión (CORREGIDO: NOMBRE COMPLETO)
+                                            // Guardamos datos en sesión
                                             Sesion.rutUsuarioActual = usuario.rut
                                             Sesion.nombreUsuarioActual = "${usuario.nombre} ${usuario.apellido}".trim()
                                             Sesion.rolUsuarioActual = usuario.tipo_usuario
 
-                                            if (usuario.tipo_usuario == "Administrador" || usuario.tipo_usuario == "Supervisor") {
-                                                navController.navigate(AppRoutes.MENU) {
-                                                    popUpTo(AppRoutes.LOGIN) { inclusive = true }
-                                                }
-                                            } else {
-                                                mensajeError = "Hola Operador (Pantalla en construcción)"
-                                                cargando = false
+                                            // CORRECCIÓN: Permitimos acceso a TODOS (Admin, Supervisor y Operador)
+                                            // El MenúPrincipal se encargará de mostrar u ocultar opciones según el rol.
+                                            navController.navigate(AppRoutes.MENU) {
+                                                popUpTo(AppRoutes.LOGIN) { inclusive = true }
                                             }
                                         }
                                     }
