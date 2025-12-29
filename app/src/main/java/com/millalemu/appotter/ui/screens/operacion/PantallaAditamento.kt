@@ -4,22 +4,20 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -28,121 +26,125 @@ import com.millalemu.appotter.navigation.AppRoutes
 
 @Composable
 fun PantallaAditamento(navController: NavController) {
+    val verdeCorporativo = Color(0xFF33691E)
+    val verdeClaro = Color(0xFF66BB6A)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Color(0xFFF5F5F5))
     ) {
-
-        Image(
-            painter = painterResource(id = R.drawable.logo_millalemu),
-            contentDescription = "Logo Millalemu",
-            modifier = Modifier.fillMaxWidth(0.8f).height(100.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        Text(
-            text = "Seleccione Maquinaria:",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 24.dp),
-            textAlign = TextAlign.Center
-        )
-
-        // --- OPCIÓN 1: MADEREO ---
-        CardMaquina(
-            nombre = "Madereo",
-            imagenId = R.drawable.madereo,
-            colorBorde = Color(0xFF4CAF50), // Verde
-            onClick = {
-                // CORRECCIÓN: Escribimos "Madereo" directamente
-                navController.navigate("${AppRoutes.SELECCION_EQUIPO}/Madereo")
-            }
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- OPCIÓN 2: VOLTEO ---
-        CardMaquina(
-            nombre = "Volteo",
-            imagenId = R.drawable.volteo,
-            colorBorde = Color(0xFF1E88E5), // Azul
-            onClick = {
-                // CORRECCIÓN: Escribimos "Volteo" directamente
-                navController.navigate("${AppRoutes.SELECCION_EQUIPO}/Volteo")
-            }
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Botón Volver
-        Button(
-            onClick = { navController.popBackStack() },
-            modifier = Modifier.fillMaxWidth(0.9f).height(60.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+        // --- ENCABEZADO ---
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .background(
+                    brush = Brush.verticalGradient(listOf(verdeCorporativo, verdeClaro)),
+                    shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
+                )
         ) {
-            Text(text = "Volver", fontSize = 18.sp, color = Color.White)
+            // Botón Volver
+            IconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.padding(top = 16.dp, start = 16.dp)
+            ) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+            }
+
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "NUEVA INSPECCIÓN",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Seleccione el tipo de maquinaria",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 14.sp
+                )
+            }
+        }
+
+        // --- OPCIONES ---
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // MADEREO
+            CardSeleccionTipo(
+                titulo = "Madereo",
+                imagen = R.drawable.madereo,
+                onClick = { navController.navigate("${AppRoutes.SELECCION_EQUIPO}/Madereo") }
+            )
+
+            // VOLTEO
+            CardSeleccionTipo(
+                titulo = "Volteo",
+                imagen = R.drawable.volteo,
+                onClick = { navController.navigate("${AppRoutes.SELECCION_EQUIPO}/Volteo") }
+            )
         }
     }
 }
 
-/**
- * Componente reutilizable para las tarjetas de selección con imagen
- */
 @Composable
-fun CardMaquina(
-    nombre: String,
-    imagenId: Int,
-    colorBorde: Color,
-    onClick: () -> Unit
-) {
+fun CardSeleccionTipo(titulo: String, imagen: Int, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(160.dp)
             .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            // Imagen a la izquierda (Ocupa 45% del ancho)
+            Image(
+                painter = painterResource(id = imagen),
+                contentDescription = titulo,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .weight(0.7f)
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = imagenId),
-                    contentDescription = nombre,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+                    .weight(0.45f)
+                    .fillMaxHeight()
+            )
 
-            Box(
+            // Texto a la derecha
+            Column(
                 modifier = Modifier
-                    .weight(0.3f)
-                    .fillMaxWidth()
-                    .background(colorBorde),
-                contentAlignment = Alignment.Center
+                    .weight(0.55f)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = nombre.uppercase(),
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
+                    text = titulo.uppercase(),
                     fontSize = 20.sp,
-                    letterSpacing = 2.sp
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF33691E)
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF33691E)),
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text("Seleccionar", fontSize = 12.sp)
+                }
             }
         }
     }

@@ -5,4 +5,10 @@ object Sesion {
     var rutUsuarioActual: String = ""
     var nombreUsuarioActual: String = ""
     var rolUsuarioActual: String = ""
+
+    fun cerrarSesion() {
+        rutUsuarioActual = ""
+        nombreUsuarioActual = ""
+        rolUsuarioActual = ""
+    }
 }

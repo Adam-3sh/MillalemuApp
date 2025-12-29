@@ -33,6 +33,7 @@ import com.millalemu.appotter.data.DetallesCadena
 import com.millalemu.appotter.data.DetallesEslabon
 import com.millalemu.appotter.data.DetallesGancho
 import com.millalemu.appotter.data.DetallesGrillete
+import com.millalemu.appotter.data.DetallesRoldana
 import com.millalemu.appotter.data.DetallesTerminal
 import com.millalemu.appotter.db
 import java.text.SimpleDateFormat
@@ -51,18 +52,22 @@ fun PantallaListaHistorial(
     LaunchedEffect(Unit) {
         db.collection("bitacoras")
             .orderBy("fecha", Query.Direction.DESCENDING)
-            .limit(50)
+            .limit(100) // Aumentamos un poco el límite por si hay muchos registros
             .get()
             .addOnSuccessListener { res ->
                 val todos = res.toObjects(Bitacora::class.java)
 
-                // Filtro inteligente
+                // Filtro inteligente para coincidir nombres exactos
                 lista = todos.filter { bitacora ->
                     val maquinaCoincide = bitacora.identificadorMaquina.trim().equals(idEquipo.trim(), ignoreCase = true)
-                    val nombreNormalizado = nombreAditamento.replace(" de ", " ").trim()
-                    val tipoBitacoraNormalizado = bitacora.tipoAditamento.replace(" de ", " ").trim()
 
-                    val componenteCoincide = tipoBitacoraNormalizado.equals(nombreNormalizado, ignoreCase = true)
+                    // Normalización simple para comparar
+                    val nombreBuscado = nombreAditamento.trim()
+                    val nombreEnBitacora = bitacora.tipoAditamento.trim()
+
+                    // Comparación exacta o parcial segura
+                    val componenteCoincide = nombreEnBitacora.equals(nombreBuscado, ignoreCase = true) ||
+                            (nombreBuscado == "Cable" && nombreEnBitacora.contains("Cable"))
 
                     maquinaCoincide && componenteCoincide
                 }
@@ -102,7 +107,7 @@ fun PantallaListaHistorial(
                     Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "No hay registros recientes para $idEquipo",
+                        text = "No hay registros recientes para $idEquipo - $nombreAditamento",
                         textAlign = TextAlign.Center,
                         color = Color.Gray
                     )
@@ -187,14 +192,15 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                 Text("Mediciones Técnicas:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // SELECTOR DE TABLAS
+                // SELECTOR DE TABLAS (Ahora incluye Roldana)
                 when {
+                    bitacora.detallesRoldana != null -> TablaRoldana(bitacora.detallesRoldana) // <--- NUEVO
                     bitacora.detallesEslabon != null -> TablaEslabon(bitacora.detallesEslabon)
                     bitacora.detallesCadena != null -> TablaCadena(bitacora.detallesCadena)
                     bitacora.detallesGrillete != null -> TablaGrillete(bitacora.detallesGrillete)
                     bitacora.detallesGancho != null -> TablaGancho(bitacora.detallesGancho)
                     bitacora.detallesTerminal != null -> TablaTerminal(bitacora.detallesTerminal)
-                    bitacora.detallesCable != null -> TablaCable(bitacora.detallesCable) // <--- AHORA SÍ FUNCIONA
+                    bitacora.detallesCable != null -> TablaCable(bitacora.detallesCable)
                     else -> Text("Sin datos dimensionales", fontSize = 12.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Color.Gray)
                 }
             }
@@ -212,22 +218,17 @@ fun DatoFila(titulo: String, valor: String) {
     }
 }
 
-// --- TABLA CABLE CORREGIDA (Con tus datos reales) ---
 @Composable
 fun TablaCable(det: DetallesCable) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
         Text("Longitudes", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
         DatoFila("Disponible", "${det.metrosDisponible.toInt()} m")
         DatoFila("Revisado", "${det.metrosRevisado.toInt()} m")
-
         HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), thickness = 0.5.dp, color = Color.LightGray)
-
         Text("Alambres Rotos", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
         DatoFila("6d / 1 Paso", "${det.alambresRotos6d.toInt()}")
         DatoFila("30d / 5 Pasos", "${det.alambresRotos30d.toInt()}")
-
         HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), thickness = 0.5.dp, color = Color.LightGray)
-
         Text("Estado del Cable", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
         FilaPorcentajeCable("Reducción Ø", det.porcentajeReduccion)
         FilaPorcentajeCable("Corrosión", det.porcentajeCorrosion)
@@ -244,7 +245,6 @@ fun FilaPorcentajeCable(titulo: String, valor: Double) {
     }
 }
 
-// --- OTRAS TABLAS (Sin cambios) ---
 @Composable
 fun HeaderTabla() {
     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
@@ -258,12 +258,23 @@ fun HeaderTabla() {
 
 @Composable
 fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double) {
-    val colorAlerta = if (porc >= 5.0) Color.Red else Color.Black
+    val colorAlerta = if (porc >= 10.0) Color.Red else Color.Black // Alerta al 10%
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(nombre, Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
         Text("$act", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
         Text("${String.format("%.1f", porc)}%", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorAlerta)
+    }
+}
+
+// --- TABLA ROLDANA (NUEVA) ---
+@Composable
+fun TablaRoldana(det: DetallesRoldana) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
+        HeaderTabla()
+        FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje)
+        FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
+        FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
     }
 }
 
@@ -292,18 +303,12 @@ fun TablaCadena(det: DetallesCadena) {
 fun TablaGrillete(det: DetallesGrillete) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
         HeaderTabla()
-        FilaTabla("P (Perno)", det.pNominal, det.pActual, det.pPorcentaje)
+        FilaTabla("P", det.pNominal, det.pActual, det.pPorcentaje)
         FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
-        val colorW = if (det.wPorcentaje >= 5.0) Color.Red else Color.Black
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            Text("W", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Text("${det.wNominal.toInt()}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
-            Text("${det.wActual}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
-            Text("${String.format("%.1f", det.wPorcentaje)}%", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorW)
-        }
+        FilaTabla("W", det.wNominal, det.wActual, det.wPorcentaje)
         FilaTabla("R", det.rNominal, det.rActual, det.rPorcentaje)
         FilaTabla("L", det.lNominal, det.lActual, det.lPorcentaje)
-        FilaTabla("B (Min)", det.bMinNominal, det.bMinActual, det.bMinPorcentaje)
+        FilaTabla("B", det.bMinNominal, det.bMinActual, det.bMinPorcentaje)
         FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
     }
 }
@@ -315,13 +320,7 @@ fun TablaGancho(det: DetallesGancho) {
         FilaTabla("∅1", det.phi1Nominal, det.phi1Actual, det.phi1Porcentaje)
         FilaTabla("R", det.rNominal, det.rActual, det.rPorcentaje)
         FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
-        val colorPhi2 = if (det.phi2Porcentaje >= 5.0) Color.Red else Color.Black
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            Text("∅2", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Text("${det.phi2Nominal.toInt()}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
-            Text("${det.phi2Actual}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
-            Text("${String.format("%.1f", det.phi2Porcentaje)}%", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorPhi2)
-        }
+        FilaTabla("∅2", det.phi2Nominal, det.phi2Actual, det.phi2Porcentaje)
         FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
         FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
     }

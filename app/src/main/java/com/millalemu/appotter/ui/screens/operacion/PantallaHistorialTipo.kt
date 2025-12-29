@@ -1,25 +1,17 @@
 package com.millalemu.appotter.ui.screens.operacion
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -28,120 +20,79 @@ import com.millalemu.appotter.navigation.AppRoutes
 
 @Composable
 fun PantallaHistorialTipo(navController: NavController) {
+    // Azul para Historial (para diferenciar de operación verde)
+    val azulOscuro = Color(0xFF1565C0)
+    val azulClaro = Color(0xFF42A5F5)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFE3F2FD)) // Un azul muy suave para diferenciar del flujo de operación
-            .padding(horizontal = 32.dp, vertical = 16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Color(0xFFF5F5F5))
     ) {
-
-        // Título Distintivo
-        Text(
-            text = "HISTORIAL DE INSPECCIONES",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF1565C0),
-            modifier = Modifier.padding(top = 24.dp)
-        )
-
-        Text(
-            text = "Seleccione Tipo de Maquinaria:",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 12.dp),
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- OPCIÓN 1: MADEREO ---
-        CardSelectorHistorial(
-            nombre = "Madereo",
-            imagenId = R.drawable.madereo,
-            colorBorde = Color(0xFF4CAF50), // Verde
-            onClick = {
-                // Navegamos al selector de equipos FILTRADO por Madereo
-                navController.navigate("${AppRoutes.HISTORIAL_EQUIPOS}/Madereo")
-            }
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- OPCIÓN 2: VOLTEO ---
-        CardSelectorHistorial(
-            nombre = "Volteo",
-            imagenId = R.drawable.volteo,
-            colorBorde = Color(0xFF1E88E5), // Azul
-            onClick = {
-                // Navegamos al selector de equipos FILTRADO por Volteo
-                navController.navigate("${AppRoutes.HISTORIAL_EQUIPOS}/Volteo")
-            }
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Botón Volver
-        Button(
-            onClick = { navController.popBackStack() },
-            modifier = Modifier.fillMaxWidth(0.9f).height(60.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0))
+        // --- ENCABEZADO AZUL ---
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .background(
+                    brush = Brush.verticalGradient(listOf(azulOscuro, azulClaro)),
+                    shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
+                )
         ) {
-            Text(text = "Volver al Menú", fontSize = 18.sp, color = Color.White)
+            IconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.padding(top = 16.dp, start = 16.dp)
+            ) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+            }
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "HISTORIAL",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "Consultar reportes anteriores",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 14.sp
+                )
+            }
+        }
+
+        // --- OPCIONES ---
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // Usamos la misma Card bonita pero con acciones de Historial
+            CardSeleccionTipoHistorial(
+                titulo = "Madereo",
+                imagen = R.drawable.madereo,
+                colorTexto = azulOscuro,
+                onClick = { navController.navigate("${AppRoutes.HISTORIAL_EQUIPOS}/Madereo") }
+            )
+
+            CardSeleccionTipoHistorial(
+                titulo = "Volteo",
+                imagen = R.drawable.volteo,
+                colorTexto = azulOscuro,
+                onClick = { navController.navigate("${AppRoutes.HISTORIAL_EQUIPOS}/Volteo") }
+            )
         }
     }
 }
 
+// Versión de la Card para Historial (misma estructura, diferente color botón)
 @Composable
-fun CardSelectorHistorial(
-    nombre: String,
-    imagenId: Int,
-    colorBorde: Color,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .weight(0.7f)
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = imagenId),
-                    contentDescription = nombre,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .weight(0.3f)
-                    .fillMaxWidth()
-                    .background(colorBorde.copy(alpha = 0.8f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "HISTORIAL ${nombre.uppercase()}",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    letterSpacing = 1.sp
-                )
-            }
-        }
-    }
+fun CardSeleccionTipoHistorial(titulo: String, imagen: Int, colorTexto: Color, onClick: () -> Unit) {
+    // Reutilizamos la lógica visual de la CardSeleccionTipo anterior
+    // Pero aquí la defino por si quieres personalizarla distinto
+    com.millalemu.appotter.ui.screens.operacion.CardSeleccionTipo(titulo, imagen, onClick)
 }

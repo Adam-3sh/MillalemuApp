@@ -2,84 +2,87 @@ package com.millalemu.appotter.ui.screens.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.* // Importante para remember, mutableStateOf y LaunchedEffect
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.millalemu.appotter.R
-import com.millalemu.appotter.db // Importamos la base de datos
+import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
-import com.millalemu.appotter.ui.components.BotonMenu
-import com.millalemu.appotter.utils.Sesion // Importamos tu objeto de sesión
+import com.millalemu.appotter.utils.Sesion
 
 @Composable
-fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavController) {
-
+fun MenuPrincipalScreen(navController: NavController) {
     // --- ESTADOS PARA LOS DATOS DEL USUARIO ---
     var nombreUsuario by remember { mutableStateOf("Cargando...") }
     var tipoUsuario by remember { mutableStateOf("") }
 
-    // --- LÓGICA: BUSCAR DATOS USANDO EL RUT DE LA SESIÓN ---
+    // --- LÓGICA DE USUARIO ---
     LaunchedEffect(Unit) {
         val rutActual = Sesion.rutUsuarioActual
-
         if (rutActual.isNotEmpty()) {
-            // Buscamos en la colección "usuarios" donde el campo "rut" coincida con el de la sesión
-            db.collection("usuarios")
-                .whereEqualTo("rut", rutActual)
-                .get()
-                .addOnSuccessListener { documents ->
-                    if (!documents.isEmpty) {
-                        val document = documents.documents[0] // Tomamos el primer resultado
-
-                        val nombre = document.getString("nombre") ?: ""
-                        val apellido = document.getString("apellido") ?: ""
-                        val tipo = document.getString("tipo_usuario") ?: ""
-
-                        // Formateamos para mostrar
-                        nombreUsuario = "$nombre $apellido".trim()
-                        tipoUsuario = if (tipo.isNotEmpty()) "($tipo)" else ""
-
-                        if (nombreUsuario.isBlank()) nombreUsuario = "Usuario"
-                    } else {
-                        nombreUsuario = "Usuario no encontrado"
+            if (Sesion.nombreUsuarioActual.isNotEmpty()) {
+                nombreUsuario = Sesion.nombreUsuarioActual
+                tipoUsuario = Sesion.rolUsuarioActual
+            } else {
+                db.collection("usuarios")
+                    .whereEqualTo("rut", rutActual)
+                    .get()
+                    .addOnSuccessListener { documents ->
+                        if (!documents.isEmpty) {
+                            val document = documents.documents[0]
+                            val nombre = document.getString("nombre") ?: ""
+                            val apellido = document.getString("apellido") ?: ""
+                            val tipo = document.getString("tipo_usuario") ?: ""
+                            val nombreCompleto = "$nombre $apellido".trim()
+                            Sesion.nombreUsuarioActual = nombreCompleto
+                            Sesion.rolUsuarioActual = tipo
+                            nombreUsuario = nombreCompleto
+                            tipoUsuario = if (tipo.isNotEmpty()) "($tipo)" else ""
+                        } else { nombreUsuario = "Usuario" }
                     }
-                }
-                .addOnFailureListener {
-                    nombreUsuario = "Sin conexión"
-                }
-        } else {
-            nombreUsuario = "Modo Invitado"
-        }
+                    .addOnFailureListener { nombreUsuario = "Usuario" }
+            }
+        } else { nombreUsuario = "Modo Invitado" }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.White),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    val fondoGris = Color(0xFFF5F5F5)
 
-        // --- 1. HEADER CON IMAGEN DE BOSQUE ---
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(fondoGris)
+            .verticalScroll(rememberScrollState())
+    ) {
+        // --- 1. ENCABEZADO CON BOSQUE ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(220.dp) // Altura ideal para mostrar el bosque
+                // Recortamos las esquinas inferiores para mantener el estilo "curvo"
+                .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
         ) {
+            // A. IMAGEN DE FONDO (Bosque)
             Image(
                 painter = painterResource(id = R.drawable.bosque),
                 contentDescription = "Fondo Bosque",
@@ -87,130 +90,221 @@ fun MenuPrincipalScreen(modifier: Modifier = Modifier, navController: NavControl
                 contentScale = ContentScale.Crop
             )
 
-            // --- NOMBRE Y CARGO (Ahora son dinámicos) ---
+            // B. CAPA OSCURA (Para que el texto blanco se lea bien sobre el bosque)
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 24.dp, top = 48.dp)
-                    .background(Color.White, shape = RoundedCornerShape(16.dp))
-                    .padding(horizontal = 20.dp, vertical = 10.dp)
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+            )
+
+            // C. CONTENIDO CENTRADO (Logo + Texto)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // LOGO RECTANGULAR
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White,
+                    modifier = Modifier
+                        .width(150.dp)
+                        .height(80.dp),
+                    shadowElevation = 8.dp
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.logo_millalemu),
+                        contentDescription = "Logo",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Textos
                 Text(
-                    text = "$nombreUsuario $tipoUsuario",
-                    color = Color.Black,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
+                    text = "Bienvenido, $nombreUsuario",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
+                if (tipoUsuario.isNotEmpty()) {
+                    Text(
+                        text = tipoUsuario,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- 2. CUERPO DE BOTONES ---
+        // --- 2. CUERPO COMPACTO ---
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(horizontal = 32.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            BotonMenu(
-                text = "Administrador",
-                color = Color(0xFFE53935),
-                onClick = {
-                    navController.navigate(AppRoutes.ADMIN)
-                }
+            Text(
+                text = "Panel de Control",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 4.dp)
             )
 
-            BotonMenu(
-                text = "Ingresar aditamento",
-                color = Color(0xFF1E88E5),
-                onClick = {
-                    navController.navigate(AppRoutes.ADITAMENTO)
-                }
+            // Botón 1: NUEVA INSPECCIÓN
+            MenuCard(
+                titulo = "Nueva Inspección",
+                subtitulo = "Ingresar bitácora de equipo",
+                icono = Icons.Default.Add,
+                colorIcono = Color.White,
+                colorFondoIcono = Color(0xFF1976D2), // Azul
+                onClick = { navController.navigate(AppRoutes.ADITAMENTO) }
             )
 
-            BotonMenu(
-                text = "Historial bitacoras",
-                color = Color(0xFF1E88E5),
-                onClick = {
-                    navController.navigate(AppRoutes.HISTORIAL_TIPO)
-                }
+            // Botón 2: HISTORIAL
+            MenuCard(
+                titulo = "Historial",
+                subtitulo = "Ver bitácoras anteriores",
+                icono = Icons.Default.DateRange,
+                colorIcono = Color.White,
+                colorFondoIcono = Color(0xFFFFA000), // Naranja
+                onClick = { navController.navigate(AppRoutes.HISTORIAL_TIPO) }
             )
 
-            BotonMenu(
-                text = "Reemplazos",
-                color = Color(0xFF1E88E5),
-                onClick = {
-                    // TODO: Navegar a reemplazos
-                }
+            // Botón 3: ADMINISTRACIÓN
+            MenuCard(
+                titulo = "Administración",
+                subtitulo = "Gestionar usuarios y máquinas",
+                icono = Icons.Default.Settings,
+                colorIcono = Color.White,
+                colorFondoIcono = Color(0xFFE53935), // Rojo
+                onClick = { navController.navigate(AppRoutes.ADMIN) }
             )
 
-            // --- 3. BOTONES PEQUEÑOS ---
+            // FILA DE HERRAMIENTAS
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                BotonIconoPeque(
-                    iconId = R.drawable.calculadora,
-                    color = Color(0xFF1E88E5),
-                    onClick = {
-                        navController.navigate(AppRoutes.CALCULADORA)
-                    }
+                MiniCard(
+                    titulo = "Calc.",
+                    icono = R.drawable.calculadora,
+                    onClick = { navController.navigate(AppRoutes.CALCULADORA) },
+                    modifier = Modifier.weight(1f)
                 )
-
-                Spacer(modifier = Modifier.width(80.dp))
-
-                BotonIconoPeque(
-                    iconId = R.drawable.nube,
-                    color = Color(0xFF1E88E5),
-                    onClick = { /* Acción subir datos */ }
+                MiniCard(
+                    titulo = "Nube",
+                    icono = R.drawable.nube,
+                    onClick = { /* Acción futura */ },
+                    modifier = Modifier.weight(1f)
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
 
-        // --- 4. FOOTER CON LOGO ---
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(bottom = 64.dp)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo_millalemu),
-                contentDescription = "Logo Millalemu",
-                modifier = Modifier.width(320.dp),
-                contentScale = ContentScale.Fit
-            )
+            // --- BOTÓN CERRAR SESIÓN (Estilo Texto Limpio) ---
+            TextButton(
+                onClick = {
+                    Sesion.cerrarSesion()
+                    navController.navigate(AppRoutes.LOGIN) {
+                        popUpTo(AppRoutes.MENU) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD32F2F))
+            ) {
+                Icon(Icons.Default.ExitToApp, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("CERRAR SESIÓN", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
 
+// --- COMPONENTES VISUALES ---
+
 @Composable
-fun BotonIconoPeque(
-    iconId: Int,
-    color: Color,
+fun MenuCard(
+    titulo: String,
+    subtitulo: String,
+    icono: ImageVector,
+    colorIcono: Color,
+    colorFondoIcono: Color,
     onClick: () -> Unit
 ) {
-    Button(
-        onClick = onClick,
+    Card(
         modifier = Modifier
-            .width(100.dp)
-            .height(60.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = color),
-        contentPadding = PaddingValues(12.dp)
+            .fillMaxWidth()
+            .height(85.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
-        Image(
-            painter = painterResource(id = iconId),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit,
-            colorFilter = ColorFilter.tint(Color.White)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = colorFondoIcono,
+                modifier = Modifier.size(45.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icono,
+                        contentDescription = null,
+                        tint = colorIcono,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(verticalArrangement = Arrangement.Center) {
+                Text(text = titulo, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(text = subtitulo, fontSize = 12.sp, color = Color.Gray)
+            }
+        }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun MenuPrincipalPreview() {
-    MenuPrincipalScreen(navController = rememberNavController())
+fun MiniCard(
+    titulo: String,
+    icono: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .height(75.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = icono),
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+                contentScale = ContentScale.Fit
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = titulo, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
+        }
+    }
 }
