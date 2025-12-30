@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -21,39 +22,35 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.millalemu.appotter.R
 import com.millalemu.appotter.data.Usuario
-import com.millalemu.appotter.db
+import com.millalemu.appotter.db // Importante: Asegúrate de que 'val db' esté en MainActivity y sea público
 import com.millalemu.appotter.navigation.AppRoutes
+import com.millalemu.appotter.utils.Preferencias
 import com.millalemu.appotter.utils.formatearRut
 import com.millalemu.appotter.utils.Sesion
 
 @Composable
 fun PantallaLogin(navController: NavController) {
+    val context = LocalContext.current
 
-    // Estados del formulario
+    // Estados
     var rut by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var mensajeError by remember { mutableStateOf("") }
     var cargando by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 1. IMAGEN DE FONDO
         Image(
             painter = painterResource(id = R.drawable.bosque),
-            contentDescription = "Fondo Bosque",
+            contentDescription = "Fondo",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
 
-        // 2. CONTENIDO CENTRADO
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
-            // Logo
             Image(
                 painter = painterResource(id = R.drawable.logo_millalemu),
                 contentDescription = "Logo",
@@ -65,7 +62,6 @@ fun PantallaLogin(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3. TARJETA BLANCA
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
@@ -82,10 +78,9 @@ fun PantallaLogin(navController: NavController) {
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
-
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // --- CAMPO RUT ---
+                    // CAMPO RUT (Corrección: Parámetros con nombre)
                     Text(
                         text = "Rut",
                         modifier = Modifier.fillMaxWidth(),
@@ -104,16 +99,14 @@ fun PantallaLogin(navController: NavController) {
                             focusedContainerColor = Color(0xFFE0E0E0),
                             unfocusedContainerColor = Color(0xFFE0E0E0),
                             focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
+                            unfocusedTextColor = Color.Black
                         ),
                         singleLine = true
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // --- CAMPO CONTRASEÑA ---
+                    // CAMPO CONTRASEÑA (Corrección: Parámetros con nombre)
                     Text(
                         text = "Contraseña",
                         modifier = Modifier.fillMaxWidth(),
@@ -134,16 +127,13 @@ fun PantallaLogin(navController: NavController) {
                             focusedContainerColor = Color(0xFFE0E0E0),
                             unfocusedContainerColor = Color(0xFFE0E0E0),
                             focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
+                            unfocusedTextColor = Color.Black
                         ),
                         singleLine = true
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Mensaje de Error
                     if (mensajeError.isNotEmpty()) {
                         Text(
                             text = mensajeError,
@@ -153,12 +143,10 @@ fun PantallaLogin(navController: NavController) {
                         )
                     }
 
-                    // --- BOTÓN INGRESAR ---
                     Button(
                         onClick = {
                             cargando = true
                             mensajeError = ""
-
                             val rutFormateado = formatearRut(rut)
 
                             db.collection("usuarios")
@@ -170,17 +158,23 @@ fun PantallaLogin(navController: NavController) {
                                         mensajeError = "Rut o contraseña incorrectos"
                                         cargando = false
                                     } else {
-                                        // LOGIN EXITOSO
                                         val usuario = documents.documents[0].toObject(Usuario::class.java)
-
                                         if (usuario != null) {
-                                            // Guardamos datos en sesión
+                                            // 1. Guardar en Memoria
+                                            val nombreCompleto = "${usuario.nombre} ${usuario.apellido}".trim()
                                             Sesion.rutUsuarioActual = usuario.rut
-                                            Sesion.nombreUsuarioActual = "${usuario.nombre} ${usuario.apellido}".trim()
+                                            Sesion.nombreUsuarioActual = nombreCompleto
                                             Sesion.rolUsuarioActual = usuario.tipo_usuario
 
-                                            // CORRECCIÓN: Permitimos acceso a TODOS (Admin, Supervisor y Operador)
-                                            // El MenúPrincipal se encargará de mostrar u ocultar opciones según el rol.
+                                            // 2. Guardar en Disco
+                                            Preferencias.guardarSesion(
+                                                context = context,
+                                                rut = usuario.rut,
+                                                nombre = nombreCompleto,
+                                                rol = usuario.tipo_usuario
+                                            )
+
+                                            // 3. Navegar
                                             navController.navigate(AppRoutes.MENU) {
                                                 popUpTo(AppRoutes.LOGIN) { inclusive = true }
                                             }

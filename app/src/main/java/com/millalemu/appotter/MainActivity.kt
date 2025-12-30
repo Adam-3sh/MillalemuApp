@@ -1,47 +1,44 @@
 package com.millalemu.appotter
 
-// ... (tus imports de siempre)
-
-// --- IMPORTS NUEVOS PARA NAVEGACIÓN ---
-// --- IMPORTS DE MAQUINARIA ---
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import com.millalemu.appotter.navigation.AppNavigation
-import com.millalemu.appotter.ui.theme.AppOtterTheme
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
+import com.millalemu.appotter.navigation.AppNavigation
+import com.millalemu.appotter.navigation.AppRoutes
+import com.millalemu.appotter.ui.theme.AppOtterTheme // <--- CORREGIDO: Tu tema real
+import com.millalemu.appotter.utils.Preferencias
+import com.millalemu.appotter.utils.Sesion
 
-
-private const val TAG = "MainActivity"
-private const val TAG2 = "MiAppTag"
+// --- VARIABLE GLOBAL DB ---
+// (Las otras pantallas la importarán de aquí)
 val db = Firebase.firestore
-
-val user = hashMapOf(
-    "first" to "Ada",
-    "last" to "Lovelace",
-    "born" to 1815,
-)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            AppOtterTheme {
-                // Ya no llamamos a Scaffold aquí
-                // Llamamos a nuestro Composable de Navegación
-                AppNavigation()
-            }
+
+        // --- LÓGICA DE AUTO-LOGIN ---
+        val sesionGuardada = Preferencias.obtenerSesion(this)
+
+        val rutaInicial = if (sesionGuardada != null) {
+            // ¡Sí hay sesión! Recuperamos los datos a la memoria viva
+            Sesion.rutUsuarioActual = sesionGuardada.first
+            Sesion.nombreUsuarioActual = sesionGuardada.second
+            Sesion.rolUsuarioActual = sesionGuardada.third
+
+            AppRoutes.MENU // Vamos directo al Menú
+        } else {
+            AppRoutes.LOGIN // No hay nadie, vamos al Login
         }
 
-        // ... (Tu código de Firebase sigue aquí, no lo he tocado)
-        Log.d(TAG2, "Aqui entro el codigo")
-        db.collection("users")
-            .add(user)
-        // ... (listeners)
+        setContent {
+            AppOtterTheme { // <--- CORREGIDO
+                // IMPORTANTE: Asegúrate de haber hecho el Paso 4 en AppNavigation.kt
+                // para que acepte el parámetro 'startDestination'
+                AppNavigation(startDestination = rutaInicial)
+            }
+        }
     }
 }
-

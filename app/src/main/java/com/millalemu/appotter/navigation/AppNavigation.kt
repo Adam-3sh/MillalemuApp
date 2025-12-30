@@ -69,13 +69,13 @@ object AppRoutes {
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(startDestination: String = AppRoutes.LOGIN) { // Agregamos parámetro
     val navController = rememberNavController()
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = AppRoutes.LOGIN,
+            startDestination = startDestination, // Usamos el parámetro
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(AppRoutes.LOGIN) { PantallaLogin(navController = navController) }
