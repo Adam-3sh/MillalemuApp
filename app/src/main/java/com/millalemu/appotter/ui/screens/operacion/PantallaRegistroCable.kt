@@ -1,5 +1,6 @@
 package com.millalemu.appotter.ui.screens.operacion
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext // Necesario para Toast y NetworkUtils
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,6 +31,7 @@ import com.millalemu.appotter.data.DetallesCable
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
 import com.millalemu.appotter.ui.components.*
+import com.millalemu.appotter.utils.NetworkUtils // <--- IMPORTANTE: Tu nueva utilidad
 import com.millalemu.appotter.utils.Sesion
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -40,12 +43,15 @@ fun PantallaRegistroCable(
     tipoMaquina: String,
     idEquipo: String
 ) {
+    // Contexto para Toast y Red
+    val context = LocalContext.current
+
     // ESTADOS
     var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
 
-    // CAMPOS ESPECÍFICOS DEL CABLE (Correctos según tu base de datos)
+    // CAMPOS ESPECÍFICOS DEL CABLE
     var metrosDisponible by remember { mutableStateOf("") }
     var metrosRevisado by remember { mutableStateOf("") }
     var alambres6d by remember { mutableStateOf("") }
@@ -62,7 +68,7 @@ fun PantallaRegistroCable(
     var isSaving by remember { mutableStateOf(false) }
     var isLoadingHistory by remember { mutableStateOf(true) }
 
-    // Carga de historial
+    // Carga de historial (Solo lectura, Firebase maneja caché automática aquí)
     LaunchedEffect(Unit) {
         db.collection("bitacoras")
             .whereEqualTo("identificadorMaquina", idEquipo)
@@ -77,7 +83,10 @@ fun PantallaRegistroCable(
                 }
                 isLoadingHistory = false
             }
-            .addOnFailureListener { isLoadingHistory = false }
+            .addOnFailureListener {
+                // Si falla (ej: offline sin caché), simplemente dejamos de cargar
+                isLoadingHistory = false
+            }
     }
 
     if (isLoadingHistory) {
@@ -113,7 +122,7 @@ fun PantallaRegistroCable(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // INSPECCIÓN ESPECÍFICA (La que faltaba)
+            // INSPECCIÓN ESPECÍFICA
             CardSeccion(titulo = "Inspección Técnica") {
                 Text("Longitudes", fontWeight = FontWeight.Bold, color = AzulOscuro, fontSize = 14.sp)
                 Spacer(Modifier.height(8.dp))
@@ -185,10 +194,16 @@ fun PantallaRegistroCable(
             // BOTONES
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = { navController.popBackStack() }, colors = ButtonDefaults.buttonColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro), shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f).height(50.dp)) { Text("Volver", color = AzulOscuro, fontWeight = FontWeight.Bold) }
+
+                // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
                 Button(
                     onClick = {
                         isSaving = true
+
+                        // Funciones auxiliares
                         fun cleanDouble(s: String): Double = s.replace(',', '.').trim().toDoubleOrNull() ?: 0.0
+
+                        // Creación del Objeto
                         val detalles = DetallesCable(
                             metrosDisponible = cleanDouble(metrosDisponible),
                             metrosRevisado = cleanDouble(metrosRevisado),
@@ -197,16 +212,59 @@ fun PantallaRegistroCable(
                             porcentajeReduccion = cleanDouble(porcReduccion),
                             porcentajeCorrosion = cleanDouble(porcCorrosion)
                         )
+
                         val bitacora = Bitacora(
-                            usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina, tipoAditamento = "Cable de Asistencia",
-                            numeroSerie = numeroSerie, horometro = cleanDouble(horometro), porcentajeDesgasteGeneral = maxDanoVal,
-                            tieneFisura = false, requiereReemplazo = requiereReemplazo, observacion = observacion,
-                            detallesCable = detalles, detallesGancho = null, detallesGrillete = null, detallesCadena = null, detallesEslabon = null, detallesTerminal = null
+                            usuarioRut = Sesion.rutUsuarioActual,
+                            usuarioNombre = Sesion.nombreUsuarioActual,
+                            identificadorMaquina = idEquipo,
+                            tipoMaquina = tipoMaquina,
+                            tipoAditamento = "Cable de Asistencia",
+                            numeroSerie = numeroSerie,
+                            horometro = cleanDouble(horometro),
+                            porcentajeDesgasteGeneral = maxDanoVal,
+                            tieneFisura = false,
+                            requiereReemplazo = requiereReemplazo,
+                            observacion = observacion,
+                            detallesCable = detalles,
+                            detallesGancho = null,
+                            detallesGrillete = null,
+                            detallesCadena = null,
+                            detallesEslabon = null,
+                            detallesTerminal = null
                         )
-                        db.collection("bitacoras").add(bitacora).addOnSuccessListener { isSaving = false; navController.popBackStack(AppRoutes.MENU, false) }.addOnFailureListener { isSaving = false }
+
+                        // --- LÓGICA HÍBRIDA (ONLINE / OFFLINE) ---
+                        if (NetworkUtils.esRedDisponible(context)) {
+                            // MODO ONLINE: Esperamos confirmación (Seguridad)
+                            db.collection("bitacoras").add(bitacora)
+                                .addOnSuccessListener {
+                                    isSaving = false
+                                    Toast.makeText(context, "Registro guardado y subido", Toast.LENGTH_SHORT).show()
+                                    navController.popBackStack(AppRoutes.MENU, false)
+                                }
+                                .addOnFailureListener {
+                                    isSaving = false
+                                    Toast.makeText(context, "Error al subir. Reintenta.", Toast.LENGTH_SHORT).show()
+                                }
+                        } else {
+                            // MODO OFFLINE: "Fuego y Olvido" (Velocidad)
+                            // Firestore guarda en caché local y lo subirá solo cuando vuelva la señal.
+                            db.collection("bitacoras").add(bitacora)
+
+                            isSaving = false
+                            Toast.makeText(context, "Guardado OFFLINE (se subirá al tener señal)", Toast.LENGTH_LONG).show()
+
+                            // Forzamos salida inmediata
+                            navController.popBackStack(AppRoutes.MENU, false)
+                        }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton), shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f).height(50.dp)
-                ) { if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp)) else Text("Guardar", fontWeight = FontWeight.Bold) }
+                    colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f).height(50.dp)
+                ) {
+                    if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    else Text("Guardar", fontWeight = FontWeight.Bold)
+                }
             }
             Spacer(Modifier.height(48.dp))
         }
