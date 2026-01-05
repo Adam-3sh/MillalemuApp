@@ -1,5 +1,6 @@
 package com.millalemu.appotter.ui.screens.operacion
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -25,12 +27,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.Source
 import com.millalemu.appotter.R
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.DetallesGancho
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
 import com.millalemu.appotter.ui.components.*
+import com.millalemu.appotter.utils.NetworkUtils
 import com.millalemu.appotter.utils.Sesion
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,10 +48,13 @@ fun PantallaRegistroGancho(
     idEquipo: String,
     nombreAditamento: String
 ) {
+    val context = LocalContext.current
+
     var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
 
+    // --- VARIABLES NOMINALES (6 Medidas) ---
     var nomPhi1 by remember { mutableStateOf("") }
     var nomR by remember { mutableStateOf("") }
     var nomD by remember { mutableStateOf("") }
@@ -56,6 +63,7 @@ fun PantallaRegistroGancho(
     var nomE by remember { mutableStateOf("") }
     var nominalesEditables by remember { mutableStateOf(false) }
 
+    // --- VARIABLES ACTUALES ---
     var medPhi1 by remember { mutableStateOf("") }
     var medR by remember { mutableStateOf("") }
     var medD by remember { mutableStateOf("") }
@@ -63,6 +71,7 @@ fun PantallaRegistroGancho(
     var medH by remember { mutableStateOf("") }
     var medE by remember { mutableStateOf("") }
 
+    // --- RESULTADOS CALCULADOS ---
     var valPhi1 by remember { mutableStateOf(0.0) }
     var valR by remember { mutableStateOf(0.0) }
     var valD by remember { mutableStateOf(0.0) }
@@ -83,6 +92,8 @@ fun PantallaRegistroGancho(
 
     var mensajeError by remember { mutableStateOf("") }
     var switchManual by remember { mutableStateOf(false) }
+
+    // REGLA DE NEGOCIO ESPECÍFICA DE GANCHO: Phi2 > 5% es crítico, el resto > 10%
     val esCritico = (valPhi2 >= 5.0) || (maxDanoVal >= 10.0)
     val requiereReemplazo = esCritico || switchManual
 
@@ -93,6 +104,7 @@ fun PantallaRegistroGancho(
 
     fun cleanDouble(s: String): Double = s.replace(',', '.').trim().toDoubleOrNull() ?: 0.0
 
+    // --- CÁLCULO AUTOMÁTICO ---
     LaunchedEffect(nomPhi1, nomR, nomD, nomPhi2, nomH, nomE, medPhi1, medR, medD, medPhi2, medH, medE) {
         fun calc(nStr: String, mStr: String): Double {
             val n = cleanDouble(nStr); val m = cleanDouble(mStr)
@@ -109,13 +121,14 @@ fun PantallaRegistroGancho(
         porcentajeDanoGlobal = "%.1f%%".format(maxDanoVal)
     }
 
+    // --- CARGA DE HISTORIAL (OFFLINE FIRST - Source.CACHE) ---
     LaunchedEffect(Unit) {
         db.collection("bitacoras")
             .whereEqualTo("identificadorMaquina", idEquipo)
             .whereEqualTo("tipoAditamento", nombreAditamento)
             .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(1)
-            .get()
+            .get(Source.CACHE) // Caché primero para velocidad instantánea
             .addOnSuccessListener { documents ->
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
@@ -127,13 +140,18 @@ fun PantallaRegistroGancho(
                 } else { nominalesEditables = true }
                 isLoadingHistory = false
             }
-            .addOnFailureListener { isLoadingHistory = false; nominalesEditables = true }
+            .addOnFailureListener {
+                // Si falla caché (vacía o error), habilitamos manual de inmediato
+                isLoadingHistory = false; nominalesEditables = true
+            }
     }
 
     if (isLoadingHistory) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = AzulOscuro) }
     } else {
         Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F5F5)).padding(16.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+
+            // HEADER
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 20.dp).fillMaxWidth()) {
                 Surface(modifier = Modifier.size(70.dp), shape = CircleShape, color = Color.White, border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF33691E))) {
                     Image(painter = painterResource(id = R.drawable.gancho_ojo_fijo), contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.padding(8.dp).clip(CircleShape))
@@ -145,6 +163,7 @@ fun PantallaRegistroGancho(
                 }
             }
 
+            // DATOS GENERALES
             CardSeccion(titulo = "Datos Generales") {
                 RowItemDato(label = "Equipo", valor = idEquipo); Spacer(Modifier.height(8.dp))
                 RowItemDato(label = "Fecha", valor = fechaHoy); Spacer(Modifier.height(8.dp))
@@ -154,6 +173,7 @@ fun PantallaRegistroGancho(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // DIMENSIONES (GRID 6 CAMPOS)
             CardSeccion(titulo = "Dimensiones (mm)", accionHeader = {
                 Surface(shape = RoundedCornerShape(12.dp), color = if (nominalesEditables) Color.Gray else VerdeBoton, modifier = Modifier.clickable { nominalesEditables = !nominalesEditables }) {
                     Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -161,6 +181,7 @@ fun PantallaRegistroGancho(
                     }
                 }
             }) {
+                // FILA 1: Phi1, R, D
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text("", Modifier.weight(0.5f))
                     listOf("∅1", "R", "D").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
@@ -173,7 +194,10 @@ fun PantallaRegistroGancho(
                     Text("Act", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(medPhi1, { medPhi1 = it }, true, true); CeldaGrid(medR, { medR = it }, true, true); CeldaGrid(medD, { medD = it }, true, true)
                 }
+
                 Spacer(Modifier.height(8.dp))
+
+                // FILA 2: Phi2, H, E
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text("", Modifier.weight(0.5f))
                     listOf("∅2", "H", "E").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
@@ -196,6 +220,7 @@ fun PantallaRegistroGancho(
                     }
                     Row(Modifier.fillMaxWidth()) {
                         Spacer(Modifier.weight(0.5f))
+                        // AQUÍ APLICAMOS LA REGLA DE PHI2 > 5% EN ROJO
                         CeldaResultado(resPhi2_txt, esCritica = valPhi2 >= 5.0); CeldaResultado(resH_txt); CeldaResultado(resE_txt)
                     }
                     Spacer(Modifier.height(8.dp))
@@ -216,6 +241,7 @@ fun PantallaRegistroGancho(
                 }
             }
 
+            // INSPECCIÓN VISUAL
             CardSeccion(titulo = "Inspección Visual") {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("¿Fisuras visibles?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
@@ -235,11 +261,15 @@ fun PantallaRegistroGancho(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // BOTONES ACCIÓN
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = { navController.popBackStack() }, colors = ButtonDefaults.buttonColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro), shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f).height(50.dp)) { Text("Volver", color = AzulOscuro, fontWeight = FontWeight.Bold) }
+
+                // BOTON GUARDAR INTELIGENTE
                 Button(
                     onClick = {
                         isSaving = true; mensajeError = ""
+                        // VALIDACIONES
                         if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
                         val h = cleanDouble(horometro)
                         val nP1 = cleanDouble(nomPhi1); val nR = cleanDouble(nomR); val nD = cleanDouble(nomD); val nP2 = cleanDouble(nomPhi2); val nH = cleanDouble(nomH); val nE = cleanDouble(nomE)
@@ -249,14 +279,37 @@ fun PantallaRegistroGancho(
                         if (nP1 <= 0 || nR <= 0 || nD <= 0 || nP2 <= 0 || nH <= 0 || nE <= 0) { mensajeError = "Faltan medidas NOMINALES."; isSaving = false; return@Button }
                         if (mP1 <= 0 || mR <= 0 || mD <= 0 || mP2 <= 0 || mH <= 0 || mE <= 0) { mensajeError = "Faltan medidas ACTUALES."; isSaving = false; return@Button }
 
-                        val detalles = DetallesGancho(phi1Nominal = nP1, rNominal = nR, dNominal = nD, phi2Nominal = nP2, hNominal = nH, eNominal = nE, phi1Actual = mP1, rActual = mR, dActual = mD, phi2Actual = mP2, hActual = mH, eActual = mE, phi1Porcentaje = valPhi1, rPorcentaje = valR, dPorcentaje = valD, phi2Porcentaje = valPhi2, hPorcentaje = valH, ePorcentaje = valE)
+                        // CREAR BITACORA
+                        val detalles = DetallesGancho(
+                            phi1Nominal = nP1, rNominal = nR, dNominal = nD, phi2Nominal = nP2, hNominal = nH, eNominal = nE,
+                            phi1Actual = mP1, rActual = mR, dActual = mD, phi2Actual = mP2, hActual = mH, eActual = mE,
+                            phi1Porcentaje = valPhi1, rPorcentaje = valR, dPorcentaje = valD, phi2Porcentaje = valPhi2, hPorcentaje = valH, ePorcentaje = valE
+                        )
                         val bitacora = Bitacora(
                             usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina, tipoAditamento = nombreAditamento,
                             numeroSerie = numeroSerie, horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
                             requiereReemplazo = requiereReemplazo, observacion = observacion, detallesGancho = detalles,
                             detallesEslabon = null, detallesCadena = null, detallesGrillete = null, detallesTerminal = null, detallesCable = null
                         )
-                        db.collection("bitacoras").add(bitacora).addOnSuccessListener { isSaving = false; navController.popBackStack(AppRoutes.MENU, false) }.addOnFailureListener { isSaving = false; mensajeError = "Error al guardar" }
+
+                        // GUARDADO OFFLINE FIRST
+                        if (NetworkUtils.esRedDisponible(context)) {
+                            db.collection("bitacoras").add(bitacora)
+                                .addOnSuccessListener {
+                                    isSaving = false
+                                    Toast.makeText(context, "Registro guardado y sincronizado", Toast.LENGTH_SHORT).show()
+                                    navController.popBackStack(AppRoutes.MENU, false)
+                                }
+                                .addOnFailureListener {
+                                    isSaving = false; mensajeError = "Error al subir"
+                                }
+                        } else {
+                            // Sin red: Guardar y salir YA
+                            db.collection("bitacoras").add(bitacora)
+                            isSaving = false
+                            Toast.makeText(context, "Guardado localmente (se subirá al tener internet)", Toast.LENGTH_LONG).show()
+                            navController.popBackStack(AppRoutes.MENU, false)
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton), shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f).height(50.dp)
                 ) { if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp)) else Text("Guardar", fontWeight = FontWeight.Bold) }
