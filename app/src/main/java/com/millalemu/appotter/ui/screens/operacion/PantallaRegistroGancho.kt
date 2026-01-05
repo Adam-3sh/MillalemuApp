@@ -187,11 +187,11 @@ fun PantallaRegistroGancho(
                     listOf("∅1", "R", "D").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Inic", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Nom.", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(nomPhi1, { nomPhi1 = it }, nominalesEditables); CeldaGrid(nomR, { nomR = it }, nominalesEditables); CeldaGrid(nomD, { nomD = it }, nominalesEditables)
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Act", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Real", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(medPhi1, { medPhi1 = it }, true, true); CeldaGrid(medR, { medR = it }, true, true); CeldaGrid(medD, { medD = it }, true, true)
                 }
 
@@ -203,11 +203,11 @@ fun PantallaRegistroGancho(
                     listOf("∅2", "H", "E").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Inic", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Nom.", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(nomPhi2, { nomPhi2 = it }, nominalesEditables); CeldaGrid(nomH, { nomH = it }, nominalesEditables); CeldaGrid(nomE, { nomE = it }, nominalesEditables)
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Act", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Real", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(medPhi2, { medPhi2 = it }, true, true); CeldaGrid(medH, { medH = it }, true, true); CeldaGrid(medE, { medE = it }, true, true)
                 }
 

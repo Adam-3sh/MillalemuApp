@@ -237,14 +237,14 @@ fun PantallaRegistroCadena(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Inicial", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Nominal", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(nomB, { nomB = it }, nominalesEditables)
                     CeldaGrid(nomC, { nomC = it }, nominalesEditables)
                     CeldaGrid(nomD, { nomD = it }, nominalesEditables)
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Actual", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Real", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(medB, { medB = it }, true, true)
                     CeldaGrid(medC, { medC = it }, true, true)
                     CeldaGrid(medD, { medD = it }, true, true)

@@ -257,7 +257,7 @@ fun PantallaRegistroEslabon(
                 }
                 // Fila Inicial
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Nominal", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Nom.", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(nomK, { nomK = it }, nominalesEditables)
                     CeldaGrid(nomA, { nomA = it }, nominalesEditables)
                     CeldaGrid(nomD, { nomD = it }, nominalesEditables)

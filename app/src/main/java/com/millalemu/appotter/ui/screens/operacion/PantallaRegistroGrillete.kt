@@ -194,12 +194,12 @@ fun PantallaRegistroGrillete(
                     listOf("P", "E", "W", "R").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Inic", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Nom.", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(nomP, { nomP = it }, nominalesEditables); CeldaGrid(nomE, { nomE = it }, nominalesEditables)
                     CeldaGrid(nomW, { nomW = it }, nominalesEditables); CeldaGrid(nomR, { nomR = it }, nominalesEditables)
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Act", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Real", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(medP, { medP = it }, true, true); CeldaGrid(medE, { medE = it }, true, true)
                     CeldaGrid(medW, { medW = it }, true, true); CeldaGrid(medR, { medR = it }, true, true)
                 }
@@ -213,12 +213,12 @@ fun PantallaRegistroGrillete(
                     Text("", Modifier.weight(1f)) // Espacio vacío para completar grid
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Inic", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Nom.", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(nomL, { nomL = it }, nominalesEditables); CeldaGrid(nomBMin, { nomBMin = it }, nominalesEditables)
                     CeldaGrid(nomD, { nomD = it }, nominalesEditables); Spacer(Modifier.weight(1f))
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Act", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Real", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(medL, { medL = it }, true, true); CeldaGrid(medBMin, { medBMin = it }, true, true)
                     CeldaGrid(medD, { medD = it }, true, true); Spacer(Modifier.weight(1f))
                 }

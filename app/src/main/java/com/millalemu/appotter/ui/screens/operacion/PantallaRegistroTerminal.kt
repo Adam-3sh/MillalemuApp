@@ -186,11 +186,11 @@ fun PantallaRegistroTerminal(
                     listOf("A", "B", "C").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Inic", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Nom.", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(nomA, { nomA = it }, nominalesEditables); CeldaGrid(nomB, { nomB = it }, nominalesEditables); CeldaGrid(nomC, { nomC = it }, nominalesEditables)
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Act", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Real", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(medA, { medA = it }, true, true); CeldaGrid(medB, { medB = it }, true, true); CeldaGrid(medC, { medC = it }, true, true)
                 }
 
@@ -203,11 +203,11 @@ fun PantallaRegistroTerminal(
                     Text("", Modifier.weight(1f)) // Espacio vacío
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Inic", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Nom.", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(nomD, { nomD = it }, nominalesEditables); CeldaGrid(nomE, { nomE = it }, nominalesEditables); Spacer(Modifier.weight(1f))
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Act", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Real", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(medD, { medD = it }, true, true); CeldaGrid(medE, { medE = it }, true, true); Spacer(Modifier.weight(1f))
                 }
 
