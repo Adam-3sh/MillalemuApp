@@ -240,3 +240,36 @@ fun BotonMenuPrincipal(
         }
     }
 }
+
+@Composable
+fun DialogoConfirmacion(
+    mostrar: Boolean,
+    titulo: String,
+    mensaje: String,
+    textoConfirmar: String = "CONFIRMAR",
+    colorConfirmar: Color = Color(0xFFD32F2F), // Rojo por defecto
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (mostrar) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(titulo, fontWeight = FontWeight.Bold) },
+            text = { Text(mensaje) },
+            confirmButton = {
+                Button(
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.buttonColors(containerColor = colorConfirmar)
+                ) {
+                    Text(textoConfirmar)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancelar")
+                }
+            },
+            containerColor = Color.White
+        )
+    }
+}
