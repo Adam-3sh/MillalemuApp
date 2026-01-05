@@ -13,12 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 
 // --- COLORES COMPARTIDOS ---
 val AzulOscuro = Color(0xFF1565C0)
@@ -200,5 +202,41 @@ fun RowScope.CeldaResultado(text: String, esCritica: Boolean = false) {
         contentAlignment = Alignment.Center
     ) {
         Text(text = text, fontWeight = FontWeight.Bold, color = colorTexto)
+    }
+}
+
+@Composable
+fun BotonMenuPrincipal(
+    titulo: String,
+    iconoRes: Int,
+    colorFondo: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(containerColor = colorFondo),
+        shape = RoundedCornerShape(16.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
+        modifier = modifier.height(100.dp) // Altura cuadrada para que se vea bien
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                painter = painterResource(id = iconoRes),
+                contentDescription = null,
+                tint = com.millalemu.appotter.ui.theme.AzulOscuro, // Usamos el color del tema
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = titulo,
+                color = com.millalemu.appotter.ui.theme.AzulOscuro,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
