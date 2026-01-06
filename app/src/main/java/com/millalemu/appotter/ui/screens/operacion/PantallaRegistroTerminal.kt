@@ -288,7 +288,7 @@ fun PantallaRegistroTerminal(
                             usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,
                             //numeroSerie = numeroSerie,
-                            // horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
+                            horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
                             requiereReemplazo = requiereReemplazo, observacion = observacion, detallesTerminal = detalles,
                             detallesEslabon = null, detallesCadena = null, detallesGrillete = null, detallesGancho = null, detallesCable = null
                         )
