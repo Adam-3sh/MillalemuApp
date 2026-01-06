@@ -63,36 +63,44 @@ data class DetallesCadena(
     @get:PropertyName("dporcentaje") @set:PropertyName("dporcentaje") var dPorcentaje: Double = 0.0
 )
 
-// --- GRILLETE CORREGIDO (7 DIMENSIONES) ---
+// --- GRILLETE ACTUALIZADO (9 DIMENSIONES: A, B, C, D, E, F, H, L, N) ---
 @Keep
 data class DetallesGrillete(
-    @get:PropertyName("pnominal") @set:PropertyName("pnominal") var pNominal: Double = 0.0,
-    @get:PropertyName("pactual") @set:PropertyName("pactual") var pActual: Double = 0.0,
-    @get:PropertyName("pporcentaje") @set:PropertyName("pporcentaje") var pPorcentaje: Double = 0.0,
+    @get:PropertyName("anominal") @set:PropertyName("anominal") var aNominal: Double = 0.0,
+    @get:PropertyName("aactual") @set:PropertyName("aactual") var aActual: Double = 0.0,
+    @get:PropertyName("aporcentaje") @set:PropertyName("aporcentaje") var aPorcentaje: Double = 0.0,
+
+    @get:PropertyName("bnominal") @set:PropertyName("bnominal") var bNominal: Double = 0.0,
+    @get:PropertyName("bactual") @set:PropertyName("bactual") var bActual: Double = 0.0,
+    @get:PropertyName("bporcentaje") @set:PropertyName("bporcentaje") var bPorcentaje: Double = 0.0,
+
+    @get:PropertyName("cnominal") @set:PropertyName("cnominal") var cNominal: Double = 0.0,
+    @get:PropertyName("cactual") @set:PropertyName("cactual") var cActual: Double = 0.0,
+    @get:PropertyName("cporcentaje") @set:PropertyName("cporcentaje") var cPorcentaje: Double = 0.0,
+
+    @get:PropertyName("dnominal") @set:PropertyName("dnominal") var dNominal: Double = 0.0,
+    @get:PropertyName("dactual") @set:PropertyName("dactual") var dActual: Double = 0.0,
+    @get:PropertyName("dporcentaje") @set:PropertyName("dporcentaje") var dPorcentaje: Double = 0.0,
 
     @get:PropertyName("enominal") @set:PropertyName("enominal") var eNominal: Double = 0.0,
     @get:PropertyName("eactual") @set:PropertyName("eactual") var eActual: Double = 0.0,
     @get:PropertyName("eporcentaje") @set:PropertyName("eporcentaje") var ePorcentaje: Double = 0.0,
 
-    @get:PropertyName("wnominal") @set:PropertyName("wnominal") var wNominal: Double = 0.0,
-    @get:PropertyName("wactual") @set:PropertyName("wactual") var wActual: Double = 0.0,
-    @get:PropertyName("wporcentaje") @set:PropertyName("wporcentaje") var wPorcentaje: Double = 0.0,
+    @get:PropertyName("fnominal") @set:PropertyName("fnominal") var fNominal: Double = 0.0,
+    @get:PropertyName("factual") @set:PropertyName("factual") var fActual: Double = 0.0,
+    @get:PropertyName("fporcentaje") @set:PropertyName("fporcentaje") var fPorcentaje: Double = 0.0,
 
-    @get:PropertyName("rnominal") @set:PropertyName("rnominal") var rNominal: Double = 0.0,
-    @get:PropertyName("ractual") @set:PropertyName("ractual") var rActual: Double = 0.0,
-    @get:PropertyName("rporcentaje") @set:PropertyName("rporcentaje") var rPorcentaje: Double = 0.0,
+    @get:PropertyName("hnominal") @set:PropertyName("hnominal") var hNominal: Double = 0.0,
+    @get:PropertyName("hactual") @set:PropertyName("hactual") var hActual: Double = 0.0,
+    @get:PropertyName("hporcentaje") @set:PropertyName("hporcentaje") var hPorcentaje: Double = 0.0,
 
     @get:PropertyName("lnominal") @set:PropertyName("lnominal") var lNominal: Double = 0.0,
     @get:PropertyName("lactual") @set:PropertyName("lactual") var lActual: Double = 0.0,
     @get:PropertyName("lporcentaje") @set:PropertyName("lporcentaje") var lPorcentaje: Double = 0.0,
 
-    @get:PropertyName("bminnominal") @set:PropertyName("bminnominal") var bMinNominal: Double = 0.0,
-    @get:PropertyName("bminactual") @set:PropertyName("bminactual") var bMinActual: Double = 0.0,
-    @get:PropertyName("bminporcentaje") @set:PropertyName("bminporcentaje") var bMinPorcentaje: Double = 0.0,
-
-    @get:PropertyName("dnominal") @set:PropertyName("dnominal") var dNominal: Double = 0.0,
-    @get:PropertyName("dactual") @set:PropertyName("dactual") var dActual: Double = 0.0,
-    @get:PropertyName("dporcentaje") @set:PropertyName("dporcentaje") var dPorcentaje: Double = 0.0
+    @get:PropertyName("nnominal") @set:PropertyName("nnominal") var nNominal: Double = 0.0,
+    @get:PropertyName("nactual") @set:PropertyName("nactual") var nActual: Double = 0.0,
+    @get:PropertyName("nporcentaje") @set:PropertyName("nporcentaje") var nPorcentaje: Double = 0.0
 )
 
 @Keep

@@ -55,52 +55,64 @@ fun PantallaRegistroGrillete(
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
 
-    // --- VARIABLES NOMINALES (7 Medidas) ---
-    var nomP by remember { mutableStateOf("") }
-    var nomE by remember { mutableStateOf("") }
-    var nomW by remember { mutableStateOf("") }
-    var nomR by remember { mutableStateOf("") }
-    var nomL by remember { mutableStateOf("") }
-    var nomBMin by remember { mutableStateOf("") }
+    // --- VARIABLES NOMINALES (9 Medidas: A, B, C, D, E, F, H, L, N) ---
+    var nomA by remember { mutableStateOf("") }
+    var nomB by remember { mutableStateOf("") }
+    var nomC by remember { mutableStateOf("") }
     var nomD by remember { mutableStateOf("") }
+    var nomE by remember { mutableStateOf("") } // Regla 5%
+    var nomF by remember { mutableStateOf("") }
+    var nomH by remember { mutableStateOf("") }
+    var nomL by remember { mutableStateOf("") }
+    var nomN by remember { mutableStateOf("") }
+
     var nominalesEditables by remember { mutableStateOf(false) }
 
     // --- VARIABLES ACTUALES ---
-    var medP by remember { mutableStateOf("") }
-    var medE by remember { mutableStateOf("") }
-    var medW by remember { mutableStateOf("") }
-    var medR by remember { mutableStateOf("") }
-    var medL by remember { mutableStateOf("") }
-    var medBMin by remember { mutableStateOf("") }
+    var medA by remember { mutableStateOf("") }
+    var medB by remember { mutableStateOf("") }
+    var medC by remember { mutableStateOf("") }
     var medD by remember { mutableStateOf("") }
+    var medE by remember { mutableStateOf("") }
+    var medF by remember { mutableStateOf("") }
+    var medH by remember { mutableStateOf("") }
+    var medL by remember { mutableStateOf("") }
+    var medN by remember { mutableStateOf("") }
 
     // --- RESULTADOS CALCULADOS ---
-    var valP by remember { mutableStateOf(0.0) }
-    var valE by remember { mutableStateOf(0.0) }
-    var valW by remember { mutableStateOf(0.0) }
-    var valR by remember { mutableStateOf(0.0) }
-    var valL by remember { mutableStateOf(0.0) }
-    var valBMin by remember { mutableStateOf(0.0) }
+    var valA by remember { mutableStateOf(0.0) }
+    var valB by remember { mutableStateOf(0.0) }
+    var valC by remember { mutableStateOf(0.0) }
     var valD by remember { mutableStateOf(0.0) }
+    var valE by remember { mutableStateOf(0.0) }
+    var valF by remember { mutableStateOf(0.0) }
+    var valH by remember { mutableStateOf(0.0) }
+    var valL by remember { mutableStateOf(0.0) }
+    var valN by remember { mutableStateOf(0.0) }
 
     // Textos
-    var resP_txt by remember { mutableStateOf("0%") }
-    var resE_txt by remember { mutableStateOf("0%") }
-    var resW_txt by remember { mutableStateOf("0%") }
-    var resR_txt by remember { mutableStateOf("0%") }
-    var resL_txt by remember { mutableStateOf("0%") }
-    var resBMin_txt by remember { mutableStateOf("0%") }
+    var resA_txt by remember { mutableStateOf("0%") }
+    var resB_txt by remember { mutableStateOf("0%") }
+    var resC_txt by remember { mutableStateOf("0%") }
     var resD_txt by remember { mutableStateOf("0%") }
+    var resE_txt by remember { mutableStateOf("0%") }
+    var resF_txt by remember { mutableStateOf("0%") }
+    var resH_txt by remember { mutableStateOf("0%") }
+    var resL_txt by remember { mutableStateOf("0%") }
+    var resN_txt by remember { mutableStateOf("0%") }
 
     var porcentajeDanoGlobal by remember { mutableStateOf("") }
     var maxDanoVal by remember { mutableStateOf(0.0) }
-    val mostrarResultados = maxDanoVal > 0.0 || medW.isNotEmpty()
+    // Mostrar resultados si hay cálculo mayor a 0 o si se llenó la medida crítica E
+    val mostrarResultados = maxDanoVal > 0.0 || medE.isNotEmpty()
 
     var mensajeError by remember { mutableStateOf("") }
     var switchManual by remember { mutableStateOf(false) }
 
-    // REGLA CRÍTICA ESPECÍFICA DE GRILLETE: W >= 5.0 o cualquiera >= 10.0
-    val esCritico = (valW >= 5.0) || (maxDanoVal >= 10.0)
+    // REGLA CRÍTICA ACTUALIZADA:
+    // 1. Si E >= 5.0 -> CRÍTICO
+    // 2. Si cualquier otra >= 10.0 -> CRÍTICO
+    val esCritico = (valE >= 5.0) || (maxDanoVal >= 10.0)
     val requiereReemplazo = esCritico || switchManual
 
     var tieneFisura by remember { mutableStateOf(false) }
@@ -111,44 +123,50 @@ fun PantallaRegistroGrillete(
     fun cleanDouble(s: String): Double = s.replace(',', '.').trim().toDoubleOrNull() ?: 0.0
 
     // --- CÁLCULO AUTOMÁTICO ---
-    LaunchedEffect(nomP, nomE, nomW, nomR, nomL, nomBMin, nomD, medP, medE, medW, medR, medL, medBMin, medD) {
+    LaunchedEffect(
+        nomA, nomB, nomC, nomD, nomE, nomF, nomH, nomL, nomN,
+        medA, medB, medC, medD, medE, medF, medH, medL, medN
+    ) {
         fun calc(nStr: String, mStr: String): Double {
             val n = cleanDouble(nStr); val m = cleanDouble(mStr)
             if (n <= 0.0 || m <= 0.0) return 0.0
             return abs((n - m) / n) * 100.0
         }
-        valP = calc(nomP, medP); valE = calc(nomE, medE); valW = calc(nomW, medW)
-        valR = calc(nomR, medR); valL = calc(nomL, medL); valBMin = calc(nomBMin, medBMin); valD = calc(nomD, medD)
+        valA = calc(nomA, medA); valB = calc(nomB, medB); valC = calc(nomC, medC)
+        valD = calc(nomD, medD); valE = calc(nomE, medE); valF = calc(nomF, medF)
+        valH = calc(nomH, medH); valL = calc(nomL, medL); valN = calc(nomN, medN)
 
-        resP_txt = "%.1f%%".format(valP); resE_txt = "%.1f%%".format(valE); resW_txt = "%.1f%%".format(valW)
-        resR_txt = "%.1f%%".format(valR); resL_txt = "%.1f%%".format(valL); resBMin_txt = "%.1f%%".format(valBMin); resD_txt = "%.1f%%".format(valD)
+        resA_txt = "%.1f%%".format(valA); resB_txt = "%.1f%%".format(valB); resC_txt = "%.1f%%".format(valC)
+        resD_txt = "%.1f%%".format(valD); resE_txt = "%.1f%%".format(valE); resF_txt = "%.1f%%".format(valF)
+        resH_txt = "%.1f%%".format(valH); resL_txt = "%.1f%%".format(valL); resN_txt = "%.1f%%".format(valN)
 
-        maxDanoVal = listOf(valP, valE, valW, valR, valL, valBMin, valD).maxOrNull() ?: 0.0
+        maxDanoVal = listOf(valA, valB, valC, valD, valE, valF, valH, valL, valN).maxOrNull() ?: 0.0
         porcentajeDanoGlobal = "%.1f%%".format(maxDanoVal)
     }
 
-    // --- CARGA DE HISTORIAL (OFFLINE FIRST - Source.CACHE) ---
+    // --- CARGA DE HISTORIAL (OFFLINE FIRST) ---
     LaunchedEffect(Unit) {
         db.collection("bitacoras")
             .whereEqualTo("identificadorMaquina", idEquipo)
             .whereEqualTo("tipoAditamento", nombreAditamento)
             .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(1)
-            .get(Source.CACHE) // Caché primero para carga instantánea
+            .get(Source.CACHE)
             .addOnSuccessListener { documents ->
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
+                    // Nota: Aquí se asume que DetallesGrillete también se actualizó en la BD o se mapeará manual
                     ultima?.detallesGrillete?.let { d ->
                         numeroSerie = ultima.numeroSerie
-                        nomP = d.pNominal.toString(); nomE = d.eNominal.toString(); nomW = d.wNominal.toString()
-                        nomR = d.rNominal.toString(); nomL = d.lNominal.toString(); nomBMin = d.bMinNominal.toString()
-                        nomD = d.dNominal.toString()
+                        // Asignamos según corresponda a la nueva estructura
+                        nomA = d.aNominal.toString(); nomB = d.bNominal.toString(); nomC = d.cNominal.toString()
+                        nomD = d.dNominal.toString(); nomE = d.eNominal.toString(); nomF = d.fNominal.toString()
+                        nomH = d.hNominal.toString(); nomL = d.lNominal.toString(); nomN = d.nNominal.toString()
                     }
                 } else { nominalesEditables = true }
                 isLoadingHistory = false
             }
             .addOnFailureListener {
-                // Si falla (sin caché u otro error), habilitamos manual
                 isLoadingHistory = false; nominalesEditables = true
             }
     }
@@ -180,7 +198,7 @@ fun PantallaRegistroGrillete(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // DIMENSIONES (GRID 7 CAMPOS)
+            // DIMENSIONES (GRID 9 CAMPOS)
             CardSeccion(titulo = "Dimensiones (mm)", accionHeader = {
                 Surface(shape = RoundedCornerShape(12.dp), color = if (nominalesEditables) Color.Gray else VerdeBoton, modifier = Modifier.clickable { nominalesEditables = !nominalesEditables }) {
                     Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -188,53 +206,81 @@ fun PantallaRegistroGrillete(
                     }
                 }
             }) {
-                // FILA 1: P, E, W, R
+                // Encabezados Columnas
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text("", Modifier.weight(0.5f))
-                    listOf("P", "E", "W", "R").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
+                    Text("A", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    Text("B", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    Text("C", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
+                // FILA 1: A, B, C
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Nom.", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    CeldaGrid(nomP, { nomP = it }, nominalesEditables); CeldaGrid(nomE, { nomE = it }, nominalesEditables)
-                    CeldaGrid(nomW, { nomW = it }, nominalesEditables); CeldaGrid(nomR, { nomR = it }, nominalesEditables)
+                    CeldaGrid(nomA, { nomA = it }, nominalesEditables); CeldaGrid(nomB, { nomB = it }, nominalesEditables); CeldaGrid(nomC, { nomC = it }, nominalesEditables)
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Real", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    CeldaGrid(medP, { medP = it }, true, true); CeldaGrid(medE, { medE = it }, true, true)
-                    CeldaGrid(medW, { medW = it }, true, true); CeldaGrid(medR, { medR = it }, true, true)
+                    CeldaGrid(medA, { medA = it }, true, true); CeldaGrid(medB, { medB = it }, true, true); CeldaGrid(medC, { medC = it }, true, true)
                 }
 
                 Spacer(Modifier.height(16.dp))
 
-                // FILA 2: L, Bmin, D
+                // Encabezados Columnas
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text("", Modifier.weight(0.5f))
-                    listOf("L", "Bmin", "D").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro) }
-                    Text("", Modifier.weight(1f)) // Espacio vacío para completar grid
+                    Text("D", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    Text("E (5%)", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = Color.Red) // E es crítico
+                    Text("F", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
+                // FILA 2: D, E, F
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Nom.", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    CeldaGrid(nomL, { nomL = it }, nominalesEditables); CeldaGrid(nomBMin, { nomBMin = it }, nominalesEditables)
-                    CeldaGrid(nomD, { nomD = it }, nominalesEditables); Spacer(Modifier.weight(1f))
+                    CeldaGrid(nomD, { nomD = it }, nominalesEditables); CeldaGrid(nomE, { nomE = it }, nominalesEditables); CeldaGrid(nomF, { nomF = it }, nominalesEditables)
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Real", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    CeldaGrid(medL, { medL = it }, true, true); CeldaGrid(medBMin, { medBMin = it }, true, true)
-                    CeldaGrid(medD, { medD = it }, true, true); Spacer(Modifier.weight(1f))
+                    CeldaGrid(medD, { medD = it }, true, true); CeldaGrid(medE, { medE = it }, true, true); CeldaGrid(medF, { medF = it }, true, true)
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Encabezados Columnas
+                Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                    Text("", Modifier.weight(0.5f))
+                    Text("H", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    Text("L", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    Text("N", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                }
+                // FILA 3: H, L, N
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Nom.", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    CeldaGrid(nomH, { nomH = it }, nominalesEditables); CeldaGrid(nomL, { nomL = it }, nominalesEditables); CeldaGrid(nomN, { nomN = it }, nominalesEditables)
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Real", Modifier.weight(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    CeldaGrid(medH, { medH = it }, true, true); CeldaGrid(medL, { medL = it }, true, true); CeldaGrid(medN, { medN = it }, true, true)
                 }
 
                 if (mostrarResultados) {
                     Spacer(Modifier.height(16.dp)); Divider(color = Color.LightGray, thickness = 1.dp); Spacer(Modifier.height(8.dp))
                     Text("Resultados:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    // Result Fila 1
                     Row(Modifier.fillMaxWidth()) {
                         Spacer(Modifier.weight(0.5f))
-                        CeldaResultado(resP_txt); CeldaResultado(resE_txt)
-                        // REGLA CRITICA W (W >= 5.0)
-                        CeldaResultado(resW_txt, esCritica = valW >= 5.0); CeldaResultado(resR_txt)
+                        CeldaResultado(resA_txt); CeldaResultado(resB_txt); CeldaResultado(resC_txt)
                     }
+                    // Result Fila 2
                     Row(Modifier.fillMaxWidth()) {
                         Spacer(Modifier.weight(0.5f))
-                        CeldaResultado(resL_txt); CeldaResultado(resBMin_txt); CeldaResultado(resD_txt); Spacer(Modifier.weight(1f))
+                        CeldaResultado(resD_txt)
+                        // REGLA CRITICA E (E >= 5.0)
+                        CeldaResultado(resE_txt, esCritica = valE >= 5.0)
+                        CeldaResultado(resF_txt)
+                    }
+                    // Result Fila 3
+                    Row(Modifier.fillMaxWidth()) {
+                        Spacer(Modifier.weight(0.5f))
+                        CeldaResultado(resH_txt); CeldaResultado(resL_txt); CeldaResultado(resN_txt)
                     }
                     Spacer(Modifier.height(8.dp))
                     Card(colors = CardDefaults.cardColors(containerColor = if (esCritico) Color.Red else Color(0xFF4CAF50)), modifier = Modifier.fillMaxWidth()) {
@@ -278,7 +324,7 @@ fun PantallaRegistroGrillete(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = { navController.popBackStack() }, colors = ButtonDefaults.buttonColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro), shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f).height(50.dp)) { Text("Volver", color = AzulOscuro, fontWeight = FontWeight.Bold) }
 
-                // BOTÓN GUARDAR INTELIGENTE (OFFLINE FIRST)
+                // BOTÓN GUARDAR
                 Button(
                     onClick = {
                         isSaving = true; mensajeError = ""
@@ -287,17 +333,26 @@ fun PantallaRegistroGrillete(
                         val h = cleanDouble(horometro)
                         if (h <= 0) { mensajeError = "Falta el horómetro."; isSaving = false; return@Button }
 
-                        val nP = cleanDouble(nomP); val nE = cleanDouble(nomE); val nW = cleanDouble(nomW); val nR = cleanDouble(nomR); val nL = cleanDouble(nomL); val nB = cleanDouble(nomBMin); val nD = cleanDouble(nomD)
-                        val mP = cleanDouble(medP); val mE = cleanDouble(medE); val mW = cleanDouble(medW); val mR = cleanDouble(medR); val mL = cleanDouble(medL); val mB = cleanDouble(medBMin); val mD = cleanDouble(medD)
+                        val nA = cleanDouble(nomA); val nB = cleanDouble(nomB); val nC = cleanDouble(nomC)
+                        val nD = cleanDouble(nomD); val nE = cleanDouble(nomE); val nF = cleanDouble(nomF)
+                        val nH = cleanDouble(nomH); val nL = cleanDouble(nomL); val nN = cleanDouble(nomN)
 
-                        if (nP <= 0 || nE <= 0 || nW <= 0 || nR <= 0 || nL <= 0 || nB <= 0 || nD <= 0) { mensajeError = "Faltan medidas NOMINALES."; isSaving = false; return@Button }
-                        if (mP <= 0 || mE <= 0 || mW <= 0 || mR <= 0 || mL <= 0 || mB <= 0 || mD <= 0) { mensajeError = "Faltan medidas ACTUALES."; isSaving = false; return@Button }
+                        val mA = cleanDouble(medA); val mB = cleanDouble(medB); val mC = cleanDouble(medC)
+                        val mD = cleanDouble(medD); val mE = cleanDouble(medE); val mF = cleanDouble(medF)
+                        val mH = cleanDouble(medH); val mL = cleanDouble(medL); val mN = cleanDouble(medN)
 
-                        // 2. CREAR BITÁCORA
+                        if (nA <= 0 || nB <= 0 || nC <= 0 || nD <= 0 || nE <= 0 || nF <= 0 || nH <= 0 || nL <= 0 || nN <= 0) {
+                            mensajeError = "Faltan medidas NOMINALES."; isSaving = false; return@Button
+                        }
+                        if (mA <= 0 || mB <= 0 || mC <= 0 || mD <= 0 || mE <= 0 || mF <= 0 || mH <= 0 || mL <= 0 || mN <= 0) {
+                            mensajeError = "Faltan medidas ACTUALES."; isSaving = false; return@Button
+                        }
+
+                        // 2. CREAR BITÁCORA - Actualizar nombres en tu data class DetallesGrillete
                         val detalles = DetallesGrillete(
-                            pNominal = nP, eNominal = nE, wNominal = nW, rNominal = nR, lNominal = nL, bMinNominal = nB, dNominal = nD,
-                            pActual = mP, eActual = mE, wActual = mW, rActual = mR, lActual = mL, bMinActual = mB, dActual = mD,
-                            pPorcentaje = valP, ePorcentaje = valE, wPorcentaje = valW, rPorcentaje = valR, lPorcentaje = valL, bMinPorcentaje = valBMin, dPorcentaje = valD
+                            aNominal = nA, bNominal = nB, cNominal = nC, dNominal = nD, eNominal = nE, fNominal = nF, hNominal = nH, lNominal = nL, nNominal = nN,
+                            aActual = mA, bActual = mB, cActual = mC, dActual = mD, eActual = mE, fActual = mF, hActual = mH, lActual = mL, nActual = mN,
+                            aPorcentaje = valA, bPorcentaje = valB, cPorcentaje = valC, dPorcentaje = valD, ePorcentaje = valE, fPorcentaje = valF, hPorcentaje = valH, lPorcentaje = valL, nPorcentaje = valN
                         )
                         val bitacora = Bitacora(
                             usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina,
@@ -309,7 +364,6 @@ fun PantallaRegistroGrillete(
 
                         // 3. GUARDADO OFFLINE FIRST
                         if (NetworkUtils.esRedDisponible(context)) {
-                            // Online: Esperamos respuesta
                             db.collection("bitacoras").add(bitacora)
                                 .addOnSuccessListener {
                                     isSaving = false
@@ -320,10 +374,9 @@ fun PantallaRegistroGrillete(
                                     isSaving = false; mensajeError = "Error al subir"
                                 }
                         } else {
-                            // Offline: Guardar y salir YA
                             db.collection("bitacoras").add(bitacora)
                             isSaving = false
-                            Toast.makeText(context, "Guardado localmente (se subirá al tener internet)", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "Guardado localmente", Toast.LENGTH_LONG).show()
                             navController.popBackStack(AppRoutes.MENU, false)
                         }
                     },

@@ -36,7 +36,7 @@ import com.millalemu.appotter.data.DetallesGrillete
 import com.millalemu.appotter.data.DetallesRoldana
 import com.millalemu.appotter.data.DetallesTerminal
 import com.millalemu.appotter.db
-import com.millalemu.appotter.utils.Sesion // Importamos Sesion para obtener rol y RUT
+import com.millalemu.appotter.utils.Sesion
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -51,10 +51,8 @@ fun PantallaListaHistorial(
     var cargando by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        // Obtenemos los datos de la sesión actual
         val rolActual = Sesion.rolUsuarioActual
         val rutActual = Sesion.rutUsuarioActual
-        // Definimos si es operador para aplicar el filtro estricto
         val esOperador = rolActual.equals("Operador", ignoreCase = true)
 
         db.collection("bitacoras")
@@ -64,36 +62,26 @@ fun PantallaListaHistorial(
             .addOnSuccessListener { res ->
                 val todos = res.toObjects(Bitacora::class.java)
 
-                // --- FILTRADO INTELIGENTE (RBAC) ---
                 lista = todos.filter { bitacora ->
                     // 1. Coincidir Máquina
                     val maquinaOk = bitacora.identificadorMaquina.trim().equals(idEquipo.trim(), ignoreCase = true)
 
-                    // 2. Coincidir Componente (Aditamento)
+                    // 2. Coincidir Componente
                     val nombreBuscado = nombreAditamento.trim()
                     val nombreEnBitacora = bitacora.tipoAditamento.trim()
 
-                    // Lógica flexible para coincidir nombres (ej: "Cable" con "Cable Asistencia")
                     val componenteOk = nombreEnBitacora.equals(nombreBuscado, ignoreCase = true) ||
                             (nombreBuscado == "Cable" && nombreEnBitacora.contains("Cable")) ||
                             (nombreBuscado.startsWith("Cable") && nombreEnBitacora.startsWith("Cable"))
 
-                    // 3. FILTRO POR ROL (La clave para Operador vs Supervisor/Admin)
-                    // Si es Operador, SOLO ve registros donde usuarioRut == su rut.
-                    // Si NO es Operador (es decir, es Admin o Supervisor), ve todo (true).
-                    val permisosOk = if (esOperador) {
-                        bitacora.usuarioRut == rutActual
-                    } else {
-                        true // Admin y Supervisor ven el historial global
-                    }
+                    // 3. Filtro por Rol
+                    val permisosOk = if (esOperador) bitacora.usuarioRut == rutActual else true
 
                     maquinaOk && componenteOk && permisosOk
                 }
                 cargando = false
             }
-            .addOnFailureListener {
-                cargando = false
-            }
+            .addOnFailureListener { cargando = false }
     }
 
     Scaffold(
@@ -114,7 +102,6 @@ fun PantallaListaHistorial(
         }
     ) { p ->
         Box(modifier = Modifier.padding(p).fillMaxSize().background(Color(0xFFF5F5F5))) {
-
             if (cargando) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (lista.isEmpty()) {
@@ -124,21 +111,10 @@ fun PantallaListaHistorial(
                 ) {
                     Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
                     Spacer(modifier = Modifier.height(16.dp))
+                    Text("No se encontraron registros.", textAlign = TextAlign.Center, color = Color.Black, fontWeight = FontWeight.Bold)
                     Text(
-                        text = "No se encontraron registros.",
-                        textAlign = TextAlign.Center,
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-                    // Mensaje explicativo según el rol
-                    Text(
-                        text = if (Sesion.rolUsuarioActual.equals("Operador", true))
-                            "(Como Operador, solo ves tus propios registros)"
-                        else "(Sin datos disponibles para este componente)",
-                        textAlign = TextAlign.Center,
-                        color = Color.Gray,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(top = 8.dp)
+                        text = if (Sesion.rolUsuarioActual.equals("Operador", true)) "(Solo ves tus propios registros)" else "(Sin datos disponibles)",
+                        textAlign = TextAlign.Center, color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp)
                     )
                 }
             } else {
@@ -155,7 +131,6 @@ fun PantallaListaHistorial(
     }
 }
 
-// ... (El resto de ItemBitacoraExpandible, Tablas, etc. se mantiene idéntico al código anterior)
 @Composable
 private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
@@ -163,8 +138,9 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--/--/----" }
 
+    // Semáforo General
     val (colorEstado, textoEstado, fondoEstado) = when {
-        bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE)) // Rojo
+        bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE))
         bitacora.porcentajeDesgasteGeneral >= 10.0 -> Triple(Color(0xFFD32F2F), "CRÍTICO", Color(0xFFFFEBEE))
         bitacora.porcentajeDesgasteGeneral >= 5.0 -> Triple(Color(0xFFEF6C00), "ALERTA", Color(0xFFFFF3E0))
         else -> Triple(Color(0xFF2E7D32), "OK", Color(0xFFE8F5E9))
@@ -180,7 +156,6 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-
             // CABECERA
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
@@ -222,12 +197,12 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                 Text("Mediciones Técnicas:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // SELECTOR DE TABLAS (Ahora incluye Roldana)
+                // SELECTOR DE TABLAS (ACTUALIZADO PARA GRILLETE)
                 when {
-                    bitacora.detallesRoldana != null -> TablaRoldana(bitacora.detallesRoldana) // <--- NUEVO
+                    bitacora.detallesGrillete != null -> TablaGrillete(bitacora.detallesGrillete) // <--- NUEVO ESTRUCTURA
+                    bitacora.detallesRoldana != null -> TablaRoldana(bitacora.detallesRoldana)
                     bitacora.detallesEslabon != null -> TablaEslabon(bitacora.detallesEslabon)
                     bitacora.detallesCadena != null -> TablaCadena(bitacora.detallesCadena)
-                    bitacora.detallesGrillete != null -> TablaGrillete(bitacora.detallesGrillete)
                     bitacora.detallesGancho != null -> TablaGancho(bitacora.detallesGancho)
                     bitacora.detallesTerminal != null -> TablaTerminal(bitacora.detallesTerminal)
                     bitacora.detallesCable != null -> TablaCable(bitacora.detallesCable)
@@ -249,33 +224,6 @@ fun DatoFila(titulo: String, valor: String) {
 }
 
 @Composable
-fun TablaCable(det: DetallesCable) {
-    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
-        Text("Longitudes", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
-        DatoFila("Disponible", "${det.metrosDisponible.toInt()} m")
-        DatoFila("Revisado", "${det.metrosRevisado.toInt()} m")
-        HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), thickness = 0.5.dp, color = Color.LightGray)
-        Text("Alambres Rotos", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
-        DatoFila("6d / 1 Paso", "${det.alambresRotos6d.toInt()}")
-        DatoFila("30d / 5 Pasos", "${det.alambresRotos30d.toInt()}")
-        HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), thickness = 0.5.dp, color = Color.LightGray)
-        Text("Estado del Cable", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
-        FilaPorcentajeCable("Reducción Ø", det.porcentajeReduccion)
-        FilaPorcentajeCable("Corrosión", det.porcentajeCorrosion)
-    }
-}
-
-@Composable
-fun FilaPorcentajeCable(titulo: String, valor: Double) {
-    val esCritico = valor >= 10.0
-    val color = if (esCritico) Color.Red else Color.Black
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(text = titulo, fontSize = 12.sp, color = Color.Gray)
-        Text(text = "${String.format("%.1f", valor)}%", fontSize = 12.sp, color = color, fontWeight = if (esCritico) FontWeight.Bold else FontWeight.Normal)
-    }
-}
-
-@Composable
 fun HeaderTabla() {
     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
         Text("MED", Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
@@ -286,18 +234,53 @@ fun HeaderTabla() {
     HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
 }
 
+// Actualizado: Ahora acepta un límite de alerta personalizado (default 10.0)
 @Composable
-fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double) {
-    val colorAlerta = if (porc >= 10.0) Color.Red else Color.Black // Alerta al 10%
+fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double, limiteAlerta: Double = 10.0) {
+    val colorAlerta = if (porc >= limiteAlerta) Color.Red else Color.Black
+    val esCriticoE = (nombre == "E" && porc >= 5.0) // Lógica visual extra para E
+
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(nombre, Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(nombre, Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if(nombre=="E") Color(0xFF1565C0) else Color.Black)
         Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
         Text("$act", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
-        Text("${String.format("%.1f", porc)}%", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorAlerta)
+        Text(
+            text = "${String.format("%.1f", porc)}%${if(esCriticoE) " (!)" else ""}",
+            modifier = Modifier.weight(1f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.End,
+            color = colorAlerta
+        )
     }
 }
 
-// --- TABLA ROLDANA (NUEVA) ---
+// --- TABLA GRILLETE ACTUALIZADA (A..N) ---
+@Composable
+fun TablaGrillete(det: DetallesGrillete) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
+        HeaderTabla()
+        // Medidas Estándar (Límite 10%)
+        FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje)
+        FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
+        FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
+        FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
+
+        // Medida Crítica (Límite 5%)
+        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0)
+
+        // Resto de Medidas Estándar
+        FilaTabla("F", det.fNominal, det.fActual, det.fPorcentaje)
+        FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
+        FilaTabla("L", det.lNominal, det.lActual, det.lPorcentaje)
+        FilaTabla("N", det.nNominal, det.nActual, det.nPorcentaje)
+
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("* E Crítico si > 5%", fontSize = 10.sp, color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+    }
+}
+
+// ... (Las demás tablas se mantienen igual)
 @Composable
 fun TablaRoldana(det: DetallesRoldana) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
@@ -330,20 +313,6 @@ fun TablaCadena(det: DetallesCadena) {
 }
 
 @Composable
-fun TablaGrillete(det: DetallesGrillete) {
-    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
-        HeaderTabla()
-        FilaTabla("P", det.pNominal, det.pActual, det.pPorcentaje)
-        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
-        FilaTabla("W", det.wNominal, det.wActual, det.wPorcentaje)
-        FilaTabla("R", det.rNominal, det.rActual, det.rPorcentaje)
-        FilaTabla("L", det.lNominal, det.lActual, det.lPorcentaje)
-        FilaTabla("B", det.bMinNominal, det.bMinActual, det.bMinPorcentaje)
-        FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
-    }
-}
-
-@Composable
 fun TablaGancho(det: DetallesGancho) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
         HeaderTabla()
@@ -352,7 +321,7 @@ fun TablaGancho(det: DetallesGancho) {
         FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
         FilaTabla("∅2", det.phi2Nominal, det.phi2Actual, det.phi2Porcentaje)
         FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
-        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
+        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0) // E también es crítica en ganchos a veces
     }
 }
 
@@ -365,5 +334,32 @@ fun TablaTerminal(det: DetallesTerminal) {
         FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
         FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
         FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
+    }
+}
+
+@Composable
+fun TablaCable(det: DetallesCable) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
+        Text("Longitudes", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
+        DatoFila("Disponible", "${det.metrosDisponible.toInt()} m")
+        DatoFila("Revisado", "${det.metrosRevisado.toInt()} m")
+        HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), thickness = 0.5.dp, color = Color.LightGray)
+        Text("Alambres Rotos", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
+        DatoFila("6d / 1 Paso", "${det.alambresRotos6d.toInt()}")
+        DatoFila("30d / 5 Pasos", "${det.alambresRotos30d.toInt()}")
+        HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), thickness = 0.5.dp, color = Color.LightGray)
+        Text("Estado del Cable", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
+        FilaPorcentajeCable("Reducción Ø", det.porcentajeReduccion)
+        FilaPorcentajeCable("Corrosión", det.porcentajeCorrosion)
+    }
+}
+
+@Composable
+fun FilaPorcentajeCable(titulo: String, valor: Double) {
+    val esCritico = valor >= 10.0
+    val color = if (esCritico) Color.Red else Color.Black
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(text = titulo, fontSize = 12.sp, color = Color.Gray)
+        Text(text = "${String.format("%.1f", valor)}%", fontSize = 12.sp, color = color, fontWeight = if (esCritico) FontWeight.Bold else FontWeight.Normal)
     }
 }
