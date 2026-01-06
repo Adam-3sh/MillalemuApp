@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Query
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.DetallesCable
@@ -50,38 +52,44 @@ fun PantallaListaHistorial(
     var lista by remember { mutableStateOf<List<Bitacora>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
+    // Usamos DisposableEffect para escuchar cambios en tiempo real (OFFLINE FIRST)
+    DisposableEffect(Unit) {
         val rolActual = Sesion.rolUsuarioActual
         val rutActual = Sesion.rutUsuarioActual
         val esOperador = rolActual.equals("Operador", ignoreCase = true)
 
-        db.collection("bitacoras")
+        // addSnapshotListener escucha la caché local primero, luego el servidor
+        val listener = db.collection("bitacoras")
             .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(100)
-            .get()
-            .addOnSuccessListener { res ->
-                val todos = res.toObjects(Bitacora::class.java)
-
-                lista = todos.filter { bitacora ->
-                    // 1. Coincidir Máquina
-                    val maquinaOk = bitacora.identificadorMaquina.trim().equals(idEquipo.trim(), ignoreCase = true)
-
-                    // 2. Coincidir Componente
-                    val nombreBuscado = nombreAditamento.trim()
-                    val nombreEnBitacora = bitacora.tipoAditamento.trim()
-
-                    val componenteOk = nombreEnBitacora.equals(nombreBuscado, ignoreCase = true) ||
-                            (nombreBuscado == "Cable" && nombreEnBitacora.contains("Cable")) ||
-                            (nombreBuscado.startsWith("Cable") && nombreEnBitacora.startsWith("Cable"))
-
-                    // 3. Filtro por Rol
-                    val permisosOk = if (esOperador) bitacora.usuarioRut == rutActual else true
-
-                    maquinaOk && componenteOk && permisosOk
+            .addSnapshotListener(MetadataChanges.INCLUDE) { snapshots, e ->
+                if (e != null) {
+                    cargando = false
+                    return@addSnapshotListener
                 }
-                cargando = false
+
+                if (snapshots != null) {
+                    val todos = snapshots.toObjects(Bitacora::class.java)
+
+                    // --- FILTRADO (Igual que antes) ---
+                    lista = todos.filter { bitacora ->
+                        val maquinaOk = bitacora.identificadorMaquina.trim().equals(idEquipo.trim(), ignoreCase = true)
+
+                        val nombreBuscado = nombreAditamento.trim()
+                        val nombreEnBitacora = bitacora.tipoAditamento.trim()
+                        val componenteOk = nombreEnBitacora.equals(nombreBuscado, ignoreCase = true) ||
+                                (nombreBuscado == "Cable" && nombreEnBitacora.contains("Cable")) ||
+                                (nombreBuscado.startsWith("Cable") && nombreEnBitacora.startsWith("Cable"))
+
+                        val permisosOk = if (esOperador) bitacora.usuarioRut == rutActual else true
+
+                        maquinaOk && componenteOk && permisosOk
+                    }
+                    cargando = false
+                }
             }
-            .addOnFailureListener { cargando = false }
+
+        onDispose { listener.remove() }
     }
 
     Scaffold(
@@ -138,13 +146,16 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--/--/----" }
 
-    // Semáforo General
+    // Semáforo con lógica visual mejorada
     val (colorEstado, textoEstado, fondoEstado) = when {
-        bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE))
-        bitacora.porcentajeDesgasteGeneral >= 10.0 -> Triple(Color(0xFFD32F2F), "CRÍTICO", Color(0xFFFFEBEE))
-        bitacora.porcentajeDesgasteGeneral >= 5.0 -> Triple(Color(0xFFEF6C00), "ALERTA", Color(0xFFFFF3E0))
-        else -> Triple(Color(0xFF2E7D32), "OK", Color(0xFFE8F5E9))
+        bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE)) // Rojo
+        bitacora.porcentajeDesgasteGeneral >= 10.0 -> Triple(Color(0xFFD32F2F), "CRÍTICO", Color(0xFFFFEBEE)) // Rojo
+        bitacora.porcentajeDesgasteGeneral >= 5.0 -> Triple(Color(0xFFEF6C00), "ALERTA", Color(0xFFFFF3E0)) // Naranja
+        else -> Triple(Color(0xFF2E7D32), "OK", Color(0xFFE8F5E9)) // Verde
     }
+
+    // Icono correspondiente
+    val iconoEstado = if (textoEstado == "OK") Icons.Default.Check else Icons.Default.Warning
 
     Card(
         elevation = CardDefaults.cardElevation(2.dp),
@@ -164,7 +175,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                 }
                 Surface(color = fondoEstado, shape = RoundedCornerShape(50), modifier = Modifier.border(1.dp, colorEstado.copy(alpha = 0.3f), RoundedCornerShape(50))) {
                     Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = if (bitacora.requiereReemplazo) Icons.Default.Info else Icons.Default.Check, contentDescription = null, tint = colorEstado, modifier = Modifier.size(14.dp))
+                        Icon(imageVector = iconoEstado, contentDescription = null, tint = colorEstado, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(text = textoEstado, color = colorEstado, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
@@ -197,9 +208,9 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                 Text("Mediciones Técnicas:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // SELECTOR DE TABLAS (ACTUALIZADO PARA GRILLETE)
+                // SELECTOR DE TABLAS (ACTUALIZADO)
                 when {
-                    bitacora.detallesGrillete != null -> TablaGrillete(bitacora.detallesGrillete) // <--- NUEVO ESTRUCTURA
+                    bitacora.detallesGrillete != null -> TablaGrillete(bitacora.detallesGrillete) // NUEVO GRILLETE
                     bitacora.detallesRoldana != null -> TablaRoldana(bitacora.detallesRoldana)
                     bitacora.detallesEslabon != null -> TablaEslabon(bitacora.detallesEslabon)
                     bitacora.detallesCadena != null -> TablaCadena(bitacora.detallesCadena)
@@ -234,19 +245,19 @@ fun HeaderTabla() {
     HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
 }
 
-// Actualizado: Ahora acepta un límite de alerta personalizado (default 10.0)
+// Función FilaTabla mejorada para alertas dinámicas
 @Composable
 fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double, limiteAlerta: Double = 10.0) {
     val colorAlerta = if (porc >= limiteAlerta) Color.Red else Color.Black
-    val esCriticoE = (nombre == "E" && porc >= 5.0) // Lógica visual extra para E
+    val esE_Critico = (nombre == "E" && porc >= 5.0) // Específico para visualización rápida
 
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(nombre, Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if(nombre=="E") Color(0xFF1565C0) else Color.Black)
         Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
         Text("$act", Modifier.weight(1f), fontSize = 12.sp, textAlign = TextAlign.Center)
         Text(
-            text = "${String.format("%.1f", porc)}%${if(esCriticoE) " (!)" else ""}",
-            modifier = Modifier.weight(1f),
+            text = "${String.format("%.1f", porc)}%${if(esE_Critico) " (!)" else ""}",
+            Modifier.weight(1f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.End,
@@ -255,32 +266,32 @@ fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double, limiteAler
     }
 }
 
-// --- TABLA GRILLETE ACTUALIZADA (A..N) ---
+// --- TABLA GRILLETE ACTUALIZADA (A..N con regla 5%) ---
 @Composable
 fun TablaGrillete(det: DetallesGrillete) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
         HeaderTabla()
-        // Medidas Estándar (Límite 10%)
+        // Medidas estándar (Límite 10%)
         FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje)
         FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
         FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
         FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
 
-        // Medida Crítica (Límite 5%)
+        // Medida E (Límite 5% - Crítica)
         FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0)
 
-        // Resto de Medidas Estándar
+        // Resto de medidas
         FilaTabla("F", det.fNominal, det.fActual, det.fPorcentaje)
         FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
         FilaTabla("L", det.lNominal, det.lActual, det.lPorcentaje)
         FilaTabla("N", det.nNominal, det.nActual, det.nPorcentaje)
 
         Spacer(modifier = Modifier.height(4.dp))
-        Text("* E Crítico si > 5%", fontSize = 10.sp, color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+        Text("* E es crítico si > 5%", fontSize = 10.sp, color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
     }
 }
 
-// ... (Las demás tablas se mantienen igual)
+// ... Resto de tablas (Roldana, Eslabon, etc.) se mantienen igual ...
 @Composable
 fun TablaRoldana(det: DetallesRoldana) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(4.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp)).padding(8.dp)) {
@@ -321,7 +332,7 @@ fun TablaGancho(det: DetallesGancho) {
         FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
         FilaTabla("∅2", det.phi2Nominal, det.phi2Actual, det.phi2Porcentaje)
         FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
-        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0) // E también es crítica en ganchos a veces
+        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0)
     }
 }
 
