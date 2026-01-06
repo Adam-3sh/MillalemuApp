@@ -50,7 +50,7 @@ fun PantallaRegistroGancho(
 ) {
     val context = LocalContext.current
 
-    var numeroSerie by remember { mutableStateOf("") }
+    //var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
 
@@ -133,7 +133,7 @@ fun PantallaRegistroGancho(
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
                     ultima?.detallesGancho?.let { d ->
-                        numeroSerie = ultima.numeroSerie
+                        //numeroSerie = ultima.numeroSerie
                         nomPhi1 = d.phi1Nominal.toString(); nomR = d.rNominal.toString(); nomD = d.dNominal.toString()
                         nomPhi2 = d.phi2Nominal.toString(); nomH = d.hNominal.toString(); nomE = d.eNominal.toString()
                     }
@@ -168,7 +168,7 @@ fun PantallaRegistroGancho(
                 RowItemDato(label = "Equipo", valor = idEquipo); Spacer(Modifier.height(8.dp))
                 RowItemDato(label = "Fecha", valor = fechaHoy); Spacer(Modifier.height(8.dp))
                 RowItemInput(label = "Horómetro", value = horometro, onValueChange = { horometro = it }, suffix = "hrs", isNumber = true); Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "Nº Serie", value = numeroSerie, onValueChange = { numeroSerie = it })
+                //RowItemInput(label = "Nº Serie", value = numeroSerie, onValueChange = { numeroSerie = it })
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -270,7 +270,7 @@ fun PantallaRegistroGancho(
                     onClick = {
                         isSaving = true; mensajeError = ""
                         // VALIDACIONES
-                        if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
+                        //if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
                         val h = cleanDouble(horometro)
                         val nP1 = cleanDouble(nomPhi1); val nR = cleanDouble(nomR); val nD = cleanDouble(nomD); val nP2 = cleanDouble(nomPhi2); val nH = cleanDouble(nomH); val nE = cleanDouble(nomE)
                         val mP1 = cleanDouble(medPhi1); val mR = cleanDouble(medR); val mD = cleanDouble(medD); val mP2 = cleanDouble(medPhi2); val mH = cleanDouble(medH); val mE = cleanDouble(medE)
@@ -287,7 +287,8 @@ fun PantallaRegistroGancho(
                         )
                         val bitacora = Bitacora(
                             usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina, tipoAditamento = nombreAditamento,
-                            numeroSerie = numeroSerie, horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
+                            //numeroSerie = numeroSerie,
+                            horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
                             requiereReemplazo = requiereReemplazo, observacion = observacion, detallesGancho = detalles,
                             detallesEslabon = null, detallesCadena = null, detallesGrillete = null, detallesTerminal = null, detallesCable = null
                         )

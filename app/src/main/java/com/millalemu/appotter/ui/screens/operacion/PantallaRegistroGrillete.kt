@@ -51,7 +51,7 @@ fun PantallaRegistroGrillete(
     val context = LocalContext.current
 
     // --- ESTADOS DE UI Y DATOS ---
-    var numeroSerie by remember { mutableStateOf("") }
+    //var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
 
@@ -157,7 +157,7 @@ fun PantallaRegistroGrillete(
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
                     // Nota: Aquí se asume que DetallesGrillete también se actualizó en la BD o se mapeará manual
                     ultima?.detallesGrillete?.let { d ->
-                        numeroSerie = ultima.numeroSerie
+                        //numeroSerie = ultima.numeroSerie
                         // Asignamos según corresponda a la nueva estructura
                         nomA = d.aNominal.toString(); nomB = d.bNominal.toString(); nomC = d.cNominal.toString()
                         nomD = d.dNominal.toString(); nomE = d.eNominal.toString(); nomF = d.fNominal.toString()
@@ -193,7 +193,7 @@ fun PantallaRegistroGrillete(
                 RowItemDato(label = "Equipo", valor = idEquipo); Spacer(Modifier.height(8.dp))
                 RowItemDato(label = "Fecha", valor = fechaHoy); Spacer(Modifier.height(8.dp))
                 RowItemInput(label = "Horómetro", value = horometro, onValueChange = { horometro = it }, suffix = "hrs", isNumber = true); Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "Nº Serie", value = numeroSerie, onValueChange = { numeroSerie = it })
+                //RowItemInput(label = "Nº Serie", value = numeroSerie, onValueChange = { numeroSerie = it })
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -329,7 +329,7 @@ fun PantallaRegistroGrillete(
                     onClick = {
                         isSaving = true; mensajeError = ""
                         // 1. VALIDACIONES
-                        if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
+                        //if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
                         val h = cleanDouble(horometro)
                         if (h <= 0) { mensajeError = "Falta el horómetro."; isSaving = false; return@Button }
 
@@ -357,7 +357,8 @@ fun PantallaRegistroGrillete(
                         val bitacora = Bitacora(
                             usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,
-                            numeroSerie = numeroSerie, horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
+                            //numeroSerie = numeroSerie,
+                            horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
                             requiereReemplazo = requiereReemplazo, observacion = observacion, detallesGrillete = detalles,
                             detallesEslabon = null, detallesCadena = null, detallesGancho = null, detallesTerminal = null, detallesCable = null
                         )

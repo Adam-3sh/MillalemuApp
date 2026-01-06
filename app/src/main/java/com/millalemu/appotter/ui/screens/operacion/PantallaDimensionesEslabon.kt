@@ -303,7 +303,7 @@ fun PantallaDimensionesEslabon(
                         identificadorMaquina = idEquipo,
                         tipoMaquina = tipoMaquina,
                         tipoAditamento = "Eslabón Articulado", // Nombre exacto para el filtro
-                        numeroSerie = numeroSerie,
+                        //numeroSerie = numeroSerie,
                         horometro = horometroVal,
                         tieneFisura = tieneFisura,
                         requiereReemplazo = requiereReemplazo,

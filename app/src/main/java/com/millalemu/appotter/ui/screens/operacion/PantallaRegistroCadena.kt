@@ -51,7 +51,7 @@ fun PantallaRegistroCadena(
     val context = LocalContext.current
 
     // --- ESTADOS DE UI Y DATOS ---
-    var numeroSerie by remember { mutableStateOf("") }
+    //var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
 
@@ -124,7 +124,7 @@ fun PantallaRegistroCadena(
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
                     ultima?.detallesCadena?.let { d ->
-                        numeroSerie = ultima.numeroSerie
+                        //numeroSerie = ultima.numeroSerie
                         nomB = d.bNominal.toString()
                         nomC = d.cNominal.toString()
                         nomD = d.dNominal.toString()
@@ -200,12 +200,12 @@ fun PantallaRegistroCadena(
                     suffix = "hrs",
                     isNumber = true
                 )
-                Spacer(Modifier.height(8.dp))
-                RowItemInput(
-                    label = "Nº Serie",
-                    value = numeroSerie,
-                    onValueChange = { numeroSerie = it }
-                )
+                //Spacer(Modifier.height(8.dp))
+                //RowItemInput(
+                //  label = "Nº Serie",
+                //value = numeroSerie,
+                //onValueChange = { numeroSerie = it }
+                //)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -360,7 +360,7 @@ fun PantallaRegistroCadena(
                         isSaving = true
                         mensajeError = ""
 
-                        if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
+                        //if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
                         val h = cleanDouble(horometro)
                         if (h <= 0) { mensajeError = "Falta el horómetro."; isSaving = false; return@Button }
 
@@ -382,7 +382,7 @@ fun PantallaRegistroCadena(
                             identificadorMaquina = idEquipo,
                             tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,
-                            numeroSerie = numeroSerie,
+                            //numeroSerie = numeroSerie,
                             horometro = h,
                             porcentajeDesgasteGeneral = maxDanoVal,
                             tieneFisura = tieneFisura,

@@ -14,7 +14,7 @@ data class Bitacora(
     val identificadorMaquina: String = "",
     val tipoMaquina: String = "",
     val tipoAditamento: String = "",
-    val numeroSerie: String = "",
+    //val numeroSerie: String = "",
     val fecha: Timestamp = Timestamp.now(),
     val horometro: Double = 0.0,
 

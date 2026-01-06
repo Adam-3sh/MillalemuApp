@@ -51,7 +51,7 @@ fun PantallaRegistroEslabon(
     val context = LocalContext.current
 
     // --- ESTADOS DE UI Y DATOS ---
-    var numeroSerie by remember { mutableStateOf("") }
+    //var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
 
@@ -130,7 +130,7 @@ fun PantallaRegistroEslabon(
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
                     ultima?.detallesEslabon?.let { d ->
-                        numeroSerie = ultima.numeroSerie
+                        //numeroSerie = ultima.numeroSerie
                         nomK = d.kNominal.toString()
                         nomA = d.aNominal.toString()
                         nomD = d.dNominal.toString()
@@ -213,12 +213,12 @@ fun PantallaRegistroEslabon(
                     suffix = "hrs",
                     isNumber = true
                 )
-                Spacer(Modifier.height(8.dp))
+                /*Spacer(Modifier.height(8.dp))
                 RowItemInput(
                     label = "Nº Serie",
                     value = numeroSerie,
                     onValueChange = { numeroSerie = it }
-                )
+                )*/
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -392,11 +392,11 @@ fun PantallaRegistroEslabon(
                         mensajeError = ""
 
                         // 1. VALIDACIONES
-                        if (numeroSerie.isBlank()) {
+                        /*if (numeroSerie.isBlank()) {
                             mensajeError = "Falta el número de serie."
                             isSaving = false
                             return@Button
-                        }
+                        }*/
                         val h = cleanDouble(horometro)
                         if (h <= 0) {
                             mensajeError = "Falta el horómetro."
@@ -431,7 +431,7 @@ fun PantallaRegistroEslabon(
                             identificadorMaquina = idEquipo,
                             tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,
-                            numeroSerie = numeroSerie,
+                            //numeroSerie = numeroSerie,
                             horometro = h,
                             porcentajeDesgasteGeneral = maxDanoVal,
                             tieneFisura = tieneFisura,

@@ -47,7 +47,7 @@ fun PantallaRegistroCable(
     val context = LocalContext.current
 
     // ESTADOS
-    var numeroSerie by remember { mutableStateOf("") }
+    //var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
 
@@ -79,7 +79,7 @@ fun PantallaRegistroCable(
             .addOnSuccessListener { documents ->
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
-                    if (ultima != null) numeroSerie = ultima.numeroSerie
+                    //if (ultima != null) numeroSerie = ultima.numeroSerie
                 }
                 isLoadingHistory = false
             }
@@ -117,7 +117,7 @@ fun PantallaRegistroCable(
                 RowItemDato(label = "Equipo", valor = idEquipo); Spacer(Modifier.height(8.dp))
                 RowItemDato(label = "Fecha", valor = fechaHoy); Spacer(Modifier.height(8.dp))
                 RowItemInput(label = "Horómetro", value = horometro, onValueChange = { horometro = it }, suffix = "hrs", isNumber = true); Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "Nº Serie", value = numeroSerie, onValueChange = { numeroSerie = it })
+                //RowItemInput(label = "Nº Serie", value = numeroSerie, onValueChange = { numeroSerie = it })
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -219,7 +219,7 @@ fun PantallaRegistroCable(
                             identificadorMaquina = idEquipo,
                             tipoMaquina = tipoMaquina,
                             tipoAditamento = "Cable de Asistencia",
-                            numeroSerie = numeroSerie,
+                            //numeroSerie = numeroSerie,
                             horometro = cleanDouble(horometro),
                             porcentajeDesgasteGeneral = maxDanoVal,
                             tieneFisura = false,
