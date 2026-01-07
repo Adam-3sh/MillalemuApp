@@ -25,7 +25,7 @@ import androidx.navigation.NavController
 import com.millalemu.appotter.data.Usuario
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
-import com.millalemu.appotter.ui.components.DialogoConfirmacion // <--- IMPORTANTE: Importar el componente
+import com.millalemu.appotter.ui.components.DialogoConfirmacion
 import com.millalemu.appotter.utils.Sesion
 
 private val AzulOscuro = Color(0xFF1565C0)
@@ -38,11 +38,9 @@ fun PantallaListaUsuarios(modifier: Modifier = Modifier, navController: NavContr
     var listaUsuarios by remember { mutableStateOf(emptyList<Usuario>()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // --- ESTADOS PARA EL DIÁLOGO DE BORRADO ---
     var mostrarDialogo by remember { mutableStateOf(false) }
     var usuarioAEliminar by remember { mutableStateOf<Usuario?>(null) }
 
-    // Cargar usuarios
     LaunchedEffect(Unit) {
         db.collection("usuarios").orderBy("nombre").get()
             .addOnSuccessListener { snapshot ->
@@ -54,18 +52,16 @@ fun PantallaListaUsuarios(modifier: Modifier = Modifier, navController: NavContr
             .addOnFailureListener { isLoading = false }
     }
 
-    // --- AQUÍ INSERTAMOS EL DIÁLOGO ---
     DialogoConfirmacion(
         mostrar = mostrarDialogo,
         titulo = "Eliminar Usuario",
-        mensaje = "¿Seguro que deseas eliminar a ${usuarioAEliminar?.nombre} ${usuarioAEliminar?.apellido}?\nEsta acción no se puede deshacer.",
+        mensaje = "¿Seguro que deseas eliminar a ${usuarioAEliminar?.nombre} ${usuarioAEliminar?.apellido}?",
         textoConfirmar = "ELIMINAR",
         onConfirm = {
             usuarioAEliminar?.let { usuario ->
                 db.collection("usuarios").document(usuario.id).delete()
                     .addOnSuccessListener {
                         Toast.makeText(context, "Usuario eliminado", Toast.LENGTH_SHORT).show()
-                        // Actualizamos la lista localmente para que desaparezca
                         listaUsuarios = listaUsuarios.filterNot { it.id == usuario.id }
                     }
                     .addOnFailureListener {
@@ -85,7 +81,6 @@ fun PantallaListaUsuarios(modifier: Modifier = Modifier, navController: NavContr
         modifier = modifier.fillMaxSize().background(FondoGris).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // ENCABEZADO
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -102,17 +97,45 @@ fun PantallaListaUsuarios(modifier: Modifier = Modifier, navController: NavContr
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = AzulOscuro) }
         } else {
-            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(listaUsuarios) { usuario ->
-                    UsuarioCard(
-                        usuario = usuario,
-                        onEdit = { navController.navigate("${AppRoutes.EDITAR_USUARIO_ROUTE}/${usuario.id}") },
-                        onDelete = {
-                            // EN LUGAR DE BORRAR DIRECTO, ACTIVAMOS EL DIÁLOGO
-                            usuarioAEliminar = usuario
-                            mostrarDialogo = true
+            // --- AQUÍ ESTÁ LA LÓGICA DE AGRUPACIÓN ---
+            val usuariosAgrupados = listaUsuarios.groupBy { it.tipo_usuario.uppercase().ifBlank { "SIN ROL" } }
+
+            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                usuariosAgrupados.forEach { (rol, usuarios) ->
+                    // Cabecera de Sección (Sticky Header style visual)
+                    item {
+                        Surface(
+                            color = Color(0xFFE0E0E0),
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp)
+                        ) {
+                            Text(
+                                text = rol,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.DarkGray
+                            )
                         }
-                    )
+                    }
+
+                    // Items de esa sección
+                    items(usuarios) { usuario ->
+                        UsuarioCard(
+                            usuario = usuario,
+                            onEdit = { navController.navigate("${AppRoutes.EDITAR_USUARIO_ROUTE}/${usuario.id}") },
+                            onDelete = {
+                                usuarioAEliminar = usuario
+                                mostrarDialogo = true
+                            }
+                        )
+                    }
+                }
+
+                // Si la lista está vacía visualmente (aunque ya controlamos isLoading)
+                if (listaUsuarios.isEmpty()) {
+                    item { Text("No hay usuarios registrados.", color = Color.Gray, modifier = Modifier.padding(16.dp)) }
                 }
             }
         }
@@ -130,7 +153,6 @@ fun PantallaListaUsuarios(modifier: Modifier = Modifier, navController: NavContr
     }
 }
 
-// ... (La función UsuarioCard se mantiene igual, no necesita cambios) ...
 @Composable
 fun UsuarioCard(usuario: Usuario, onEdit: () -> Unit, onDelete: () -> Unit) {
     val rutSuperAdmin = "21891517-5"
@@ -162,7 +184,7 @@ fun UsuarioCard(usuario: Usuario, onEdit: () -> Unit, onDelete: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = "${usuario.nombre} ${usuario.apellido}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
                 Text(text = usuario.rut, fontSize = 12.sp, color = Color.Gray)
-                Text(text = usuario.tipo_usuario.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AzulOscuro, modifier = Modifier.padding(top = 4.dp))
+                // Quitamos el texto repetitivo del rol abajo porque ya está en el header
             }
             if (!esProtegido) {
                 Row {

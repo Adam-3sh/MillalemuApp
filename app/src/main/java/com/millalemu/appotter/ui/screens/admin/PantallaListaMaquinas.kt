@@ -1,9 +1,11 @@
 package com.millalemu.appotter.ui.screens.admin
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -21,7 +23,12 @@ import androidx.navigation.NavController
 import com.millalemu.appotter.data.Maquina
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
-import com.millalemu.appotter.ui.components.DialogoConfirmacion // <--- IMPORTANTE
+import com.millalemu.appotter.ui.components.DialogoConfirmacion
+
+// Definimos los mismos colores para mantener la consistencia visual
+private val AzulOscuro = Color(0xFF1565C0)
+private val FondoGris = Color(0xFFF5F5F5)
+private val RojoAlerta = Color(0xFFD32F2F)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,13 +37,12 @@ fun PantallaListaMaquinas(navController: NavController) {
     var listaMaquinas by remember { mutableStateOf<List<Maquina>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
 
-    // --- ESTADOS PARA EL DIÁLOGO ---
     var mostrarDialogo by remember { mutableStateOf(false) }
     var maquinaAEliminar by remember { mutableStateOf<Maquina?>(null) }
 
-    // Cargar datos en tiempo real
+    // Carga de datos en tiempo real
     DisposableEffect(Unit) {
-        val listener = db.collection("maquinaria") // Mantenemos "maquinaria" como en tu código original
+        val listener = db.collection("maquinaria")
             .orderBy("identificador")
             .addSnapshotListener { snapshots, e ->
                 if (e != null) {
@@ -56,11 +62,11 @@ fun PantallaListaMaquinas(navController: NavController) {
         onDispose { listener.remove() }
     }
 
-    // --- DIÁLOGO DE CONFIRMACIÓN ---
+    // Diálogo de confirmación para eliminar
     DialogoConfirmacion(
         mostrar = mostrarDialogo,
         titulo = "Eliminar Máquina",
-        mensaje = "¿Deseas eliminar el equipo ${maquinaAEliminar?.identificador}?\nSe perderá su configuración.",
+        mensaje = "¿Deseas eliminar el equipo ${maquinaAEliminar?.identificador}?",
         textoConfirmar = "ELIMINAR",
         onConfirm = {
             maquinaAEliminar?.let { maquina ->
@@ -86,32 +92,70 @@ fun PantallaListaMaquinas(navController: NavController) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate(AppRoutes.INGRESAR_MAQUINA) },
-                containerColor = Color(0xFF1565C0),
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar")
-            }
+                containerColor = AzulOscuro,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(12.dp)
+            ) { Icon(Icons.Default.Add, contentDescription = "Agregar") }
         }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp)
-        ) {
-            if (cargando) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (listaMaquinas.isEmpty()) {
-                Text("No hay maquinaria registrada", modifier = Modifier.align(Alignment.Center), color = Color.Gray)
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(listaMaquinas) { maquina ->
-                        // Pasamos la lógica del dialogo al item
-                        ItemMaquina(
-                            maquina = maquina,
-                            navController = navController,
-                            onDeleteClick = {
-                                maquinaAEliminar = maquina
-                                mostrarDialogo = true
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues).background(FondoGris).padding(16.dp)) {
+
+            Column(Modifier.fillMaxSize()) {
+                // Título igual que en Usuarios
+                Text(
+                    "Gestión de Maquinaria",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = AzulOscuro,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                if (cargando) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = AzulOscuro)
+                    }
+                } else if (listaMaquinas.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No hay maquinaria registrada", color = Color.Gray)
+                    }
+                } else {
+                    // --- AGRUPACIÓN POR TIPO (Volteo vs Madereo) ---
+                    val maquinasAgrupadas = listaMaquinas.groupBy { it.tipo.uppercase().ifBlank { "OTROS" } }
+
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        maquinasAgrupadas.forEach { (tipo, lista) ->
+                            // Header de sección
+                            item {
+                                Surface(
+                                    color = Color(0xFFE0E0E0),
+                                    shape = RoundedCornerShape(4.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp)
+                                ) {
+                                    Text(
+                                        text = tipo,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.DarkGray
+                                    )
+                                }
                             }
-                        )
+
+                            // Lista de ítems
+                            items(lista) { maquina ->
+                                ItemMaquina(
+                                    maquina = maquina,
+                                    navController = navController,
+                                    onDeleteClick = {
+                                        maquinaAEliminar = maquina
+                                        mostrarDialogo = true
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -122,27 +166,37 @@ fun PantallaListaMaquinas(navController: NavController) {
 @Composable
 fun ItemMaquina(maquina: Maquina, navController: NavController, onDeleteClick: () -> Unit) {
     Card(
-        elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Textos (Solo Identificador y Tipo)
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = maquina.identificador, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(text = maquina.tipo, fontSize = 14.sp, color = Color.Gray)
+                Text(
+                    text = maquina.identificador,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.Black
+                )
+                Text(
+                    text = maquina.tipo,
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
             }
 
+            // Botones de acción
             Row {
                 IconButton(onClick = { navController.navigate("editar_maquina/${maquina.id}") }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF1976D2))
+                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = AzulOscuro)
                 }
-                // Aquí usamos el evento onDeleteClick que abre el diálogo
                 IconButton(onClick = onDeleteClick) {
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color(0xFFD32F2F))
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = RojoAlerta)
                 }
             }
         }
