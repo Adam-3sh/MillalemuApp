@@ -21,13 +21,11 @@ import com.google.firebase.firestore.FieldValue
 @Composable
 fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavController) {
 
-    // Volvemos a solo dos opciones
+    // Lista de opciones fija
     val opcionesTipo = listOf("Madereo", "Volteo")
     var expanded by remember { mutableStateOf(false) }
     var tipoSeleccionado by remember { mutableStateOf(opcionesTipo[0]) }
     var identificador by remember { mutableStateOf("") }
-
-    // Eliminado: var modelo ...
 
     var mensajeError by remember { mutableStateOf("") }
     var guardando by remember { mutableStateOf(false) }
@@ -44,7 +42,7 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
             text = "Nueva Maquinaria",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF1565C0),
+            color = Color(0xFF1565C0), // Azul corporativo
             modifier = Modifier.padding(vertical = 24.dp)
         )
 
@@ -91,14 +89,24 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
                     value = identificador,
                     onValueChange = { identificador = it },
                     singleLine = true,
+                    placeholder = { Text("Ej: SG-05 o HM-12") },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
                 )
             }
         }
 
+        // Mensaje de Error
         if (mensajeError.isNotEmpty()) {
-            Text(mensajeError, color = Color.Red, modifier = Modifier.padding(top = 16.dp))
+            Text(
+                text = mensajeError,
+                color = Color.Red,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 16.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -107,17 +115,18 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
         Button(
             onClick = {
                 mensajeError = ""
+                // 1. Normalización a Mayúsculas y sin espacios
                 val idNormalizado = identificador.trim().uppercase()
 
-                // 1. Validación de Formato
+                // 2. Validación de Formato con Regex (2 letras, guion, 2 números)
                 val regex = Regex("^[A-Z]{2}-\\d{2}$")
 
                 if (!regex.matches(idNormalizado)) {
-                    mensajeError = "Formato inválido. Use letras y números (Ej: SG-01)"
+                    mensajeError = "Formato inválido. Use 2 letras, guion y 2 números (Ej: SG-01)"
                     return@Button
                 }
 
-                // 2. Validación de Prefijos
+                // 3. Validación de Prefijos según Tipo
                 val prefijo = idNormalizado.take(2)
                 var esValido = true
 
@@ -132,29 +141,46 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
                 if (esValido) {
                     guardando = true
 
-                    // USAMOS UN HASHMAP PARA ASEGURAR LA FECHA DEL SERVIDOR
-                    val nuevaMaquinaMap = hashMapOf(
-                        "identificador" to idNormalizado,
-                        "tipo" to tipoSeleccionado,
-                        "horometro" to 0.0,
-                        "fechaCreacion" to FieldValue.serverTimestamp() // ¡Esto arregla la fecha!
-                    )
-
+                    // 4. CONSULTA DE EXISTENCIA (Evitar duplicados)
                     db.collection("maquinaria")
-                        .add(nuevaMaquinaMap)
-                        .addOnSuccessListener {
-                            guardando = false
-                            navController.popBackStack()
+                        .whereEqualTo("identificador", idNormalizado)
+                        .get()
+                        .addOnSuccessListener { documents ->
+                            if (!documents.isEmpty) {
+                                // YA EXISTE: Mostramos error y detenemos
+                                guardando = false
+                                mensajeError = "¡Error! El equipo $idNormalizado ya existe."
+                            } else {
+                                // NO EXISTE: Procedemos a Guardar
+                                val nuevaMaquinaMap = hashMapOf(
+                                    "identificador" to idNormalizado,
+                                    "tipo" to tipoSeleccionado,
+                                    "horometro" to 0.0,
+                                    "fechaCreacion" to FieldValue.serverTimestamp(),
+                                    "estado" to "Operativo" // Agregamos estado inicial por defecto
+                                )
+
+                                db.collection("maquinaria")
+                                    .add(nuevaMaquinaMap)
+                                    .addOnSuccessListener {
+                                        guardando = false
+                                        navController.popBackStack() // Volver atrás al terminar
+                                    }
+                                    .addOnFailureListener { e ->
+                                        guardando = false
+                                        mensajeError = "Error al guardar: ${e.message}"
+                                    }
+                            }
                         }
-                        .addOnFailureListener {
+                        .addOnFailureListener { e ->
                             guardando = false
-                            mensajeError = "Error al guardar: ${it.message}"
+                            mensajeError = "Error de conexión al verificar: ${e.message}"
                         }
                 }
             },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             enabled = !guardando,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)) // Verde oscuro
         ) {
             if (guardando) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
