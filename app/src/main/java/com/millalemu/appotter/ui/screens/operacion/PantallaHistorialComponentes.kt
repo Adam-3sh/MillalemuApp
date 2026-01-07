@@ -88,9 +88,14 @@ fun PantallaHistorialComponentes(
         ) {
             items(listaAditamentos) { item ->
                 CardAditamento(item = item, onClick = {
-                    // Navegamos pasando el nombre exacto (ej: "Grillete 2")
-                    // Esto permite filtrar correctamente en la siguiente pantalla
-                    navController.navigate("${AppRoutes.HISTORIAL_LISTA}/$idEquipo/${item.nombre}")
+
+                    if (item.nombre.contains("Cable", ignoreCase = true)) {
+                        // 1. Si es Cable -> Vamos a la pantalla NUEVA dedicada
+                        navController.navigate("historial_cable/$idEquipo")
+                    } else {
+                        // 2. Si es otro componente -> Vamos a la pantalla ANTIGUA genérica
+                        navController.navigate("${AppRoutes.HISTORIAL_LISTA}/$idEquipo/${item.nombre}")
+                    }
                 })
             }
         }

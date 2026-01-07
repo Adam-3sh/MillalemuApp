@@ -24,6 +24,7 @@ import com.millalemu.appotter.ui.screens.admin.PantallaListaMaquinas
 import com.millalemu.appotter.ui.screens.admin.PantallaListaUsuarios
 import com.millalemu.appotter.ui.screens.auth.PantallaLogin
 import com.millalemu.appotter.ui.screens.operacion.PantallaHistorial
+import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialCable
 import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialComponentes
 import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialEquipos
 import com.millalemu.appotter.ui.screens.operacion.PantallaHistorialTipo
@@ -66,6 +67,7 @@ object AppRoutes {
     const val REGISTRO_GANCHO = "registro_gancho"
     const val REGISTRO_CABLE = "registro_cable"
     const val REGISTRO_ROLDANA = "registro_roldana"
+    const val HISTORIAL_CABLE = "historial_cable/{idEquipo}"
 }
 
 @Composable
@@ -289,6 +291,14 @@ fun AppNavigation(startDestination: String = AppRoutes.LOGIN) { // Agregamos par
                 val tipo = backEntry.arguments?.getString("tipoMaquina") ?: ""
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
                 PantallaRegistroRoldana(navController, tipo, idEquipo) // Asegúrate de importar la pantalla
+            }
+
+            composable(
+                route = AppRoutes.HISTORIAL_CABLE,
+                arguments = listOf(navArgument("idEquipo") { type = NavType.StringType })
+            ) { entry ->
+                val id = entry.arguments?.getString("idEquipo") ?: ""
+                PantallaHistorialCable(navController, id)
             }
         }
     }
