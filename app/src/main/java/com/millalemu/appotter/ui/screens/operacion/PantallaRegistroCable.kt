@@ -1,15 +1,19 @@
 package com.millalemu.appotter.ui.screens.operacion
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,22 +21,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext // Necesario para Toast y NetworkUtils
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.google.firebase.firestore.Query
-import com.millalemu.appotter.R
-import com.millalemu.appotter.data.Bitacora
-import com.millalemu.appotter.data.DetallesCable
-import com.millalemu.appotter.db
-import com.millalemu.appotter.navigation.AppRoutes
-import com.millalemu.appotter.ui.components.*
-import com.millalemu.appotter.utils.NetworkUtils // <--- IMPORTANTE: Tu nueva utilidad
-import com.millalemu.appotter.utils.Sesion
+import com.millalemu.appotter.ui.components.CardSeccion
+import com.millalemu.appotter.ui.theme.AzulOscuro
+import com.millalemu.appotter.ui.theme.VerdeBoton
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -43,230 +41,305 @@ fun PantallaRegistroCable(
     tipoMaquina: String,
     idEquipo: String
 ) {
-    // Contexto para Toast y Red
     val context = LocalContext.current
-
-    // ESTADOS
-    //var numeroSerie by remember { mutableStateOf("") }
-    var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
 
-    // CAMPOS ESPECÍFICOS DEL CABLE
+    // --- ESTADOS ---
+    var horometro by remember { mutableStateOf("") }
+    var tipoMedicion by remember { mutableStateOf("") }
+    var tipoCable by remember { mutableStateOf("") }
+
+    // Estado Corte
+    var presentaCorte by remember { mutableStateOf<Boolean?>(null) }
+
     var metrosDisponible by remember { mutableStateOf("") }
     var metrosRevisado by remember { mutableStateOf("") }
+
     var alambres6d by remember { mutableStateOf("") }
     var alambres30d by remember { mutableStateOf("") }
-    var porcReduccion by remember { mutableStateOf("") }
-    var porcCorrosion by remember { mutableStateOf("") }
 
-    var porcentajeDanoGlobal by remember { mutableStateOf("") }
-    var maxDanoVal by remember { mutableStateOf(0.0) }
-    var mostrarResultados by remember { mutableStateOf(false) }
-
-    var requiereReemplazo by remember { mutableStateOf(false) }
     var observacion by remember { mutableStateOf("") }
-    var isSaving by remember { mutableStateOf(false) }
-    var isLoadingHistory by remember { mutableStateOf(true) }
+    var mensajeError by remember { mutableStateOf("") }
 
-    // Carga de historial (Solo lectura, Firebase maneja caché automática aquí)
-    LaunchedEffect(Unit) {
-        db.collection("bitacoras")
-            .whereEqualTo("identificadorMaquina", idEquipo)
-            .whereEqualTo("tipoAditamento", "Cable de Asistencia")
-            .orderBy("fecha", Query.Direction.DESCENDING)
-            .limit(1)
-            .get()
-            .addOnSuccessListener { documents ->
-                if (!documents.isEmpty) {
-                    val ultima = documents.documents[0].toObject(Bitacora::class.java)
-                    //if (ultima != null) numeroSerie = ultima.numeroSerie
-                }
-                isLoadingHistory = false
-            }
-            .addOnFailureListener {
-                // Si falla (ej: offline sin caché), simplemente dejamos de cargar
-                isLoadingHistory = false
-            }
-    }
-
-    if (isLoadingHistory) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = AzulOscuro) }
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 1. ENCABEZADO
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 20.dp).fillMaxWidth()
         ) {
-            // ENCABEZADO
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 20.dp).fillMaxWidth()) {
-                Surface(modifier = Modifier.size(70.dp), shape = CircleShape, color = Color.White, border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF33691E))) {
-                    Image(painter = painterResource(id = R.drawable.cable_asistencia), contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.padding(8.dp).clip(CircleShape))
-                }
-                Spacer(modifier = Modifier.width(16.dp))
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = AzulOscuro, modifier = Modifier.size(28.dp))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Registro de Cable",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 24.sp,
+                color = AzulOscuro
+            )
+        }
+
+        // 2. DATOS GENERALES
+        CardSeccion(titulo = "Información del Equipo") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Column {
-                    Text("CABLE ASISTENCIA", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("Equipo: $idEquipo", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    EtiquetaCampo("Equipo")
+                    Text(idEquipo, fontSize = 20.sp, fontWeight = FontWeight.Black, color = AzulOscuro)
                 }
-            }
-
-            // DATOS GENERALES
-            CardSeccion(titulo = "Datos Generales") {
-                RowItemDato(label = "Equipo", valor = idEquipo); Spacer(Modifier.height(8.dp))
-                RowItemDato(label = "Fecha", valor = fechaHoy); Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "Horómetro", value = horometro, onValueChange = { horometro = it }, suffix = "hrs", isNumber = true); Spacer(Modifier.height(8.dp))
-                //RowItemInput(label = "Nº Serie", value = numeroSerie, onValueChange = { numeroSerie = it })
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // INSPECCIÓN ESPECÍFICA
-            CardSeccion(titulo = "Inspección Técnica") {
-                Text("Longitudes", fontWeight = FontWeight.Bold, color = AzulOscuro, fontSize = 14.sp)
-                Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "Metros Disponibles", value = metrosDisponible, onValueChange = { metrosDisponible = it }, suffix = "m", isNumber = true)
-                Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "Metros Revisados", value = metrosRevisado, onValueChange = { metrosRevisado = it }, suffix = "m", isNumber = true)
-
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-
-                Text("Alambres Rotos", fontWeight = FontWeight.Bold, color = AzulOscuro, fontSize = 14.sp)
-                Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "6d / 1 PASO", value = alambres6d, onValueChange = { alambres6d = it }, isNumber = true)
-                Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "30d / 5 PASO", value = alambres30d, onValueChange = { alambres30d = it }, isNumber = true)
-
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-
-                Text("Desgaste (%)", fontWeight = FontWeight.Bold, color = AzulOscuro, fontSize = 14.sp)
-                Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "% Disminución Diámetro", value = porcReduccion, onValueChange = { porcReduccion = it }, suffix = "%", isNumber = true)
-                Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "% Daño por Corrosión", value = porcCorrosion, onValueChange = { porcCorrosion = it }, suffix = "%", isNumber = true)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // BOTÓN CALCULAR
-            Button(onClick = {
-                fun cleanDouble(s: String): Double = s.replace(',', '.').trim().toDoubleOrNull() ?: 0.0
-                val valReduccion = cleanDouble(porcReduccion)
-                val valCorrosion = cleanDouble(porcCorrosion)
-                maxDanoVal = maxOf(valReduccion, valCorrosion)
-                porcentajeDanoGlobal = "%.1f%%".format(maxDanoVal)
-                requiereReemplazo = maxDanoVal >= 10.0
-                mostrarResultados = true
-            }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = AzulOscuro), shape = RoundedCornerShape(8.dp)) {
-                Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(8.dp))
-                Text("CALCULAR ESTADO")
-            }
-
-            if (mostrarResultados) {
-                Spacer(modifier = Modifier.height(12.dp))
-                val esCritico = maxDanoVal >= 10.0
-                if (esCritico) {
-                    Surface(color = Color(0xFFFFEBEE), border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Warning, null, tint = Color.Red); Spacer(Modifier.width(8.dp))
-                            Text("¡NIVELES CRÍTICOS DETECTADOS!", color = Color.Red, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-                Card(colors = CardDefaults.cardColors(containerColor = if (esCritico) Color.Red else Color(0xFF4CAF50)), modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = if (esCritico) "REEMPLAZO REQUERIDO" else "OPERATIVO", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text(text = "Desgaste Máximo: $porcentajeDanoGlobal", color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp)
+                Column(horizontalAlignment = Alignment.End) {
+                    EtiquetaCampo("Fecha")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.DateRange, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(fechaHoy, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
+            CampoEntrada(
+                titulo = "Horómetro Actual",
+                valor = horometro,
+                onValorChange = { if (it.all { char -> char.isDigit() || char == '.' }) horometro = it },
+                suffix = "hrs"
+            )
+        }
 
-            // OBSERVACIONES
-            CardSeccion(titulo = "Observaciones") {
-                OutlinedTextField(value = observacion, onValueChange = { observacion = it }, label = { Text("Escriba aquí cualquier anomalía...") }, modifier = Modifier.fillMaxWidth().height(120.dp), shape = RoundedCornerShape(8.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AzulOscuro, unfocusedContainerColor = Color.White))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 3. TIPO DE MEDICIÓN
+        CardSeccion(titulo = "Tipo de Medición") {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Usamos el mismo componente para mantener consistencia visual
+                BotonSeleccionColor(
+                    texto = "10 Horas",
+                    seleccionado = tipoMedicion == "10h",
+                    colorBase = AzulOscuro,
+                    onClick = { tipoMedicion = "10h" },
+                    modifier = Modifier.weight(1f)
+                )
+                BotonSeleccionColor(
+                    texto = "100 Horas",
+                    seleccionado = tipoMedicion == "100h",
+                    colorBase = AzulOscuro,
+                    onClick = { tipoMedicion = "100h" },
+                    modifier = Modifier.weight(1f)
+                )
             }
+        }
 
-            Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            // BOTONES
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { navController.popBackStack() }, colors = ButtonDefaults.buttonColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro), shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f).height(50.dp)) { Text("Volver", color = AzulOscuro, fontWeight = FontWeight.Bold) }
-
-                // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
-                Button(
-                    onClick = {
-                        isSaving = true
-
-                        // Funciones auxiliares
-                        fun cleanDouble(s: String): Double = s.replace(',', '.').trim().toDoubleOrNull() ?: 0.0
-
-                        // Creación del Objeto
-                        val detalles = DetallesCable(
-                            metrosDisponible = cleanDouble(metrosDisponible),
-                            metrosRevisado = cleanDouble(metrosRevisado),
-                            alambresRotos6d = cleanDouble(alambres6d),
-                            alambresRotos30d = cleanDouble(alambres30d),
-                            porcentajeReduccion = cleanDouble(porcReduccion),
-                            porcentajeCorrosion = cleanDouble(porcCorrosion)
-                        )
-
-                        val bitacora = Bitacora(
-                            usuarioRut = Sesion.rutUsuarioActual,
-                            usuarioNombre = Sesion.nombreUsuarioActual,
-                            identificadorMaquina = idEquipo,
-                            tipoMaquina = tipoMaquina,
-                            tipoAditamento = "Cable de Asistencia",
-                            //numeroSerie = numeroSerie,
-                            horometro = cleanDouble(horometro),
-                            porcentajeDesgasteGeneral = maxDanoVal,
-                            tieneFisura = false,
-                            requiereReemplazo = requiereReemplazo,
-                            observacion = observacion,
-                            detallesCable = detalles,
-                            detallesGancho = null,
-                            detallesGrillete = null,
-                            detallesCadena = null,
-                            detallesEslabon = null,
-                            detallesTerminal = null
-                        )
-
-                        // --- LÓGICA HÍBRIDA (ONLINE / OFFLINE) ---
-                        if (NetworkUtils.esRedDisponible(context)) {
-                            // MODO ONLINE: Esperamos confirmación (Seguridad)
-                            db.collection("bitacoras").add(bitacora)
-                                .addOnSuccessListener {
-                                    isSaving = false
-                                    Toast.makeText(context, "Registro guardado y subido", Toast.LENGTH_SHORT).show()
-                                    navController.popBackStack(AppRoutes.MENU, false)
-                                }
-                                .addOnFailureListener {
-                                    isSaving = false
-                                    Toast.makeText(context, "Error al subir. Reintenta.", Toast.LENGTH_SHORT).show()
-                                }
-                        } else {
-                            // MODO OFFLINE: "Fuego y Olvido" (Velocidad)
-                            // Firestore guarda en caché local y lo subirá solo cuando vuelva la señal.
-                            db.collection("bitacoras").add(bitacora)
-
-                            isSaving = false
-                            Toast.makeText(context, "Guardado OFFLINE (se subirá al tener señal)", Toast.LENGTH_LONG).show()
-
-                            // Forzamos salida inmediata
-                            navController.popBackStack(AppRoutes.MENU, false)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.weight(1f).height(50.dp)
-                ) {
-                    if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                    else Text("Guardar", fontWeight = FontWeight.Bold)
-                }
+        // 4. TIPO DE CABLE
+        CardSeccion(titulo = "Tipo de Cable (Diámetro)") {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                BotonSeleccionColor(
+                    texto = "26 mm",
+                    seleccionado = tipoCable == "26mm",
+                    colorBase = AzulOscuro,
+                    onClick = { tipoCable = "26mm" },
+                    modifier = Modifier.weight(1f)
+                )
+                BotonSeleccionColor(
+                    texto = "28 mm",
+                    seleccionado = tipoCable == "28mm",
+                    colorBase = AzulOscuro,
+                    onClick = { tipoCable = "28mm" },
+                    modifier = Modifier.weight(1f)
+                )
             }
-            Spacer(Modifier.height(48.dp))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 5. CORTE DE CABLE
+        CardSeccion(titulo = "Corte de Cable") {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Opción SÍ (Rojo al seleccionar, Negro texto al deseleccionar)
+                BotonSeleccionColor(
+                    texto = "SÍ",
+                    seleccionado = presentaCorte == true,
+                    colorBase = Color(0xFFE53935), // Rojo
+                    onClick = { presentaCorte = true },
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Opción NO (Verde al seleccionar, Negro texto al deseleccionar)
+                BotonSeleccionColor(
+                    texto = "NO",
+                    seleccionado = presentaCorte == false,
+                    colorBase = Color(0xFF4CAF50), // Verde
+                    onClick = { presentaCorte = false },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 6. LONGITUDES
+        CardSeccion(titulo = "Longitudes") {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CampoEntrada(titulo = "M. Disponibles", valor = metrosDisponible, onValorChange = { if (it.all { c -> c.isDigit() || c == '.' }) metrosDisponible = it }, suffix = "m", modifier = Modifier.weight(1f))
+                CampoEntrada(titulo = "M. Revisados", valor = metrosRevisado, onValorChange = { if (it.all { c -> c.isDigit() || c == '.' }) metrosRevisado = it }, suffix = "m", modifier = Modifier.weight(1f))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 7. ALAMBRE ROTO
+        CardSeccion(titulo = "Alambre Roto Visible") {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CampoEntrada(titulo = "6D / 1 Paso", valor = alambres6d, onValorChange = { if (it.all { c -> c.isDigit() }) alambres6d = it }, modifier = Modifier.weight(1f))
+                CampoEntrada(titulo = "30D / 5 Pasos", valor = alambres30d, onValorChange = { if (it.all { c -> c.isDigit() }) alambres30d = it }, modifier = Modifier.weight(1f))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 8. OBSERVACIONES
+        CardSeccion(titulo = "Observaciones") {
+            EtiquetaCampo("Comentarios adicionales")
+            OutlinedTextField(
+                value = observacion,
+                onValueChange = { observacion = it },
+                modifier = Modifier.fillMaxWidth().height(100.dp),
+                shape = RoundedCornerShape(8.dp),
+                textStyle = TextStyle(fontSize = 16.sp),
+                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
+            )
+        }
+
+        if (mensajeError.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Info, null, tint = Color.Red)
+                Spacer(Modifier.width(8.dp))
+                Text(mensajeError, color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // 9. BOTÓN GUARDAR
+        Button(
+            onClick = {
+                mensajeError = ""
+                // Validaciones
+                if (horometro.isBlank()) { mensajeError = "Falta el horómetro"; return@Button }
+                if (tipoMedicion.isEmpty()) { mensajeError = "Seleccione tipo de medición"; return@Button }
+                if (tipoCable.isEmpty()) { mensajeError = "Seleccione tipo de cable"; return@Button }
+                if (presentaCorte == null) { mensajeError = "Indique si hubo corte de cable"; return@Button }
+                if (metrosDisponible.isBlank() || metrosRevisado.isBlank()) { mensajeError = "Complete las medidas"; return@Button }
+                if (alambres6d.isBlank() || alambres30d.isBlank()) { mensajeError = "Complete conteo de alambres"; return@Button }
+
+                Toast.makeText(context, "Validación OK. Guardando...", Toast.LENGTH_SHORT).show()
+            },
+            modifier = Modifier.fillMaxWidth().height(55.dp),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton)
+        ) {
+            Text("Guardar Registro", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(Modifier.height(40.dp))
+    }
+}
+
+// --- COMPONENTES AUXILIARES ACTUALIZADOS ---
+
+@Composable
+fun EtiquetaCampo(texto: String) {
+    Text(
+        text = texto,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color.Gray,
+        modifier = Modifier.padding(bottom = 6.dp)
+    )
+}
+
+@Composable
+fun CampoEntrada(
+    titulo: String,
+    valor: String,
+    onValorChange: (String) -> Unit,
+    suffix: String = "",
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = titulo,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = AzulOscuro,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        OutlinedTextField(
+            value = valor,
+            onValueChange = onValorChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            suffix = if (suffix.isNotEmpty()) { { Text(suffix, fontWeight = FontWeight.Bold) } } else null,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            ),
+            textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            shape = RoundedCornerShape(8.dp)
+        )
+    }
+}
+
+@Composable
+fun BotonSeleccionColor(
+    texto: String,
+    seleccionado: Boolean,
+    colorBase: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // LÓGICA DE COLORES CORREGIDA:
+    // Si está seleccionado -> Fondo Color Base (Rojo/Verde), Texto BLANCO
+    // Si NO está seleccionado -> Fondo Blanco, Texto NEGRO
+
+    val colorFondo = if (seleccionado) colorBase else Color.White
+    val colorTexto = if (seleccionado) Color.White else Color.Black
+    val colorBorde = if (seleccionado) colorBase else Color.Gray
+
+    Box(
+        modifier = modifier
+            .height(60.dp)
+            .border(2.dp, colorBorde, RoundedCornerShape(10.dp))
+            .background(colorFondo, RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (seleccionado) {
+                val icono = if(colorBase == Color(0xFFE53935)) Icons.Default.Warning else Icons.Default.CheckCircle
+                Icon(icono, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                text = texto,
+                color = colorTexto, // Aquí aplicamos Blanco (sel) o Negro (desel)
+                fontWeight = FontWeight.Black,
+                fontSize = 18.sp
+            )
         }
     }
 }

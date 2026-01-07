@@ -161,8 +161,15 @@ data class DetallesTerminal(
 
 @Keep
 data class DetallesCable(
+    @get:PropertyName("tipomedicion") @set:PropertyName("tipomedicion") var tipoMedicion: String = "",
+    @get:PropertyName("tipocable") @set:PropertyName("tipocable") var tipoCable: String = "",
+
+    // --- NUEVO CAMPO: ¿Se cortó el cable? ---
+    @get:PropertyName("cablecortado") @set:PropertyName("cablecortado") var cableCortado: Boolean = false,
+
     @get:PropertyName("metrosdisponible") @set:PropertyName("metrosdisponible") var metrosDisponible: Double = 0.0,
     @get:PropertyName("metrosrevisado") @set:PropertyName("metrosrevisado") var metrosRevisado: Double = 0.0,
+
     @get:PropertyName("alambresrotos6d") @set:PropertyName("alambresrotos6d") var alambresRotos6d: Double = 0.0,
     @get:PropertyName("alambresrotos30d") @set:PropertyName("alambresrotos30d") var alambresRotos30d: Double = 0.0,
     @get:PropertyName("porcentajereduccion") @set:PropertyName("porcentajereduccion") var porcentajeReduccion: Double = 0.0,
