@@ -1,10 +1,13 @@
 package com.millalemu.appotter.utils
 
+import kotlin.math.max
+
 object CableCalculations {
 
-    // --- CONSTANTES PARA CABLE 26MM ---
+    // --- CONSTANTES PARA CABLE 26MM (T-WINCH KFT) ---
     private const val DIAMETRO_NOMINAL_26 = 26.0
-    private const val DIAMETRO_REF_26 = 26.4 // Diámetro de referencia (Cable Nuevo)
+    private const val DIAMETRO_REF_26 = 26.4      // 0% Daño
+    private const val DIAMETRO_DESCARTE_26 = 24.45 // 100% Daño
 
     /**
      * 1. CÁLCULO SEVERIDAD POR ALAMBRES ROTOS
@@ -17,47 +20,35 @@ object CableCalculations {
         // Criterio 30D: 20 alambres = 100% daño (1 alambre = 5%)
         val severidad30d = (alambres30d * 5.0)
 
-        // Retornamos el peor de los dos casos.
-        // Mantenemos el tope de 100% AQUÍ porque físicamente no puedes tener más
-        // del "fallo total" por un solo criterio, pero el total general sí sumará.
-        return maxOf(severidad6d, severidad30d).coerceAtMost(100.0)
+        // Retornamos el peor de los dos casos, limitado a 100% como máximo individual
+        return max(severidad6d, severidad30d).coerceAtMost(100.0)
     }
 
     /**
-     * 2. CÁLCULO SEVERIDAD POR DIÁMETRO (Exclusivo 26mm)
-     * Convierte la medición física (mm) en % de Daño según la tabla del manual.
+     * 2. CÁLCULO SEVERIDAD POR DIÁMETRO (Exclusivo 26mm - Tabla T-WINCH)
+     * Fórmula exacta basada en la tabla:
+     * - 26.40 mm -> 0% Severidad
+     * - 24.45 mm -> 100% Severidad
+     * - Interpolación lineal en el rango de 1.95 mm
      */
     fun calcularSeveridadDiametro26mm(diametroMedidoMm: Double): Double {
         if (diametroMedidoMm <= 0.0) return 0.0
 
-        // A. Calcular Reducción Física Real (%)
-        // Fórmula: [(d_ref - d_medido) / d_nominal] * 100
-        val reduccionFisica = ((DIAMETRO_REF_26 - diametroMedidoMm) / DIAMETRO_NOMINAL_26) * 100.0
+        // Si el diámetro es mayor o igual a la referencia, el cable está nuevo (0%)
+        if (diametroMedidoMm >= DIAMETRO_REF_26) return 0.0
 
-        // B. Mapear Reducción Física -> Severidad de Daño (Tabla 26mm)
-        // Usamos interpolación lineal entre los puntos críticos definidos en el análisis:
-        // - Menos de 0.8% reducción física = 0% severidad
-        // - 3.5% reducción física = 20% severidad
-        // - 7.5% reducción física = 100% severidad (Descarte)
+        // Calculamos la diferencia en mm respecto al original
+        val desgasteMm = DIAMETRO_REF_26 - diametroMedidoMm
 
-        return when {
-            reduccionFisica < 0.8 -> 0.0
-            reduccionFisica <= 3.5 -> {
-                // Interpolación tramo bajo (0.8% a 3.5%) -> (0% a 20%)
-                val rangoFisico = 3.5 - 0.8 // 2.7
-                val rangoSeveridad = 20.0 - 0.0 // 20
-                val avance = reduccionFisica - 0.8
-                ((avance / rangoFisico) * rangoSeveridad)
-            }
-            reduccionFisica <= 7.5 -> {
-                // Interpolación tramo alto (3.5% a 7.5%) -> (20% a 100%)
-                val rangoFisico = 7.5 - 3.5 // 4.0
-                val rangoSeveridad = 100.0 - 20.0 // 80
-                val avance = reduccionFisica - 3.5
-                20.0 + ((avance / rangoFisico) * rangoSeveridad)
-            }
-            else -> 100.0 // Más de 7.5% es fallo total
-        }.coerceIn(0.0, 100.0)
+        // El rango total desde nuevo hasta descarte es 1.95 mm (26.4 - 24.45)
+        val rangoTotalMm = DIAMETRO_REF_26 - DIAMETRO_DESCARTE_26 // 1.95
+
+        // Regla de 3 simple basada en el desgaste físico
+        val severidad = (desgasteMm / rangoTotalMm) * 100.0
+
+        // Retornamos el valor. Permitimos que supere 100% si el cable mide menos de 24.45mm
+        // para reflejar la gravedad extrema, pero nunca menos de 0%.
+        return severidad.coerceAtLeast(0.0)
     }
 
     /**
@@ -76,10 +67,8 @@ object CableCalculations {
     /**
      * FÓRMULA MAESTRA
      * Suma las 3 severidades para dar el diagnóstico final.
-     * MODIFICADO: Se eliminó el límite de 100%. Ahora puede dar 120%, 150%, etc.
      */
     fun calcularDañoTotal(sevAlambres: Double, sevDiametro: Double, sevCorrosion: Double): Double {
-        // La suma directa mostrará la magnitud real del desastre.
         return (sevAlambres + sevDiametro + sevCorrosion)
     }
 }
