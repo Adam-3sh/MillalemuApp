@@ -17,7 +17,9 @@ object CableCalculations {
         // Criterio 30D: 20 alambres = 100% daño (1 alambre = 5%)
         val severidad30d = (alambres30d * 5.0)
 
-        // Retornamos el peor de los dos casos, con tope de 100%
+        // Retornamos el peor de los dos casos.
+        // Mantenemos el tope de 100% AQUÍ porque físicamente no puedes tener más
+        // del "fallo total" por un solo criterio, pero el total general sí sumará.
         return maxOf(severidad6d, severidad30d).coerceAtMost(100.0)
     }
 
@@ -74,8 +76,10 @@ object CableCalculations {
     /**
      * FÓRMULA MAESTRA
      * Suma las 3 severidades para dar el diagnóstico final.
+     * MODIFICADO: Se eliminó el límite de 100%. Ahora puede dar 120%, 150%, etc.
      */
     fun calcularDañoTotal(sevAlambres: Double, sevDiametro: Double, sevCorrosion: Double): Double {
-        return (sevAlambres + sevDiametro + sevCorrosion).coerceAtMost(100.0) // Tope 100% si se pasa
+        // La suma directa mostrará la magnitud real del desastre.
+        return (sevAlambres + sevDiametro + sevCorrosion)
     }
 }
