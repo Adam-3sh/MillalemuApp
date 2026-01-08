@@ -69,11 +69,12 @@ fun PantallaRegistroCable(
     var calcSevAlambres by remember { mutableStateOf(0.0) }
     var calcSevDiametro by remember { mutableStateOf(0.0) }
     var calcSevCorrosion by remember { mutableStateOf(0.0) }
+    var calcDisminucion by remember { mutableStateOf(0.0) } // <--- NUEVA VARIABLE
     var calcTotal by remember { mutableStateOf(0.0) }
     var estadoTexto by remember { mutableStateOf("PENDIENTE") }
     var estadoColor by remember { mutableStateOf(Color.Gray) }
 
-    // --- EFECTO DE CÁLCULO (Se ejecuta cuando cambia cualquier input) ---
+    // --- EFECTO DE CÁLCULO ---
     LaunchedEffect(alambres6d, alambres30d, diametroMedido, nivelCorrosion, tipoCable) {
         val dAlm6d = alambres6d.toDoubleOrNull() ?: 0.0
         val dAlm30d = alambres30d.toDoubleOrNull() ?: 0.0
@@ -83,10 +84,12 @@ fun PantallaRegistroCable(
         calcSevAlambres = CableCalculations.calcularSeveridadAlambres(dAlm6d, dAlm30d)
         calcSevCorrosion = CableCalculations.calcularSeveridadCorrosion(nivelCorrosion)
 
-        calcSevDiametro = if (tipoCable == "26mm") {
-            CableCalculations.calcularSeveridadDiametro26mm(dDiametro)
+        if (tipoCable == "26mm") {
+            calcSevDiametro = CableCalculations.calcularSeveridadDiametro26mm(dDiametro)
+            calcDisminucion = CableCalculations.calcularPorcentajeDisminucion(dDiametro) // <--- CÁLCULO
         } else {
-            0.0 // (Lógica 28mm pendiente)
+            calcSevDiametro = 0.0
+            calcDisminucion = 0.0
         }
 
         // 2. Sumar Total
@@ -96,15 +99,15 @@ fun PantallaRegistroCable(
         when {
             calcTotal >= 100.0 -> {
                 estadoTexto = "CRÍTICO - CORTAR CABLE"
-                estadoColor = Color(0xFFE53935) // Rojo
+                estadoColor = Color(0xFFE53935)
             }
             calcTotal >= 60.0 -> {
                 estadoTexto = "ALERTA - PROGRAMAR CORTE"
-                estadoColor = Color(0xFFFF9800) // Naranja
+                estadoColor = Color(0xFFFF9800)
             }
             else -> {
                 estadoTexto = "OPERATIVO"
-                estadoColor = Color(0xFF4CAF50) // Verde
+                estadoColor = Color(0xFF4CAF50)
             }
         }
     }
@@ -172,8 +175,23 @@ fun PantallaRegistroCable(
                 CampoEntrada("30D (Max 20)", alambres30d, { if (it.all { c -> c.isDigit() }) alambres30d = it }, "", Modifier.weight(1f))
             }
             HorizontalDivider(Modifier.padding(vertical = 12.dp))
+
+            // --- SECCIÓN DIÁMETRO MODIFICADA ---
             EtiquetaCampo("Estado Físico")
             CampoEntrada("Diámetro Medido", diametroMedido, { if (it.all { c -> c.isDigit() || c == '.' }) diametroMedido = it }, "mm")
+
+            // TEXTO DE DISMINUCIÓN AUTOMÁTICO
+            if (diametroMedido.isNotEmpty() && tipoCable == "26mm") {
+                Text(
+                    text = "Disminución: ${String.format("%.1f", calcDisminucion)}%",
+                    color = if(calcDisminucion > 7.5) Color.Red else Color.Gray,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                )
+            }
+            // -----------------------------------
+
             Spacer(Modifier.height(12.dp))
             EtiquetaCampo("Corrosión")
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -185,7 +203,7 @@ fun PantallaRegistroCable(
 
         Spacer(Modifier.height(24.dp))
 
-        // --- RESUMEN VISUAL EN TIEMPO REAL ---
+        // --- RESUMEN VISUAL ---
         CardResumenEstado(
             sevAlambres = calcSevAlambres,
             sevDiametro = calcSevDiametro,
@@ -240,7 +258,7 @@ fun PantallaRegistroCable(
                 val dAlm30d = alambres30d.toDoubleOrNull() ?: 0.0
                 val dDiametro = diametroMedido.replace(',', '.').toDoubleOrNull() ?: 0.0
 
-                // Recalculamos por seguridad al guardar
+                // Recálculo final
                 val finalSevAlambres = CableCalculations.calcularSeveridadAlambres(dAlm6d, dAlm30d)
                 val finalSevCorrosion = CableCalculations.calcularSeveridadCorrosion(nivelCorrosion)
                 val finalSevDiametro = if (tipoCable == "26mm") CableCalculations.calcularSeveridadDiametro26mm(dDiametro) else 0.0
@@ -288,7 +306,8 @@ fun PantallaRegistroCable(
     }
 }
 
-// --- NUEVO COMPONENTE VISUAL: RESUMEN ---
+// ... (El resto de funciones como CardResumenEstado, FilaProgreso y componentes auxiliares se mantienen igual) ...
+
 @Composable
 fun CardResumenEstado(
     sevAlambres: Double,
@@ -310,7 +329,7 @@ fun CardResumenEstado(
 
             // Barras de progreso por factor
             FilaProgreso("Alambres Rotos", sevAlambres)
-            FilaProgreso("Reducción Diámetro", sevDiametro)
+            FilaProgreso("Severidad Diámetro", sevDiametro) // Cambio de texto para mayor claridad
             FilaProgreso("Corrosión", sevCorrosion)
 
             HorizontalDivider(Modifier.padding(vertical = 12.dp))
@@ -356,10 +375,6 @@ fun FilaProgreso(label: String, porcentaje: Double) {
         )
     }
 }
-
-// ... (Resto de componentes auxiliares: EtiquetaCampo, CampoEntrada, BotonSeleccionColor se mantienen igual) ...
-
-// --- COMPONENTES AUXILIARES ---
 
 @Composable
 fun EtiquetaCampo(texto: String) {
