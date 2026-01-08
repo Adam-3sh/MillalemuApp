@@ -21,7 +21,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -65,49 +64,73 @@ fun PantallaRegistroCable(
     var presentaCorte by remember { mutableStateOf<Boolean?>(null) }
     var observacion by remember { mutableStateOf("") }
 
-    // --- VARIABLES DE CÁLCULO EN TIEMPO REAL ---
+    // --- VARIABLES DE CÁLCULO ---
     var calcSevAlambres by remember { mutableStateOf(0.0) }
     var calcSevDiametro by remember { mutableStateOf(0.0) }
     var calcSevCorrosion by remember { mutableStateOf(0.0) }
-    var calcDisminucion by remember { mutableStateOf(0.0) } // <--- NUEVA VARIABLE
+    var calcDisminucion by remember { mutableStateOf(0.0) }
     var calcTotal by remember { mutableStateOf(0.0) }
+
+    // Variables visuales del estado
     var estadoTexto by remember { mutableStateOf("PENDIENTE") }
     var estadoColor by remember { mutableStateOf(Color.Gray) }
+    var estadoColorTexto by remember { mutableStateOf(Color.White) }
 
-    // --- EFECTO DE CÁLCULO ---
+    // --- EFECTO DE CÁLCULO EN TIEMPO REAL ---
     LaunchedEffect(alambres6d, alambres30d, diametroMedido, nivelCorrosion, tipoCable) {
         val dAlm6d = alambres6d.toDoubleOrNull() ?: 0.0
         val dAlm30d = alambres30d.toDoubleOrNull() ?: 0.0
         val dDiametro = diametroMedido.replace(',', '.').toDoubleOrNull() ?: 0.0
 
-        // 1. Calcular Severidades
+        // 1. Calcular Severidades Individuales
         calcSevAlambres = CableCalculations.calcularSeveridadAlambres(dAlm6d, dAlm30d)
         calcSevCorrosion = CableCalculations.calcularSeveridadCorrosion(nivelCorrosion)
 
         if (tipoCable == "26mm") {
             calcSevDiametro = CableCalculations.calcularSeveridadDiametro26mm(dDiametro)
-            calcDisminucion = CableCalculations.calcularPorcentajeDisminucion(dDiametro) // <--- CÁLCULO
+            calcDisminucion = CableCalculations.calcularPorcentajeDisminucion(dDiametro)
         } else {
+            // Lógica placeholder para otros cables si fuera necesario
             calcSevDiametro = 0.0
             calcDisminucion = 0.0
         }
 
-        // 2. Sumar Total
+        // 2. Sumar Total (Fórmula Maestra)
         calcTotal = CableCalculations.calcularDañoTotal(calcSevAlambres, calcSevDiametro, calcSevCorrosion)
 
-        // 3. Determinar Estado Visual
+        // 3. Determinar Estado Visual SEGÚN TABLA PDF (26mm)
+        // Rangos extraídos de "Inspección de cables Twinch 30.2.pdf":
+        // < 46%: Normal
+        // 46% - 66%: Leve (Verde)
+        // 66% - 82%: Medio (Amarillo)
+        // 82% - 100%: Alto (Rojo/Naranja)
+        // >= 100%: Descarte (Rojo Intenso)
+
         when {
             calcTotal >= 100.0 -> {
-                estadoTexto = "CRÍTICO - CORTAR CABLE"
-                estadoColor = Color(0xFFE53935)
+                estadoTexto = "CRÍTICO - DESCARTE INMEDIATO"
+                estadoColor = Color(0xFFD32F2F) // Rojo Intenso
+                estadoColorTexto = Color.White
             }
-            calcTotal >= 60.0 -> {
-                estadoTexto = "ALERTA - PROGRAMAR CORTE"
-                estadoColor = Color(0xFFFF9800)
+            calcTotal >= 82.0 -> {
+                estadoTexto = "ALTO - RIESGO SEVERO"
+                estadoColor = Color(0xFFE64A19) // Naranja Oscuro / Rojo
+                estadoColorTexto = Color.White
+            }
+            calcTotal >= 66.0 -> {
+                estadoTexto = "MEDIO - PRECAUCIÓN"
+                estadoColor = Color(0xFFFFC107) // Amarillo (Amber)
+                estadoColorTexto = Color.Black
+            }
+            calcTotal >= 46.0 -> {
+                estadoTexto = "LEVE - MONITORIZAR"
+                estadoColor = Color(0xFF4CAF50) // Verde
+                estadoColorTexto = Color.White
             }
             else -> {
-                estadoTexto = "OPERATIVO"
-                estadoColor = Color(0xFF4CAF50)
+                estadoTexto = "OPERATIVO - NORMAL"
+                estadoColor = Color(0xFF2E7D32) // Verde Oscuro (Opcional: o Gris)
+                estadoColorTexto = Color.White
             }
         }
     }
@@ -176,21 +199,20 @@ fun PantallaRegistroCable(
             }
             HorizontalDivider(Modifier.padding(vertical = 12.dp))
 
-            // --- SECCIÓN DIÁMETRO MODIFICADA ---
+            // SECCIÓN DIÁMETRO
             EtiquetaCampo("Estado Físico")
             CampoEntrada("Diámetro Medido", diametroMedido, { if (it.all { c -> c.isDigit() || c == '.' }) diametroMedido = it }, "mm")
 
-            // TEXTO DE DISMINUCIÓN AUTOMÁTICO
+            // Texto de Disminución (Informativo)
             if (diametroMedido.isNotEmpty() && tipoCable == "26mm") {
                 Text(
-                    text = "Disminución: ${String.format("%.1f", calcDisminucion)}%",
-                    color = if(calcDisminucion > 7.5) Color.Red else Color.Gray,
+                    text = "Disminución Nominal: ${String.format("%.1f", calcDisminucion)}%",
+                    color = Color.Gray,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 4.dp, start = 4.dp)
                 )
             }
-            // -----------------------------------
 
             Spacer(Modifier.height(12.dp))
             EtiquetaCampo("Corrosión")
@@ -203,14 +225,15 @@ fun PantallaRegistroCable(
 
         Spacer(Modifier.height(24.dp))
 
-        // --- RESUMEN VISUAL ---
+        // --- RESUMEN VISUAL ACTUALIZADO ---
         CardResumenEstado(
             sevAlambres = calcSevAlambres,
             sevDiametro = calcSevDiametro,
             sevCorrosion = calcSevCorrosion,
             total = calcTotal,
             estadoTexto = estadoTexto,
-            estadoColor = estadoColor
+            estadoColor = estadoColor,
+            colorTexto = estadoColorTexto
         )
 
         Spacer(Modifier.height(24.dp))
@@ -258,7 +281,7 @@ fun PantallaRegistroCable(
                 val dAlm30d = alambres30d.toDoubleOrNull() ?: 0.0
                 val dDiametro = diametroMedido.replace(',', '.').toDoubleOrNull() ?: 0.0
 
-                // Recálculo final
+                // Recálculo final seguro
                 val finalSevAlambres = CableCalculations.calcularSeveridadAlambres(dAlm6d, dAlm30d)
                 val finalSevCorrosion = CableCalculations.calcularSeveridadCorrosion(nivelCorrosion)
                 val finalSevDiametro = if (tipoCable == "26mm") CableCalculations.calcularSeveridadDiametro26mm(dDiametro) else 0.0
@@ -306,8 +329,7 @@ fun PantallaRegistroCable(
     }
 }
 
-// ... (El resto de funciones como CardResumenEstado, FilaProgreso y componentes auxiliares se mantienen igual) ...
-
+// --- CARD RESUMEN ACTUALIZADA CON COLOR DE TEXTO ---
 @Composable
 fun CardResumenEstado(
     sevAlambres: Double,
@@ -315,7 +337,8 @@ fun CardResumenEstado(
     sevCorrosion: Double,
     total: Double,
     estadoTexto: String,
-    estadoColor: Color
+    estadoColor: Color,
+    colorTexto: Color
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -324,12 +347,11 @@ fun CardResumenEstado(
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text("RESUMEN DE ESTADO (Cálculo Automático)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+            Text("RESUMEN DE ESTADO (Según Tabla T-Winch)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
             Spacer(Modifier.height(12.dp))
 
-            // Barras de progreso por factor
             FilaProgreso("Alambres Rotos", sevAlambres)
-            FilaProgreso("Severidad Diámetro", sevDiametro) // Cambio de texto para mayor claridad
+            FilaProgreso("Severidad Diámetro", sevDiametro)
             FilaProgreso("Corrosión", sevCorrosion)
 
             HorizontalDivider(Modifier.padding(vertical = 12.dp))
@@ -354,11 +376,13 @@ fun CardResumenEstado(
                     .padding(12.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(estadoTexto, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(estadoTexto, color = colorTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }
 }
+
+// ... (Resto de componentes auxiliares como FilaProgreso, EtiquetaCampo se mantienen igual) ...
 
 @Composable
 fun FilaProgreso(label: String, porcentaje: Double) {
@@ -376,6 +400,7 @@ fun FilaProgreso(label: String, porcentaje: Double) {
     }
 }
 
+// ... Componentes auxiliares (EtiquetaCampo, CampoEntrada, BotonSeleccionColor) ...
 @Composable
 fun EtiquetaCampo(texto: String) {
     Text(
