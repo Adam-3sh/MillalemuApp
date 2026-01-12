@@ -103,7 +103,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
-    // Obtenemos estado visual seguro (sin íconos raros)
+    // Obtenemos estado visual seguro
     val estado = determinarEstadoVisualSeguro(bitacora.porcentajeDesgasteGeneral, bitacora.requiereReemplazo)
 
     Card(
@@ -118,7 +118,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
         Column(Modifier.padding(16.dp)) {
             // --- CABECERA ---
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Semáforo con ícono seguro
+                // Semáforo
                 Surface(color = estado.fondo, shape = RoundedCornerShape(8.dp), modifier = Modifier.size(42.dp)) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(estado.icono, null, tint = estado.color, modifier = Modifier.size(24.dp))
@@ -147,18 +147,35 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                 trackColor = Color(0xFFEEEEEE)
             )
 
-            // --- DETALLE ---
+            // --- DETALLE DESPLEGABLE ---
             if (expandido && bitacora.detallesCable != null) {
                 val det = bitacora.detallesCable
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
 
+                // Fila 1: Inspector (Nombre Completo) y Tipo
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                    Text("Inspector: ${bitacora.usuarioNombre.split(" ")[0]}", fontSize = 12.sp, color = Color.Gray)
+                    // SE MUESTRA EL NOMBRE COMPLETO
+                    Text("Insp: ${bitacora.usuarioNombre}", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.weight(1f))
                     Text("${det.tipoCable} | ${det.tipoMedicion}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // Fila 2: METROS DISPONIBLES Y REVISADOS (STACK VERTICAL)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF0F4F8), RoundedCornerShape(6.dp))
+                        .padding(8.dp)
+                ) {
+                    Text("M. Disponibles: ${det.metrosDisponible.toInt()}m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Spacer(Modifier.height(4.dp))
+                    Text("M. Revisados: ${det.metrosRevisado.toInt()}m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
 
                 Spacer(Modifier.height(12.dp))
 
+                // Tabla de Detalles
                 Column(
                     modifier = Modifier
                         .background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp))
@@ -167,7 +184,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                 ) {
                     Text("Detalles de Medición", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom=8.dp))
 
-                    // Fila 1: Diámetro
+                    // 1. Diámetro
                     FilaDetalle(
                         titulo = "Diámetro (${det.diametroMedido} mm)",
                         porcentaje = det.porcentajeReduccion,
@@ -175,9 +192,8 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                     )
                     Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
 
-                    // Fila 2: Alambres (Cálculo al vuelo)
+                    // 2. Alambres
                     val sevAlambres = CableCalculations.calcularSeveridadAlambres(det.alambresRotos6d, det.alambresRotos30d)
-                    // Usamos maxOf con toInt() para evitar error de importación de max()
                     val maxAlambres = if (det.alambresRotos6d > det.alambresRotos30d) det.alambresRotos6d else det.alambresRotos30d
 
                     FilaDetalle(
@@ -187,25 +203,36 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                     )
                     Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
 
-                    // Fila 3: Corrosión
+                    // 3. Corrosión
                     FilaDetalle(
                         titulo = "Corrosión (${det.nivelCorrosion})",
                         porcentaje = det.porcentajeCorrosion,
                         infoExtra = ""
                     )
-                }
 
-                // Alerta de Corte (Usamos ícono Close 'X' que es seguro)
-                if (det.cableCortado) {
-                    Spacer(Modifier.height(12.dp))
+                    Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
+
+                    // 4. CABLE CORTADO (ALERTA VISUAL)
                     Row(
-                        modifier = Modifier.fillMaxWidth().background(Color(0xFFFFEBEE), RoundedCornerShape(4.dp)).padding(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // ÍCONO SEGURO: Close (X) en lugar de ContentCut
-                        Icon(Icons.Default.Close, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("CABLE CORTADO MANUALMENTE", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Column {
+                            Text("¿Cable Cortado?", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = AzulOscuro)
+                            Text("Acción correctiva", fontSize = 11.sp, color = Color.Gray)
+                        }
+
+                        // Si está cortado, ROJO y "SÍ". Si no, VERDE y "NO".
+                        val textoCorte = if (det.cableCortado) "SÍ (CORTADO)" else "NO"
+                        val colorCorte = if (det.cableCortado) Color(0xFFD32F2F) else Color(0xFF2E7D32)
+
+                        Text(
+                            text = textoCorte,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black,
+                            color = colorCorte
+                        )
                     }
                 }
 
@@ -250,9 +277,7 @@ fun FilaDetalle(titulo: String, porcentaje: Double, infoExtra: String) {
     }
 }
 
-// --- LÓGICA DE ESTADO VISUAL SEGURO ---
-// Usamos solo Icons.Default.Close (X), Warning (!) y CheckCircle (✓)
-// Estos SIEMPRE están disponibles.
+// Lógica Visual Segura
 data class EstadoVisual(val color: Color, val texto: String, val fondo: Color, val icono: ImageVector)
 
 fun determinarEstadoVisualSeguro(porcentajeTotal: Double, requiereReemplazo: Boolean): EstadoVisual {
@@ -261,7 +286,7 @@ fun determinarEstadoVisualSeguro(porcentajeTotal: Double, requiereReemplazo: Boo
             color = Color(0xFFD32F2F), // Rojo
             texto = "CRÍTICO",
             fondo = Color(0xFFFFEBEE),
-            icono = Icons.Default.Close // Usamos X en vez de Cancel
+            icono = Icons.Default.Close // X
         )
         porcentajeTotal >= 82.0 -> EstadoVisual(
             color = Color(0xFFE64A19), // Naranja Oscuro
@@ -273,7 +298,7 @@ fun determinarEstadoVisualSeguro(porcentajeTotal: Double, requiereReemplazo: Boo
             color = Color(0xFFFF8F00), // Amarillo
             texto = "MEDIO",
             fondo = Color(0xFFFFF8E1),
-            icono = Icons.Default.Warning // Reusamos Warning
+            icono = Icons.Default.Warning
         )
         porcentajeTotal >= 46.0 -> EstadoVisual(
             color = Color(0xFF43A047), // Verde Alerta
