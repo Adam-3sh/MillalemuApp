@@ -11,25 +11,27 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.* // Importa solo los básicos
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.firestore.Query
 import com.millalemu.appotter.data.Bitacora
-import com.millalemu.appotter.data.DetallesCable
 import com.millalemu.appotter.db
 import com.millalemu.appotter.ui.components.AzulOscuro
+import com.millalemu.appotter.utils.CableCalculations
 import com.millalemu.appotter.utils.Sesion
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,20 +42,18 @@ fun PantallaHistorialCable(
     var lista by remember { mutableStateOf<List<Bitacora>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
 
-    // Cargar SOLO bitácoras de Cable para este equipo
     LaunchedEffect(Unit) {
         val rutActual = Sesion.rutUsuarioActual
         val esOperador = Sesion.rolUsuarioActual.equals("Operador", ignoreCase = true)
 
         db.collection("bitacoras")
             .whereEqualTo("identificadorMaquina", idEquipo)
-            .whereEqualTo("tipoAditamento", "Cable de Asistencia") // FILTRO DURO
+            .whereEqualTo("tipoAditamento", "Cable de Asistencia")
             .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(50)
             .get()
             .addOnSuccessListener { result ->
                 val todos = result.toObjects(Bitacora::class.java)
-                // Filtro de seguridad extra para operadores
                 lista = if (esOperador) todos.filter { it.usuarioRut == rutActual } else todos
                 cargando = false
             }
@@ -71,20 +71,16 @@ fun PantallaHistorialCable(
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1565C0),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AzulOscuro)
             )
         }
     ) { p ->
         Box(modifier = Modifier.padding(p).fillMaxSize().background(Color(0xFFF5F5F5))) {
             if (cargando) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = AzulOscuro)
             } else if (lista.isEmpty()) {
                 Text("No hay registros de cable.", modifier = Modifier.align(Alignment.Center), color = Color.Gray)
             } else {
@@ -107,20 +103,8 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
-    // --- LÓGICA EXCLUSIVA PARA CABLE (ISO 4309) ---
-    // Verde: < 60%
-    // Naranja: 60% - 99%
-    // Rojo: >= 100% o Corte o Reemplazo Manual
-    val (color, texto, fondo) = when {
-        bitacora.requiereReemplazo || bitacora.porcentajeDesgasteGeneral >= 100.0 ->
-            Triple(Color(0xFFD32F2F), "CRÍTICO", Color(0xFFFFEBEE)) // Rojo
-        bitacora.porcentajeDesgasteGeneral >= 60.0 ->
-            Triple(Color(0xFFEF6C00), "ALERTA", Color(0xFFFFF3E0)) // Naranja
-        else ->
-            Triple(Color(0xFF2E7D32), "OK", Color(0xFFE8F5E9)) // Verde
-    }
-
-    val icono = if (texto == "OK") Icons.Default.CheckCircle else Icons.Default.Warning
+    // Obtenemos estado visual seguro (sin íconos raros)
+    val estado = determinarEstadoVisualSeguro(bitacora.porcentajeDesgasteGeneral, bitacora.requiereReemplazo)
 
     Card(
         elevation = CardDefaults.cardElevation(3.dp),
@@ -132,80 +116,176 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(Modifier.padding(16.dp)) {
-            // CABECERA
+            // --- CABECERA ---
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(color = fondo, shape = RoundedCornerShape(8.dp), modifier = Modifier.size(42.dp)) {
+                // Semáforo con ícono seguro
+                Surface(color = estado.fondo, shape = RoundedCornerShape(8.dp), modifier = Modifier.size(42.dp)) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(icono, null, tint = color, modifier = Modifier.size(24.dp))
+                        Icon(estado.icono, null, tint = estado.color, modifier = Modifier.size(24.dp))
                     }
                 }
                 Spacer(Modifier.width(12.dp))
+
+                // Info
                 Column(Modifier.weight(1f)) {
-                    Text(fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AzulOscuro)
                     Text("Horómetro: ${bitacora.horometro.toInt()}", fontSize = 13.sp, color = Color.Gray)
                 }
-                // Porcentaje Grande
+
+                // Porcentaje
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("${bitacora.porcentajeDesgasteGeneral.toInt()}%", fontSize = 20.sp, fontWeight = FontWeight.Black, color = color)
-                    Text("DAÑO TOTAL", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = color)
+                    Text("${bitacora.porcentajeDesgasteGeneral.toInt()}%", fontSize = 20.sp, fontWeight = FontWeight.Black, color = estado.color)
+                    Text(estado.texto, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = estado.color)
                 }
             }
 
-            // BARRA DE PROGRESO
             Spacer(Modifier.height(12.dp))
             LinearProgressIndicator(
                 progress = { (bitacora.porcentajeDesgasteGeneral / 100).toFloat().coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(8.dp).background(Color(0xFFEEEEEE), RoundedCornerShape(4.dp)),
-                color = color,
-                trackColor = Color.Transparent
+                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                color = estado.color,
+                trackColor = Color(0xFFEEEEEE)
             )
 
-            // DETALLE DESPLEGABLE
+            // --- DETALLE ---
             if (expandido && bitacora.detallesCable != null) {
                 val det = bitacora.detallesCable
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
 
-                // Datos del Responsable
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                    Text("Resp: ${bitacora.usuarioNombre}", fontSize = 12.sp, color = Color.Gray)
-                    Text("Cable ${det.tipoCable} | ${det.tipoMedicion}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    Text("Inspector: ${bitacora.usuarioNombre.split(" ")[0]}", fontSize = 12.sp, color = Color.Gray)
+                    Text("${det.tipoCable} | ${det.tipoMedicion}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
 
-                // TABLA DE DATOS DE CABLE (La que diseñamos antes)
-                Column(Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(10.dp)) {
-                    DatoCable("Diámetro Medido", "${det.diametroMedido} mm")
-                    DatoCable("Corrosión", det.nivelCorrosion.ifEmpty { "N/A" })
-                    Divider(Modifier.padding(vertical = 4.dp), thickness = 0.5.dp, color = Color.LightGray)
-                    DatoCable("Alambres 6D", "${det.alambresRotos6d.toInt()}")
-                    DatoCable("Alambres 30D", "${det.alambresRotos30d.toInt()}")
-                    Divider(Modifier.padding(vertical = 4.dp), thickness = 0.5.dp, color = Color.LightGray)
+                Column(
+                    modifier = Modifier
+                        .background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp))
+                        .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+                ) {
+                    Text("Detalles de Medición", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom=8.dp))
 
-                    // ¿SE CORTÓ?
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("¿Cable Cortado?", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        Text(
-                            if (det.cableCortado) "SÍ (CORTADO)" else "NO",
-                            fontWeight = FontWeight.Black,
-                            color = if (det.cableCortado) Color.Red else Color(0xFF2E7D32)
-                        )
+                    // Fila 1: Diámetro
+                    FilaDetalle(
+                        titulo = "Diámetro (${det.diametroMedido} mm)",
+                        porcentaje = det.porcentajeReduccion,
+                        infoExtra = if(det.tipoCable == "26mm") "Ref: 26.4mm" else "Ref: N/A"
+                    )
+                    Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
+
+                    // Fila 2: Alambres (Cálculo al vuelo)
+                    val sevAlambres = CableCalculations.calcularSeveridadAlambres(det.alambresRotos6d, det.alambresRotos30d)
+                    // Usamos maxOf con toInt() para evitar error de importación de max()
+                    val maxAlambres = if (det.alambresRotos6d > det.alambresRotos30d) det.alambresRotos6d else det.alambresRotos30d
+
+                    FilaDetalle(
+                        titulo = "Alambres (Max: ${maxAlambres.toInt()})",
+                        porcentaje = sevAlambres,
+                        infoExtra = "6D:${det.alambresRotos6d.toInt()} | 30D:${det.alambresRotos30d.toInt()}"
+                    )
+                    Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
+
+                    // Fila 3: Corrosión
+                    FilaDetalle(
+                        titulo = "Corrosión (${det.nivelCorrosion})",
+                        porcentaje = det.porcentajeCorrosion,
+                        infoExtra = ""
+                    )
+                }
+
+                // Alerta de Corte (Usamos ícono Close 'X' que es seguro)
+                if (det.cableCortado) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().background(Color(0xFFFFEBEE), RoundedCornerShape(4.dp)).padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // ÍCONO SEGURO: Close (X) en lugar de ContentCut
+                        Icon(Icons.Default.Close, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("CABLE CORTADO MANUALMENTE", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
 
                 if (bitacora.observacion.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    Text("Obs: ${bitacora.observacion}", fontSize = 13.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                    Text("Obs: ${bitacora.observacion}", fontSize = 13.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Color.DarkGray)
                 }
             }
         }
     }
 }
 
+// --- COMPONENTES AUXILIARES ---
+
 @Composable
-fun DatoCable(label: String, valor: String) {
-    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-        Text(label, fontSize = 13.sp, color = Color.Gray)
-        Text(valor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+fun FilaDetalle(titulo: String, porcentaje: Double, infoExtra: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(titulo, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = AzulOscuro)
+            if (infoExtra.isNotEmpty()) {
+                Text(infoExtra, fontSize = 11.sp, color = Color.Gray)
+            }
+        }
+
+        val colorBadge = when {
+            porcentaje >= 100 -> Color(0xFFD32F2F)
+            porcentaje >= 60 -> Color(0xFFEF6C00)
+            porcentaje > 0 -> Color(0xFF2E7D32)
+            else -> Color.LightGray
+        }
+
+        Text(
+            text = "${porcentaje.toInt()}% Daño",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = colorBadge
+        )
+    }
+}
+
+// --- LÓGICA DE ESTADO VISUAL SEGURO ---
+// Usamos solo Icons.Default.Close (X), Warning (!) y CheckCircle (✓)
+// Estos SIEMPRE están disponibles.
+data class EstadoVisual(val color: Color, val texto: String, val fondo: Color, val icono: ImageVector)
+
+fun determinarEstadoVisualSeguro(porcentajeTotal: Double, requiereReemplazo: Boolean): EstadoVisual {
+    return when {
+        requiereReemplazo || porcentajeTotal >= 100.0 -> EstadoVisual(
+            color = Color(0xFFD32F2F), // Rojo
+            texto = "CRÍTICO",
+            fondo = Color(0xFFFFEBEE),
+            icono = Icons.Default.Close // Usamos X en vez de Cancel
+        )
+        porcentajeTotal >= 82.0 -> EstadoVisual(
+            color = Color(0xFFE64A19), // Naranja Oscuro
+            texto = "ALTO",
+            fondo = Color(0xFFFBE9E7),
+            icono = Icons.Default.Warning
+        )
+        porcentajeTotal >= 66.0 -> EstadoVisual(
+            color = Color(0xFFFF8F00), // Amarillo
+            texto = "MEDIO",
+            fondo = Color(0xFFFFF8E1),
+            icono = Icons.Default.Warning // Reusamos Warning
+        )
+        porcentajeTotal >= 46.0 -> EstadoVisual(
+            color = Color(0xFF43A047), // Verde Alerta
+            texto = "LEVE",
+            fondo = Color(0xFFE8F5E9),
+            icono = Icons.Default.CheckCircle
+        )
+        else -> EstadoVisual(
+            color = Color(0xFF2E7D32), // Verde OK
+            texto = "NORMAL",
+            fondo = Color(0xFFE8F5E9),
+            icono = Icons.Default.CheckCircle
+        )
     }
 }
