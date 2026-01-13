@@ -1,51 +1,13 @@
 {
   "project_info": {
-    "project_number": "206445341799",
-    "project_id": "fir-lite-db21f",
-    "storage_bucket": "fir-lite-db21f.firebasestorage.app"
+    "project_number": "542723350231",
+    "project_id": "millalemuapp",
+    "storage_bucket": "millalemuapp.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:206445341799:android:cea448763f7bef309a78c2",
-        "android_client_info": {
-          "package_name": "com.example.appotter"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCsUKthayV0qiYPZFhLW2RWApGJPmCq9yI"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:206445341799:android:8baf71f9b89a66559a78c2",
-        "android_client_info": {
-          "package_name": "com.millalemu.appmillalemuotter"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCsUKthayV0qiYPZFhLW2RWApGJPmCq9yI"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:206445341799:android:fee65eb8827893869a78c2",
+        "mobilesdk_app_id": "1:542723350231:android:3e8c8d44d9864d27ffda92",
         "android_client_info": {
           "package_name": "com.millalemu.appotter"
         }
@@ -53,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCsUKthayV0qiYPZFhLW2RWApGJPmCq9yI"
+          "current_key": "AIzaSyBeSE6GKfzZ09BbihHethsNNRNnDFcV8hE"
         }
       ],
       "services": {

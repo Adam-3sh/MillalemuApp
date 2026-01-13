@@ -152,24 +152,23 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                 val det = bitacora.detallesCable
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
 
-                // Fila 1: Inspector (Nombre Completo) y Tipo
+                // Fila 1: Inspector y Tipo
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                    // SE MUESTRA EL NOMBRE COMPLETO
-                    Text("Insp: ${bitacora.usuarioNombre}", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.weight(1f))
+                    Text("Inspector: ${bitacora.usuarioNombre.split(" ")[0]}", fontSize = 12.sp, color = Color.Gray)
                     Text("${det.tipoCable} | ${det.tipoMedicion}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
 
                 Spacer(Modifier.height(8.dp))
 
-                // Fila 2: METROS DISPONIBLES Y REVISADOS (STACK VERTICAL)
-                Column(
+                // Fila 2: METROS DISPONIBLES Y REVISADOS (NUEVO)
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color(0xFFF0F4F8), RoundedCornerShape(6.dp))
-                        .padding(8.dp)
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("M. Disponibles: ${det.metrosDisponible.toInt()}m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                    Spacer(Modifier.height(4.dp))
                     Text("M. Revisados: ${det.metrosRevisado.toInt()}m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
 

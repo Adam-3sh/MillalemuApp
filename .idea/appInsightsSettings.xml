@@ -9,9 +9,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.millalemu.appotter" />
-                  <option name="mobileSdkAppId" value="1:206445341799:android:fee65eb8827893869a78c2" />
-                  <option name="projectId" value="fir-lite-db21f" />
-                  <option name="projectNumber" value="206445341799" />
+                  <option name="mobileSdkAppId" value="1:542723350231:android:3e8c8d44d9864d27ffda92" />
+                  <option name="projectId" value="millalemuapp" />
+                  <option name="projectNumber" value="542723350231" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
