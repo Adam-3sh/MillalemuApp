@@ -42,22 +42,40 @@ fun PantallaHistorialCable(
     var lista by remember { mutableStateOf<List<Bitacora>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
+    // CAMBIO CRÍTICO: DisposableEffect para soporte OFFLINE
+    // Esto carga la caché local instantáneamente y escucha cambios si hay red.
+    DisposableEffect(Unit) {
         val rutActual = Sesion.rutUsuarioActual
         val esOperador = Sesion.rolUsuarioActual.equals("Operador", ignoreCase = true)
 
-        db.collection("bitacoras")
+        val query = db.collection("bitacoras")
             .whereEqualTo("identificadorMaquina", idEquipo)
             .whereEqualTo("tipoAditamento", "Cable de Asistencia")
             .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(50)
-            .get()
-            .addOnSuccessListener { result ->
-                val todos = result.toObjects(Bitacora::class.java)
+
+        // addSnapshotListener funciona sin internet (lee caché local)
+        val listener = query.addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                // Si hay error (ej. permisos), terminamos la carga para no bloquear la UI
+                cargando = false
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null && !snapshot.isEmpty) {
+                val todos = snapshot.toObjects(Bitacora::class.java)
                 lista = if (esOperador) todos.filter { it.usuarioRut == rutActual } else todos
                 cargando = false
+            } else {
+                lista = emptyList()
+                cargando = false
             }
-            .addOnFailureListener { cargando = false }
+        }
+
+        // Al salir de la pantalla, dejamos de escuchar para ahorrar recursos
+        onDispose {
+            listener.remove()
+        }
     }
 
     Scaffold(
@@ -82,7 +100,15 @@ fun PantallaHistorialCable(
             if (cargando) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = AzulOscuro)
             } else if (lista.isEmpty()) {
-                Text("No hay registros de cable.", modifier = Modifier.align(Alignment.Center), color = Color.Gray)
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // CAMBIO: Usamos Icons.Default.List que es seguro y siempre existe
+                    Icon(Icons.Default.List, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+                    Spacer(Modifier.height(8.dp))
+                    Text("No hay registros aún.", color = Color.Gray)
+                }
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
@@ -103,7 +129,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
-    // Obtenemos estado visual seguro
+    // Usamos la función segura para evitar errores de íconos
     val estado = determinarEstadoVisualSeguro(bitacora.porcentajeDesgasteGeneral, bitacora.requiereReemplazo)
 
     Card(
@@ -118,7 +144,6 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
         Column(Modifier.padding(16.dp)) {
             // --- CABECERA ---
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Semáforo
                 Surface(color = estado.fondo, shape = RoundedCornerShape(8.dp), modifier = Modifier.size(42.dp)) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(estado.icono, null, tint = estado.color, modifier = Modifier.size(24.dp))
@@ -126,13 +151,11 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                 }
                 Spacer(Modifier.width(12.dp))
 
-                // Info
                 Column(Modifier.weight(1f)) {
                     Text(fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AzulOscuro)
                     Text("Horómetro: ${bitacora.horometro.toInt()}", fontSize = 13.sp, color = Color.Gray)
                 }
 
-                // Porcentaje
                 Column(horizontalAlignment = Alignment.End) {
                     Text("${bitacora.porcentajeDesgasteGeneral.toInt()}%", fontSize = 20.sp, fontWeight = FontWeight.Black, color = estado.color)
                     Text(estado.texto, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = estado.color)
@@ -154,21 +177,21 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
 
                 // Fila 1: Inspector y Tipo
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                    Text("Inspector: ${bitacora.usuarioNombre.split(" ")[0]}", fontSize = 12.sp, color = Color.Gray)
+                    Text("Insp: ${bitacora.usuarioNombre}", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.weight(1f))
                     Text("${det.tipoCable} | ${det.tipoMedicion}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
 
                 Spacer(Modifier.height(8.dp))
 
-                // Fila 2: METROS DISPONIBLES Y REVISADOS (NUEVO)
-                Row(
+                // Fila 2: METROS DISPONIBLES Y REVISADOS (STACK VERTICAL)
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color(0xFFF0F4F8), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(8.dp)
                 ) {
                     Text("M. Disponibles: ${det.metrosDisponible.toInt()}m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Spacer(Modifier.height(4.dp))
                     Text("M. Revisados: ${det.metrosRevisado.toInt()}m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
 
@@ -222,7 +245,6 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                             Text("Acción correctiva", fontSize = 11.sp, color = Color.Gray)
                         }
 
-                        // Si está cortado, ROJO y "SÍ". Si no, VERDE y "NO".
                         val textoCorte = if (det.cableCortado) "SÍ (CORTADO)" else "NO"
                         val colorCorte = if (det.cableCortado) Color(0xFFD32F2F) else Color(0xFF2E7D32)
 
@@ -285,7 +307,7 @@ fun determinarEstadoVisualSeguro(porcentajeTotal: Double, requiereReemplazo: Boo
             color = Color(0xFFD32F2F), // Rojo
             texto = "CRÍTICO",
             fondo = Color(0xFFFFEBEE),
-            icono = Icons.Default.Close // X
+            icono = Icons.Default.Close // USAMOS ÍCONO SEGURO (X)
         )
         porcentajeTotal >= 82.0 -> EstadoVisual(
             color = Color(0xFFE64A19), // Naranja Oscuro
