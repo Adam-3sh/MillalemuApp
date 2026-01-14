@@ -11,14 +11,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.* // Importa solo los básicos
+import androidx.compose.material.icons.filled.* // Iconos básicos seguros
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,8 +41,7 @@ fun PantallaHistorialCable(
     var lista by remember { mutableStateOf<List<Bitacora>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
 
-    // CAMBIO CRÍTICO: DisposableEffect para soporte OFFLINE
-    // Esto carga la caché local instantáneamente y escucha cambios si hay red.
+    // LÓGICA OFFLINE (addSnapshotListener)
     DisposableEffect(Unit) {
         val rutActual = Sesion.rutUsuarioActual
         val esOperador = Sesion.rolUsuarioActual.equals("Operador", ignoreCase = true)
@@ -54,10 +52,8 @@ fun PantallaHistorialCable(
             .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(50)
 
-        // addSnapshotListener funciona sin internet (lee caché local)
         val listener = query.addSnapshotListener { snapshot, e ->
             if (e != null) {
-                // Si hay error (ej. permisos), terminamos la carga para no bloquear la UI
                 cargando = false
                 return@addSnapshotListener
             }
@@ -72,7 +68,6 @@ fun PantallaHistorialCable(
             }
         }
 
-        // Al salir de la pantalla, dejamos de escuchar para ahorrar recursos
         onDispose {
             listener.remove()
         }
@@ -104,7 +99,6 @@ fun PantallaHistorialCable(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // CAMBIO: Usamos Icons.Default.List que es seguro y siempre existe
                     Icon(Icons.Default.List, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(8.dp))
                     Text("No hay registros aún.", color = Color.Gray)
@@ -129,8 +123,16 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
-    // Usamos la función segura para evitar errores de íconos
-    val estado = determinarEstadoVisualSeguro(bitacora.porcentajeDesgasteGeneral, bitacora.requiereReemplazo)
+    // --- NUEVA LÓGICA DE ESTADO CENTRALIZADA ---
+    // 1. Recuperamos el tipo de cable (si es antiguo y no tiene, asumimos 26mm)
+    val tipoCable = bitacora.detallesCable?.tipoCable ?: "26mm"
+
+    // 2. Usamos la función maestra que sabe distinguir entre la tabla de 26 y 28mm
+    val estado = CableCalculations.obtenerEstadoVisual(
+        tipoCable = tipoCable,
+        porcentajeTotal = bitacora.porcentajeDesgasteGeneral,
+        requiereReemplazo = bitacora.requiereReemplazo
+    )
 
     Card(
         elevation = CardDefaults.cardElevation(3.dp),
@@ -144,6 +146,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
         Column(Modifier.padding(16.dp)) {
             // --- CABECERA ---
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Semáforo dinámico
                 Surface(color = estado.fondo, shape = RoundedCornerShape(8.dp), modifier = Modifier.size(42.dp)) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(estado.icono, null, tint = estado.color, modifier = Modifier.size(24.dp))
@@ -151,11 +154,13 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                 }
                 Spacer(Modifier.width(12.dp))
 
+                // Info
                 Column(Modifier.weight(1f)) {
                     Text(fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AzulOscuro)
                     Text("Horómetro: ${bitacora.horometro.toInt()}", fontSize = 13.sp, color = Color.Gray)
                 }
 
+                // Porcentaje
                 Column(horizontalAlignment = Alignment.End) {
                     Text("${bitacora.porcentajeDesgasteGeneral.toInt()}%", fontSize = 20.sp, fontWeight = FontWeight.Black, color = estado.color)
                     Text(estado.texto, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = estado.color)
@@ -183,7 +188,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
 
                 Spacer(Modifier.height(8.dp))
 
-                // Fila 2: METROS DISPONIBLES Y REVISADOS (STACK VERTICAL)
+                // Fila 2: METROS (Apilados)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -206,11 +211,14 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                 ) {
                     Text("Detalles de Medición", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom=8.dp))
 
+                    // REFERENCIA DE DIAMETRO DINAMICA
+                    val referenciaTexto = if (det.tipoCable == "28mm") "Ref: 28.8mm" else "Ref: 26.4mm"
+
                     // 1. Diámetro
                     FilaDetalle(
                         titulo = "Diámetro (${det.diametroMedido} mm)",
                         porcentaje = det.porcentajeReduccion,
-                        infoExtra = if(det.tipoCable == "26mm") "Ref: 26.4mm" else "Ref: N/A"
+                        infoExtra = referenciaTexto
                     )
                     Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
 
@@ -234,7 +242,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
 
                     Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
 
-                    // 4. CABLE CORTADO (ALERTA VISUAL)
+                    // 4. ALERTA DE CORTE
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -294,44 +302,6 @@ fun FilaDetalle(titulo: String, porcentaje: Double, infoExtra: String) {
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = colorBadge
-        )
-    }
-}
-
-// Lógica Visual Segura
-data class EstadoVisual(val color: Color, val texto: String, val fondo: Color, val icono: ImageVector)
-
-fun determinarEstadoVisualSeguro(porcentajeTotal: Double, requiereReemplazo: Boolean): EstadoVisual {
-    return when {
-        requiereReemplazo || porcentajeTotal >= 100.0 -> EstadoVisual(
-            color = Color(0xFFD32F2F), // Rojo
-            texto = "CRÍTICO",
-            fondo = Color(0xFFFFEBEE),
-            icono = Icons.Default.Close // USAMOS ÍCONO SEGURO (X)
-        )
-        porcentajeTotal >= 82.0 -> EstadoVisual(
-            color = Color(0xFFE64A19), // Naranja Oscuro
-            texto = "ALTO",
-            fondo = Color(0xFFFBE9E7),
-            icono = Icons.Default.Warning
-        )
-        porcentajeTotal >= 66.0 -> EstadoVisual(
-            color = Color(0xFFFF8F00), // Amarillo
-            texto = "MEDIO",
-            fondo = Color(0xFFFFF8E1),
-            icono = Icons.Default.Warning
-        )
-        porcentajeTotal >= 46.0 -> EstadoVisual(
-            color = Color(0xFF43A047), // Verde Alerta
-            texto = "LEVE",
-            fondo = Color(0xFFE8F5E9),
-            icono = Icons.Default.CheckCircle
-        )
-        else -> EstadoVisual(
-            color = Color(0xFF2E7D32), // Verde OK
-            texto = "NORMAL",
-            fondo = Color(0xFFE8F5E9),
-            icono = Icons.Default.CheckCircle
         )
     }
 }

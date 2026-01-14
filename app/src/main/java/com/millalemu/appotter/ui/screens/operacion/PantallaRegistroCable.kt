@@ -50,7 +50,7 @@ fun PantallaRegistroCable(
     // --- INPUTS ---
     var horometro by remember { mutableStateOf("") }
     var tipoMedicion by remember { mutableStateOf("") }
-    var tipoCable by remember { mutableStateOf("") }
+    var tipoCable by remember { mutableStateOf("26mm") } // Por defecto 26mm
 
     var metrosDisponible by remember { mutableStateOf("") }
     var metrosRevisado by remember { mutableStateOf("") }
@@ -71,68 +71,46 @@ fun PantallaRegistroCable(
     var calcDisminucion by remember { mutableStateOf(0.0) }
     var calcTotal by remember { mutableStateOf(0.0) }
 
-    // Variables visuales del estado
+    // Variables visuales del estado (Usamos el nuevo sistema centralizado)
     var estadoTexto by remember { mutableStateOf("PENDIENTE") }
     var estadoColor by remember { mutableStateOf(Color.Gray) }
     var estadoColorTexto by remember { mutableStateOf(Color.White) }
 
     // --- EFECTO DE CÁLCULO EN TIEMPO REAL ---
-    LaunchedEffect(alambres6d, alambres30d, diametroMedido, nivelCorrosion, tipoCable) {
+    LaunchedEffect(alambres6d, alambres30d, diametroMedido, nivelCorrosion, tipoCable, presentaCorte) {
         val dAlm6d = alambres6d.toDoubleOrNull() ?: 0.0
         val dAlm30d = alambres30d.toDoubleOrNull() ?: 0.0
         val dDiametro = diametroMedido.replace(',', '.').toDoubleOrNull() ?: 0.0
 
-        // 1. Calcular Severidades Individuales
+        // 1. Calcular Severidades
         calcSevAlambres = CableCalculations.calcularSeveridadAlambres(dAlm6d, dAlm30d)
         calcSevCorrosion = CableCalculations.calcularSeveridadCorrosion(nivelCorrosion)
 
-        if (tipoCable == "26mm") {
-            calcSevDiametro = CableCalculations.calcularSeveridadDiametro26mm(dDiametro)
-            calcDisminucion = CableCalculations.calcularPorcentajeDisminucion(dDiametro)
+        // Lógica dual: 26mm vs 28mm
+        if (tipoCable == "28mm") {
+            calcSevDiametro = CableCalculations.calcularSeveridadDiametro28mm(dDiametro)
         } else {
-            // Lógica placeholder para otros cables si fuera necesario
-            calcSevDiametro = 0.0
-            calcDisminucion = 0.0
+            // Por defecto 26mm
+            calcSevDiametro = CableCalculations.calcularSeveridadDiametro26mm(dDiametro)
         }
 
-        // 2. Sumar Total (Fórmula Maestra)
+        // % Disminución informativo (usa la fórmula correcta para cada uno)
+        calcDisminucion = CableCalculations.calcularPorcentajeDisminucion(dDiametro, tipoCable)
+
+        // 2. Sumar Total
         calcTotal = CableCalculations.calcularDañoTotal(calcSevAlambres, calcSevDiametro, calcSevCorrosion)
 
-        // 3. Determinar Estado Visual SEGÚN TABLA PDF (26mm)
-        // Rangos extraídos de "Inspección de cables Twinch 30.2.pdf":
-        // < 46%: Normal
-        // 46% - 66%: Leve (Verde)
-        // 66% - 82%: Medio (Amarillo)
-        // 82% - 100%: Alto (Rojo/Naranja)
-        // >= 100%: Descarte (Rojo Intenso)
+        // 3. Obtener Estado Visual Centralizado (¡Aquí está la magia!)
+        // Le pasamos el tipo de cable para que sepa qué rangos de colores usar.
+        val estadoVisual = CableCalculations.obtenerEstadoVisual(
+            tipoCable = tipoCable,
+            porcentajeTotal = calcTotal,
+            requiereReemplazo = (presentaCorte == true)
+        )
 
-        when {
-            calcTotal >= 100.0 -> {
-                estadoTexto = "CRÍTICO - DESCARTE INMEDIATO"
-                estadoColor = Color(0xFFD32F2F) // Rojo Intenso
-                estadoColorTexto = Color.White
-            }
-            calcTotal >= 82.0 -> {
-                estadoTexto = "ALTO - RIESGO SEVERO"
-                estadoColor = Color(0xFFE64A19) // Naranja Oscuro / Rojo
-                estadoColorTexto = Color.White
-            }
-            calcTotal >= 66.0 -> {
-                estadoTexto = "MEDIO - PRECAUCIÓN"
-                estadoColor = Color(0xFFFFC107) // Amarillo (Amber)
-                estadoColorTexto = Color.Black
-            }
-            calcTotal >= 46.0 -> {
-                estadoTexto = "LEVE - MONITORIZAR"
-                estadoColor = Color(0xFF4CAF50) // Verde
-                estadoColorTexto = Color.White
-            }
-            else -> {
-                estadoTexto = "OPERATIVO - NORMAL"
-                estadoColor = Color(0xFF2E7D32) // Verde Oscuro (Opcional: o Gris)
-                estadoColorTexto = Color.White
-            }
-        }
+        estadoTexto = estadoVisual.texto
+        estadoColor = estadoVisual.color
+        estadoColorTexto = estadoVisual.colorTexto
     }
 
     var isSaving by remember { mutableStateOf(false) }
@@ -177,6 +155,8 @@ fun PantallaRegistroCable(
                 BotonSeleccionColor("100 Horas", tipoMedicion == "100h", AzulOscuro, onClick = { tipoMedicion = "100h" }, modifier = Modifier.weight(1f))
             }
             Spacer(Modifier.height(16.dp))
+
+            // SELECCIÓN DE CABLE (ACTIVA LA LÓGICA 26/28)
             EtiquetaCampo("Diámetro Cable")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 BotonSeleccionColor("26 mm", tipoCable == "26mm", AzulOscuro, onClick = { tipoCable = "26mm" }, modifier = Modifier.weight(1f))
@@ -203,8 +183,8 @@ fun PantallaRegistroCable(
             EtiquetaCampo("Estado Físico")
             CampoEntrada("Diámetro Medido", diametroMedido, { if (it.all { c -> c.isDigit() || c == '.' }) diametroMedido = it }, "mm")
 
-            // Texto de Disminución (Informativo)
-            if (diametroMedido.isNotEmpty() && tipoCable == "26mm") {
+            // Texto informativo dinámico
+            if (diametroMedido.isNotEmpty()) {
                 Text(
                     text = "Disminución Nominal: ${String.format("%.1f", calcDisminucion)}%",
                     color = Color.Gray,
@@ -225,7 +205,7 @@ fun PantallaRegistroCable(
 
         Spacer(Modifier.height(24.dp))
 
-        // --- RESUMEN VISUAL ACTUALIZADO ---
+        // --- RESUMEN VISUAL ---
         CardResumenEstado(
             sevAlambres = calcSevAlambres,
             sevDiametro = calcSevDiametro,
@@ -281,10 +261,17 @@ fun PantallaRegistroCable(
                 val dAlm30d = alambres30d.toDoubleOrNull() ?: 0.0
                 val dDiametro = diametroMedido.replace(',', '.').toDoubleOrNull() ?: 0.0
 
-                // Recálculo final seguro
+                // CÁLCULO FINAL DE GUARDADO (SEGURIDAD)
                 val finalSevAlambres = CableCalculations.calcularSeveridadAlambres(dAlm6d, dAlm30d)
                 val finalSevCorrosion = CableCalculations.calcularSeveridadCorrosion(nivelCorrosion)
-                val finalSevDiametro = if (tipoCable == "26mm") CableCalculations.calcularSeveridadDiametro26mm(dDiametro) else 0.0
+
+                // Selección de fórmula final
+                val finalSevDiametro = if (tipoCable == "28mm") {
+                    CableCalculations.calcularSeveridadDiametro28mm(dDiametro)
+                } else {
+                    CableCalculations.calcularSeveridadDiametro26mm(dDiametro)
+                }
+
                 val finalTotal = CableCalculations.calcularDañoTotal(finalSevAlambres, finalSevDiametro, finalSevCorrosion)
                 val requiereReemplazo = (finalTotal >= 100.0) || (presentaCorte == true)
 
@@ -329,7 +316,7 @@ fun PantallaRegistroCable(
     }
 }
 
-// --- CARD RESUMEN ACTUALIZADA CON COLOR DE TEXTO ---
+// --- CARD RESUMEN ---
 @Composable
 fun CardResumenEstado(
     sevAlambres: Double,
@@ -347,7 +334,7 @@ fun CardResumenEstado(
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text("RESUMEN DE ESTADO (Según Tabla T-Winch)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+            Text("RESUMEN DE ESTADO (Automático)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
             Spacer(Modifier.height(12.dp))
 
             FilaProgreso("Alambres Rotos", sevAlambres)
@@ -382,8 +369,7 @@ fun CardResumenEstado(
     }
 }
 
-// ... (Resto de componentes auxiliares como FilaProgreso, EtiquetaCampo se mantienen igual) ...
-
+// Componentes auxiliares...
 @Composable
 fun FilaProgreso(label: String, porcentaje: Double) {
     Column(Modifier.padding(bottom = 8.dp)) {
@@ -400,7 +386,6 @@ fun FilaProgreso(label: String, porcentaje: Double) {
     }
 }
 
-// ... Componentes auxiliares (EtiquetaCampo, CampoEntrada, BotonSeleccionColor) ...
 @Composable
 fun EtiquetaCampo(texto: String) {
     Text(
