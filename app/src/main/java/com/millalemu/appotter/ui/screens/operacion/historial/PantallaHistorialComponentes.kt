@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens.operacion
+package com.millalemu.appotter.ui.screens.operacion.historial
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.millalemu.appotter.R
 import com.millalemu.appotter.navigation.AppRoutes
+import com.millalemu.appotter.ui.screens.operacion.registro.CardAditamento
+import com.millalemu.appotter.ui.screens.operacion.registro.ItemAditamento
 
 @Composable
 fun PantallaHistorialComponentes(

@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens.operacion
+package com.millalemu.appotter.ui.screens.operacion.historial
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,6 +20,7 @@ import androidx.navigation.NavController
 import com.millalemu.appotter.data.Maquina
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
+import com.millalemu.appotter.ui.screens.operacion.CardEquipo
 
 @Composable
 fun PantallaHistorialEquipos(navController: NavController, tipoMaquina: String) {

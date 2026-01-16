@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens.operacion
+package com.millalemu.appotter.ui.screens.operacion.historial
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

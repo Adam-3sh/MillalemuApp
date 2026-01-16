@@ -1,8 +1,9 @@
-package com.millalemu.appotter.ui.screens.operacion
+package com.millalemu.appotter.ui.screens.operacion.historial
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -243,7 +244,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
 
                 if (bitacora.observacion.isNotBlank()) {
                     Spacer(Modifier.height(12.dp))
-                    Surface(color = Color(0xFFFFF8E1), shape = RoundedCornerShape(4.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFE0B2))) {
+                    Surface(color = Color(0xFFFFF8E1), shape = RoundedCornerShape(4.dp), border = BorderStroke(1.dp, Color(0xFFFFE0B2))) {
                         Column(Modifier.padding(8.dp).fillMaxWidth()) {
                             Text("Observación:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF6C00))
                             Text(bitacora.observacion, fontSize = 14.sp, color = Color.Black)
@@ -264,7 +265,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                     bitacora.detallesGancho != null -> TablaGancho(bitacora.detallesGancho)
                     bitacora.detallesTerminal != null -> TablaTerminal(bitacora.detallesTerminal)
                     bitacora.detallesCable != null -> TablaCable(bitacora.detallesCable)
-                    else -> Text("Sin datos dimensionales", fontSize = 14.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Color.Gray)
+                    else -> Text("Sin datos dimensionales", fontSize = 14.sp, fontStyle = FontStyle.Italic, color = Color.Gray)
                 }
             }
         }
@@ -327,7 +328,7 @@ fun TablaGrillete(det: DetallesGrillete) {
         FilaTabla("L", det.lNominal, det.lActual, det.lPorcentaje)
         FilaTabla("N", det.nNominal, det.nActual, det.nPorcentaje)
         Spacer(modifier = Modifier.height(4.dp))
-        Text("* E es crítico si > 5%", fontSize = 12.sp, color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+        Text("* E es crítico si > 5%", fontSize = 12.sp, color = Color.Gray, fontStyle = FontStyle.Italic)
     }
 }
 

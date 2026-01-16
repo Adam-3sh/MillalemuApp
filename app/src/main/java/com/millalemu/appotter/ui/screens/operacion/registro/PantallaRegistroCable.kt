@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens.operacion
+package com.millalemu.appotter.ui.screens.operacion.registro
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -27,7 +27,6 @@ import androidx.navigation.NavController
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.DetallesCable
 import com.millalemu.appotter.db
-import com.millalemu.appotter.navigation.AppRoutes
 import com.millalemu.appotter.ui.components.CardSeccion
 import com.millalemu.appotter.ui.theme.AzulOscuro
 import com.millalemu.appotter.ui.theme.VerdeBoton

@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens.operacion
+package com.millalemu.appotter.ui.screens.operacion.registro
 
 import android.util.Log
 import androidx.compose.foundation.background

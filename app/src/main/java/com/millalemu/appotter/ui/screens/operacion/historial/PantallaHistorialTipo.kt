@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens.operacion
+package com.millalemu.appotter.ui.screens.operacion.historial
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.millalemu.appotter.R
 import com.millalemu.appotter.navigation.AppRoutes
+import com.millalemu.appotter.ui.screens.operacion.CardSeleccionTipo
 
 @Composable
 fun PantallaHistorialTipo(navController: NavController) {
@@ -94,5 +95,5 @@ fun PantallaHistorialTipo(navController: NavController) {
 fun CardSeleccionTipoHistorial(titulo: String, imagen: Int, colorTexto: Color, onClick: () -> Unit) {
     // Reutilizamos la lógica visual de la CardSeleccionTipo anterior
     // Pero aquí la defino por si quieres personalizarla distinto
-    com.millalemu.appotter.ui.screens.operacion.CardSeleccionTipo(titulo, imagen, onClick)
+    CardSeleccionTipo(titulo, imagen, onClick)
 }

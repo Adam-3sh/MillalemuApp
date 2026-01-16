@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens.operacion
+package com.millalemu.appotter.ui.screens.operacion.registro
 
 import android.util.Log
 import androidx.compose.foundation.Image
@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.millalemu.appotter.R
 import com.millalemu.appotter.data.Bitacora
+import com.millalemu.appotter.data.DetallesEslabon
 import com.millalemu.appotter.db
 import com.millalemu.appotter.navigation.AppRoutes
 import com.millalemu.appotter.utils.Sesion
@@ -291,7 +292,7 @@ fun PantallaDimensionesEslabon(
 
                     // 2. Crear el objeto DetallesEslabon
                     // Usamos la ruta completa o asegúrate de importar com.millalemu.appotter.data.DetallesEslabon
-                    val detalles = com.millalemu.appotter.data.DetallesEslabon(
+                    val detalles = DetallesEslabon(
                         kNominal = kNom, aNominal = aNom, dNominal = dNom, bNominal = bNom,
                         kActual = kAct, aActual = aAct, dActual = dAct, bActual = bAct
                     )

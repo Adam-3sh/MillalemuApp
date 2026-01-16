@@ -1,6 +1,7 @@
-package com.millalemu.appotter.ui.screens.operacion
+package com.millalemu.appotter.ui.screens.operacion.registro
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,7 +33,6 @@ import com.millalemu.appotter.R
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.DetallesCadena
 import com.millalemu.appotter.db
-import com.millalemu.appotter.navigation.AppRoutes
 import com.millalemu.appotter.ui.components.*
 import com.millalemu.appotter.utils.NetworkUtils
 import com.millalemu.appotter.utils.Sesion
@@ -163,7 +163,7 @@ fun PantallaRegistroCadena(
                     modifier = Modifier.size(70.dp),
                     shape = CircleShape,
                     color = Color.White,
-                    border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF33691E))
+                    border = BorderStroke(2.dp, Color(0xFF33691E))
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.cadena_asistencia),
@@ -348,7 +348,7 @@ fun PantallaRegistroCadena(
                 Button(
                     onClick = { navController.popBackStack() },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro),
+                    border = BorderStroke(1.dp, AzulOscuro),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.weight(1f).height(50.dp)
                 ) {

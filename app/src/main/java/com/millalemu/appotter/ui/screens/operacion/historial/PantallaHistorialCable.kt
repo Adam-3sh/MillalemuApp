@@ -1,4 +1,4 @@
-package com.millalemu.appotter.ui.screens.operacion
+package com.millalemu.appotter.ui.screens.operacion.historial
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,7 +31,6 @@ import com.millalemu.appotter.utils.CableCalculations
 import com.millalemu.appotter.utils.Sesion
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -267,7 +267,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
 
                 if (bitacora.observacion.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    Text("Obs: ${bitacora.observacion}", fontSize = 13.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Color.DarkGray)
+                    Text("Obs: ${bitacora.observacion}", fontSize = 13.sp, fontStyle = FontStyle.Italic, color = Color.DarkGray)
                 }
             }
         }
