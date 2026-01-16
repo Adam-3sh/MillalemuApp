@@ -369,7 +369,7 @@ fun PantallaRegistroGrillete(
                                 .addOnSuccessListener {
                                     isSaving = false
                                     Toast.makeText(context, "Registro guardado y sincronizado", Toast.LENGTH_SHORT).show()
-                                    navController.popBackStack(AppRoutes.MENU, false)
+                                    navController.popBackStack()
                                 }
                                 .addOnFailureListener {
                                     isSaving = false; mensajeError = "Error al subir"
@@ -378,7 +378,7 @@ fun PantallaRegistroGrillete(
                             db.collection("bitacoras").add(bitacora)
                             isSaving = false
                             Toast.makeText(context, "Guardado localmente", Toast.LENGTH_LONG).show()
-                            navController.popBackStack(AppRoutes.MENU, false)
+                            navController.popBackStack()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton), shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f).height(50.dp)

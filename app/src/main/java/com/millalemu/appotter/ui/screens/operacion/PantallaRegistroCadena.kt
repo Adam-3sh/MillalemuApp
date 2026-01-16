@@ -400,7 +400,7 @@ fun PantallaRegistroCadena(
                                 .addOnSuccessListener {
                                     isSaving = false
                                     Toast.makeText(context, "Registro guardado y sincronizado", Toast.LENGTH_SHORT).show()
-                                    navController.popBackStack(AppRoutes.MENU, false)
+                                    navController.popBackStack()
                                 }
                                 .addOnFailureListener {
                                     isSaving = false
@@ -411,7 +411,7 @@ fun PantallaRegistroCadena(
                             db.collection("bitacoras").add(bitacora)
                             isSaving = false
                             Toast.makeText(context, "Guardado localmente (se subirá al tener internet)", Toast.LENGTH_LONG).show()
-                            navController.popBackStack(AppRoutes.MENU, false)
+                            navController.popBackStack()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton),

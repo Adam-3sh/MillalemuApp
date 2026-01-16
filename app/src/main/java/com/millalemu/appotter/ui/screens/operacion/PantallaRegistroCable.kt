@@ -296,13 +296,13 @@ fun PantallaRegistroCable(
                 if (NetworkUtils.esRedDisponible(context)) {
                     db.collection("bitacoras").add(bitacora).addOnSuccessListener {
                         isSaving = false
-                        navController.popBackStack(AppRoutes.MENU, false)
+                        navController.popBackStack()
                     }.addOnFailureListener { isSaving = false; mensajeError = it.message ?: "Error" }
                 } else {
                     db.collection("bitacoras").add(bitacora)
                     isSaving = false
                     Toast.makeText(context, "Guardado OFFLINE", Toast.LENGTH_LONG).show()
-                    navController.popBackStack(AppRoutes.MENU, false)
+                    navController.popBackStack()
                 }
             },
             modifier = Modifier.fillMaxWidth().height(55.dp),
