@@ -15,7 +15,6 @@ import com.millalemu.appotter.ui.screens.operacion.PantallaAditamento
 import com.millalemu.appotter.ui.screens.admin.PantallaAdmin
 import com.millalemu.appotter.ui.screens.herramientas.PantallaCalculadora
 import com.millalemu.appotter.ui.screens.admin.PantallaCrearUsuario
-import com.millalemu.appotter.ui.screens.operacion.registro.PantallaDimensionesEslabon
 import com.millalemu.appotter.ui.screens.admin.PantallaEditarMaquina
 import com.millalemu.appotter.ui.screens.admin.PantallaEditarUsuario
 import com.millalemu.appotter.ui.screens.operacion.registro.PantallaFormularioAditamento
@@ -33,7 +32,6 @@ import com.millalemu.appotter.ui.screens.operacion.registro.PantallaRegistroCade
 import com.millalemu.appotter.ui.screens.operacion.registro.PantallaRegistroEslabon
 import com.millalemu.appotter.ui.screens.operacion.registro.PantallaRegistroGancho
 import com.millalemu.appotter.ui.screens.operacion.registro.PantallaRegistroGrillete
-import com.millalemu.appotter.ui.screens.operacion.registro.PantallaRegistroMedidas
 import com.millalemu.appotter.ui.screens.operacion.registro.PantallaRegistroRoldana
 import com.millalemu.appotter.ui.screens.operacion.registro.PantallaRegistroTerminal
 import com.millalemu.appotter.ui.screens.operacion.PantallaSeleccionarEquipo
@@ -121,18 +119,6 @@ fun AppNavigation(startDestination: String = AppRoutes.LOGIN) { // Agregamos par
             }
 
             composable(
-                route = "${AppRoutes.REGISTRO_MEDIDAS_ROUTE}/{tipoMaquina}/{nombreAditamento}",
-                arguments = listOf(
-                    navArgument("tipoMaquina") { type = NavType.StringType },
-                    navArgument("nombreAditamento") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val tipo = backStackEntry.arguments?.getString("tipoMaquina") ?: ""
-                val nombre = backStackEntry.arguments?.getString("nombreAditamento") ?: ""
-                PantallaRegistroMedidas(navController, tipo, nombre)
-            }
-
-            composable(
                 route = "${AppRoutes.REGISTRO_ESLABON}/{tipoMaquina}/{idEquipo}/{nombreAditamento}",
                 arguments = listOf(
                     navArgument("tipoMaquina") { type = NavType.StringType },
@@ -144,29 +130,6 @@ fun AppNavigation(startDestination: String = AppRoutes.LOGIN) { // Agregamos par
                 val idEquipo = backEntry.arguments?.getString("idEquipo") ?: ""
                 val nombreAditamento = backEntry.arguments?.getString("nombreAditamento") ?: "Eslabón"
                 PantallaRegistroEslabon(navController, tipo, idEquipo, nombreAditamento)
-            }
-
-            composable(
-                route = "dimensiones_eslabon/{tipo}/{id}/{serie}/{horometro}/{fisura}/{reemplazo}/{obs}",
-                arguments = listOf(
-                    navArgument("tipo") { type = NavType.StringType },
-                    navArgument("id") { type = NavType.StringType },
-                    navArgument("serie") { type = NavType.StringType },
-                    navArgument("horometro") { type = NavType.StringType },
-                    navArgument("fisura") { type = NavType.BoolType },
-                    navArgument("reemplazo") { type = NavType.BoolType },
-                    navArgument("obs") { type = NavType.StringType }
-                )
-            ) { backEntry ->
-                val tipo = backEntry.arguments?.getString("tipo") ?: ""
-                val id = backEntry.arguments?.getString("id") ?: ""
-                val serie = backEntry.arguments?.getString("serie") ?: ""
-                val horometro = backEntry.arguments?.getString("horometro") ?: "0.0"
-                val fisura = backEntry.arguments?.getBoolean("fisura") ?: false
-                val reemplazo = backEntry.arguments?.getBoolean("reemplazo") ?: false
-                val obs = backEntry.arguments?.getString("obs") ?: ""
-
-                PantallaDimensionesEslabon(navController, tipo, id, serie, horometro, fisura, reemplazo, obs)
             }
 
             composable(
