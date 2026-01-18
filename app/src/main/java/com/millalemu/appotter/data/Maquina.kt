@@ -15,8 +15,9 @@ data class Maquina(
     @get:Exclude var id: String = "",
 
     val identificador: String = "", // Ej: "VOL-01"
-    val tipo: String = "",          // Ej: "Volteo" (Antes era 'nombre', cámbialo a 'tipo' para consistencia)     // Ej: "Komatsu 931XC" (Este faltaba)
-    val horometro: Double = 0.0 ,   // Útil para mostrarlo en las listas
-    val fechaCreacion: Timestamp? = null
+    val tipo: String = "",          // Ej: "Volteo"
+    val horometro: Double = 0.0 ,   // talvez deba borrarlo mejor
+    val fechaCreacion: Timestamp? = null,
+    val modelo: String = ""
 
 )
