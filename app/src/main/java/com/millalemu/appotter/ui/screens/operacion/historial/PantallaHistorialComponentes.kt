@@ -28,30 +28,30 @@ fun PantallaHistorialComponentes(
     // SELECCIONAMOS LA LISTA SEGÚN EL TIPO DE MÁQUINA
     val listaAditamentos = when (tipoMaquina) {
         "Volteo" -> listOf(
-            ItemAditamento("Grillete CM Lira", R.drawable.grillete_cm_lira),
-            ItemAditamento("Gancho Ojo Fijo", R.drawable.gancho_ojo_fijo),
-            ItemAditamento("Eslabón Entrada", R.drawable.eslabon_entrada),
-            ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
-            ItemAditamento("Eslabón Salida", R.drawable.eslabon_salida),
+            // --- ORDEN INVERTIDO: INICIO (CABLE) -> FIN (GRILLETE) ---
+            ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
-            ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia)
+            ItemAditamento("Eslabón Salida", R.drawable.eslabon_salida),
+            ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
+            ItemAditamento("Eslabón Entrada", R.drawable.eslabon_entrada),
+            ItemAditamento("Gancho Ojo Fijo", R.drawable.gancho_ojo_fijo),
+            ItemAditamento("Grillete CM Lira", R.drawable.grillete_cm_lira)
         )
         "Madereo" -> listOf(
             ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
-            ItemAditamento("Eslabón Articulado 1", R.drawable.eslabon_articulado),
-            ItemAditamento("Cadena 1", R.drawable.cadena_asistencia),
-            ItemAditamento("Eslabón Articulado 2", R.drawable.eslabon_articulado),
+            ItemAditamento("Eslabón Salida", R.drawable.eslabon_articulado),
+            ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
+            ItemAditamento("Eslabón Entrada", R.drawable.eslabon_articulado),
             ItemAditamento("Gancho de Ojo", R.drawable.gancho_ojo_fijo),
             ItemAditamento("Grillete Lira", R.drawable.grillete_cm_lira),
-            // Roldana incluida
-            ItemAditamento("Roldana", R.drawable.roldana), // O R.drawable.roldana si ya la tienes
+            ItemAditamento("Roldana", R.drawable.roldana),
             ItemAditamento("Grillete 1", R.drawable.grillete_cm_lira),
             ItemAditamento("Grillete 2", R.drawable.grillete_cm_lira),
             ItemAditamento("Eslabón 1", R.drawable.eslabon_entrada),
             ItemAditamento("Eslabón 2", R.drawable.eslabon_entrada),
+            ItemAditamento("Cadena 1", R.drawable.cadena_asistencia),
             ItemAditamento("Cadena 2", R.drawable.cadena_asistencia),
-            ItemAditamento("Cadena 3", R.drawable.cadena_asistencia),
             ItemAditamento("Eslabón 3", R.drawable.eslabon_entrada),
             ItemAditamento("Eslabón 4", R.drawable.eslabon_entrada),
             ItemAditamento("Grillete 3", R.drawable.grillete_cm_lira),
