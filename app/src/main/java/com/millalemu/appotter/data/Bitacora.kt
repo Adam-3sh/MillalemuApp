@@ -31,7 +31,10 @@ data class Bitacora(
     val detallesGancho: DetallesGancho? = null,
     val detallesTerminal: DetallesTerminal? = null,
     val detallesCable: DetallesCable? = null,
-    val detallesRoldana: DetallesRoldana? = null
+    val detallesRoldana: DetallesRoldana? = null,
+
+    //ASISTENCIA
+    val maquinaAsistencia: String? = null
 )
 
 @Keep

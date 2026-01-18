@@ -40,16 +40,17 @@ fun PantallaFormularioAditamento(
 
     val listaAditamentos = when (tipoMaquina) {
         "Volteo" -> listOf(
-            ItemAditamento("Grillete CM Lira", R.drawable.grillete_cm_lira),
-            ItemAditamento("Gancho Ojo Fijo", R.drawable.gancho_ojo_fijo),
-            ItemAditamento("Eslabón Entrada", R.drawable.eslabon_entrada),
-            ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
-            ItemAditamento("Eslabón Salida", R.drawable.eslabon_salida),
+            // --- ORDEN INVERTIDO: INICIO (CABLE) -> FIN (GRILLETE) ---
+            ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
-            ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia)
+            ItemAditamento("Eslabón Salida", R.drawable.eslabon_salida),
+            ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
+            ItemAditamento("Eslabón Entrada", R.drawable.eslabon_entrada),
+            ItemAditamento("Gancho Ojo Fijo", R.drawable.gancho_ojo_fijo),
+            ItemAditamento("Grillete CM Lira", R.drawable.grillete_cm_lira)
         )
         "Madereo" -> listOf(
-            // Nombre unificado
+            // El orden de Madereo se mantiene igual
             ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
             ItemAditamento("Eslabón Articulado 1", R.drawable.eslabon_articulado),
