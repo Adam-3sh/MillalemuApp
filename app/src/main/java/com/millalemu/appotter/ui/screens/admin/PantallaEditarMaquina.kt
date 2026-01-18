@@ -1,172 +1,252 @@
 package com.millalemu.appotter.ui.screens.admin
 
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.millalemu.appotter.data.Maquina
 import com.millalemu.appotter.db
-import com.google.firebase.firestore.FieldValue
-
-private val AzulOscuro = Color(0xFF1565C0)
-private val VerdeAccion = Color(0xFF2E7D32)
-private val FondoGris = Color(0xFFF5F5F5)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaEditarMaquina(modifier: Modifier = Modifier, navController: NavController, maquinaId: String) {
+fun PantallaEditarMaquina(navController: NavController, maquinaId: String) {
 
-    val opcionesTipo = listOf("Madereo", "Volteo") // Cambié nombre de variable para claridad
-    var expanded by remember { mutableStateOf(false) }
-    var tipoSeleccionado by remember { mutableStateOf("") } // Antes nombreSeleccionado
+    val opcionesTipo = listOf("Madereo", "Volteo", "Asistencia")
+    val opcionesModelo = listOf("T.winch", "Falcon", "Timbermax")
+
     var identificador by remember { mutableStateOf("") }
-    var mensajeErrorUI by remember { mutableStateOf("") }
+    var tipoSeleccionado by remember { mutableStateOf(opcionesTipo[0]) }
+    var modeloSeleccionado by remember { mutableStateOf(opcionesModelo[0]) }
+    // Eliminada variable horometro
+
+    var expandedTipo by remember { mutableStateOf(false) }
+    var expandedModelo by remember { mutableStateOf(false) }
+
+    var cargando by remember { mutableStateOf(true) }
+    var guardando by remember { mutableStateOf(false) }
+    var mensajeError by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
 
     // Cargar datos
     LaunchedEffect(maquinaId) {
         db.collection("maquinaria").document(maquinaId).get()
-            .addOnSuccessListener { doc ->
-                val maquina = doc.toObject(Maquina::class.java)
-                if (maquina != null) {
-                    // CORRECCIÓN AQUÍ: Usamos .tipo en vez de .nombre
-                    tipoSeleccionado = maquina.tipo
-                    identificador = maquina.identificador
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    val maquina = document.toObject(Maquina::class.java)
+                    if (maquina != null) {
+                        identificador = maquina.identificador
+                        tipoSeleccionado = if (opcionesTipo.contains(maquina.tipo)) maquina.tipo else opcionesTipo[0]
+
+                        if (opcionesModelo.contains(maquina.modelo)) {
+                            modeloSeleccionado = maquina.modelo
+                        }
+                    }
                 }
+                cargando = false
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Error al cargar datos", Toast.LENGTH_SHORT).show()
+                navController.popBackStack()
             }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(FondoGris)
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-
-        Icon(Icons.Default.Edit, null, tint = AzulOscuro, modifier = Modifier.size(60.dp))
-        Text(
-            text = "Editar Maquinaria",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = AzulOscuro,
-            modifier = Modifier.padding(vertical = 16.dp)
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(12.dp)
+    if (cargando) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F5))
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(Modifier.padding(24.dp)) {
+            Text(
+                text = "Editar Maquinaria",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1565C0),
+                modifier = Modifier.padding(vertical = 24.dp)
+            )
 
-                Text("Tipo de Máquina", color = AzulOscuro, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded },
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
-                ) {
-                    OutlinedTextField(
-                        value = tipoSeleccionado,
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AzulOscuro, unfocusedBorderColor = Color.LightGray),
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        opcionesTipo.forEach { opcion ->
-                            DropdownMenuItem(text = { Text(opcion) }, onClick = { tipoSeleccionado = opcion; expanded = false })
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(Modifier.padding(16.dp)) {
+
+                    // 1. Selector de Tipo
+                    Text("Tipo de Equipo", fontWeight = FontWeight.Bold)
+                    ExposedDropdownMenuBox(
+                        expanded = expandedTipo,
+                        onExpandedChange = { expandedTipo = !expandedTipo },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = tipoSeleccionado,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTipo) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
+                            )
+                        )
+                        ExposedDropdownMenu(expanded = expandedTipo, onDismissRequest = { expandedTipo = false }) {
+                            opcionesTipo.forEach { opcion ->
+                                DropdownMenuItem(
+                                    text = { Text(opcion) },
+                                    onClick = { tipoSeleccionado = opcion; expandedTipo = false }
+                                )
+                            }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 2. Selector de Modelo (Solo Asistencia)
+                    if (tipoSeleccionado == "Asistencia") {
+                        Text("Modelo de Asistencia", fontWeight = FontWeight.Bold)
+                        ExposedDropdownMenuBox(
+                            expanded = expandedModelo,
+                            onExpandedChange = { expandedModelo = !expandedModelo },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = modeloSeleccionado,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedModelo) },
+                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.White,
+                                    unfocusedContainerColor = Color.White
+                                )
+                            )
+                            ExposedDropdownMenu(expanded = expandedModelo, onDismissRequest = { expandedModelo = false }) {
+                                opcionesModelo.forEach { opcion ->
+                                    DropdownMenuItem(
+                                        text = { Text(opcion) },
+                                        onClick = { modeloSeleccionado = opcion; expandedModelo = false }
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    // 3. Identificador
+                    Text("Identificador", fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = identificador,
+                        onValueChange = { identificador = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            val ejemplo = when(tipoSeleccionado) {
+                                "Asistencia" -> "Ej: AM=01"
+                                else -> "Ej: SG-01"
+                            }
+                            Text(ejemplo)
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
+                        )
+                    )
+
+                    // Eliminado campo Horómetro
                 }
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("Identificador", color = AzulOscuro, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                OutlinedTextField(
-                    value = identificador,
-                    onValueChange = { identificador = it },
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AzulOscuro, unfocusedBorderColor = Color.LightGray)
+            if (mensajeError.isNotEmpty()) {
+                Text(
+                    text = mensajeError,
+                    color = Color.Red,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 16.dp)
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (mensajeErrorUI.isNotEmpty()) {
-            Text(mensajeErrorUI, color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
-        }
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier.weight(1f).height(50.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                border = androidx.compose.foundation.BorderStroke(1.dp, AzulOscuro)
-            ) {
-                Text("Cancelar", color = AzulOscuro, fontWeight = FontWeight.Bold)
-            }
+            Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
-                    mensajeErrorUI = ""
+                    mensajeError = ""
                     val idNormalizado = identificador.trim().uppercase()
-                    val regexPatron = Regex("^[A-Z]{2}-\\d{2}$")
 
-                    if (identificador.isBlank()) {
-                        mensajeErrorUI = "Identificador obligatorio"
-                    } else if (!regexPatron.matches(idNormalizado)) {
-                        mensajeErrorUI = "Formato inválido (Use XX-00)"
-                    } else {
-                        val prefijo = idNormalizado.substring(0, 2)
-                        var esValido = true
+                    // --- VALIDACIÓN ---
+                    val regex = Regex("^[A-Z]{2}[-=]\\d{2}$")
 
-                        if (tipoSeleccionado == "Madereo" && prefijo != "SG") {
-                            mensajeErrorUI = "Madereo debe empezar con SG-"
-                            esValido = false
-                        } else if (tipoSeleccionado == "Volteo" && (prefijo != "HM" && prefijo != "FM")) {
-                            mensajeErrorUI = "Volteo debe empezar con HM- o FM-"
-                            esValido = false
+                    if (!regex.matches(idNormalizado)) {
+                        mensajeError = "Formato inválido. (Ej: SG-01 o AM=01)"
+                        return@Button
+                    }
+
+                    val prefijo = idNormalizado.take(2)
+                    var esValido = true
+
+                    when (tipoSeleccionado) {
+                        "Asistencia" -> {
+                            if (prefijo != "AM" || !idNormalizado.contains("=")) {
+                                mensajeError = "Asistencia debe ser 'AM=XX'"
+                                esValido = false
+                            }
                         }
-
-                        if (esValido) {
-                            // CORRECCIÓN AQUÍ: Actualizamos 'tipo' en lugar de 'nombre'
-                            val updates = mapOf(
-                                "tipo" to tipoSeleccionado,
-                                "identificador" to idNormalizado,
-                                "fechaModificacion" to FieldValue.serverTimestamp()
-                            )
-                            db.collection("maquinaria").document(maquinaId).update(updates)
-                                .addOnSuccessListener { navController.popBackStack() }
-                                .addOnFailureListener { mensajeErrorUI = "Error: ${it.message}" }
+                        "Madereo" -> {
+                            if (prefijo != "SG" || !idNormalizado.contains("-")) {
+                                mensajeError = "Madereo debe ser 'SG-XX'"
+                                esValido = false
+                            }
+                        }
+                        "Volteo" -> {
+                            if ((prefijo != "HM" && prefijo != "FM") || !idNormalizado.contains("-")) {
+                                mensajeError = "Volteo debe ser 'HM-XX' o 'FM-XX'"
+                                esValido = false
+                            }
                         }
                     }
+
+                    if (esValido) {
+                        guardando = true
+
+                        // Objeto de actualización SIN horómetro
+                        val mapaActualizacion = hashMapOf<String, Any>(
+                            "identificador" to idNormalizado,
+                            "tipo" to tipoSeleccionado,
+                            "modelo" to if (tipoSeleccionado == "Asistencia") modeloSeleccionado else ""
+                        )
+
+                        db.collection("maquinaria").document(maquinaId)
+                            .update(mapaActualizacion)
+                            .addOnSuccessListener {
+                                guardando = false
+                                Toast.makeText(context, "Maquina Actualizada", Toast.LENGTH_SHORT).show()
+                                navController.popBackStack()
+                            }
+                            .addOnFailureListener { e ->
+                                guardando = false
+                                mensajeError = "Error al actualizar: ${e.message}"
+                            }
+                    }
                 },
-                modifier = Modifier.weight(1f).height(50.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VerdeAccion)
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                enabled = !guardando,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0))
             ) {
-                Text("Guardar", fontWeight = FontWeight.Bold)
+                if (guardando) CircularProgressIndicator(color = Color.White) else Text("GUARDAR CAMBIOS")
             }
         }
     }

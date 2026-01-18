@@ -89,6 +89,7 @@ fun AppNavigation(startDestination: String = AppRoutes.LOGIN) { // Agregamos par
             ) { backStackEntry ->
                 val maquinaId = backStackEntry.arguments?.getString(AppRoutes.EDITAR_MAQUINA_ARG_ID)
                 requireNotNull(maquinaId)
+                // Aquí pasas el ID a la pantalla, tal como lo definimos en PantallaEditarMaquina.kt
                 PantallaEditarMaquina(navController = navController, maquinaId = maquinaId)
             }
 
