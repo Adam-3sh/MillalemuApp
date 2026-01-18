@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaRegistroGancho(
     navController: NavController,
@@ -50,9 +52,14 @@ fun PantallaRegistroGancho(
 ) {
     val context = LocalContext.current
 
-    //var numeroSerie by remember { mutableStateOf("") }
+    // --- ESTADOS DE UI Y DATOS ---
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
+
+    // --- VARIABLES DE ASISTENCIA ---
+    var listaMaquinasAsistencia by remember { mutableStateOf<List<String>>(emptyList()) }
+    var maquinaAsistenciaSeleccionada by remember { mutableStateOf("") }
+    var expandedAsistencia by remember { mutableStateOf(false) }
 
     // --- VARIABLES NOMINALES (6 Medidas) ---
     var nomPhi1 by remember { mutableStateOf("") }
@@ -121,6 +128,22 @@ fun PantallaRegistroGancho(
         porcentajeDanoGlobal = "%.1f%%".format(maxDanoVal)
     }
 
+    // --- CARGA DE DATOS ASISTENCIA ---
+    LaunchedEffect(Unit) {
+        db.collection("maquinaria")
+            .whereEqualTo("tipo", "Asistencia")
+            .get()
+            .addOnSuccessListener { documents ->
+                listaMaquinasAsistencia = documents.mapNotNull { doc ->
+                    val id = doc.getString("identificador") ?: ""
+                    val modelo = doc.getString("modelo") ?: ""
+                    if (id.isNotEmpty()) {
+                        if (modelo.isNotEmpty()) "${modelo.uppercase()} - $id" else id
+                    } else null
+                }
+            }
+    }
+
     // --- CARGA DE HISTORIAL (OFFLINE FIRST - Source.CACHE) ---
     LaunchedEffect(Unit) {
         db.collection("bitacoras")
@@ -128,12 +151,11 @@ fun PantallaRegistroGancho(
             .whereEqualTo("tipoAditamento", nombreAditamento)
             .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(1)
-            .get(Source.CACHE) // Caché primero para velocidad instantánea
+            .get(Source.CACHE)
             .addOnSuccessListener { documents ->
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
                     ultima?.detallesGancho?.let { d ->
-                        //numeroSerie = ultima.numeroSerie
                         nomPhi1 = d.phi1Nominal.toString(); nomR = d.rNominal.toString(); nomD = d.dNominal.toString()
                         nomPhi2 = d.phi2Nominal.toString(); nomH = d.hNominal.toString(); nomE = d.eNominal.toString()
                     }
@@ -141,7 +163,6 @@ fun PantallaRegistroGancho(
                 isLoadingHistory = false
             }
             .addOnFailureListener {
-                // Si falla caché (vacía o error), habilitamos manual de inmediato
                 isLoadingHistory = false; nominalesEditables = true
             }
     }
@@ -165,10 +186,72 @@ fun PantallaRegistroGancho(
 
             // DATOS GENERALES
             CardSeccion(titulo = "Datos Generales") {
-                RowItemDato(label = "Equipo", valor = idEquipo); Spacer(Modifier.height(8.dp))
-                RowItemDato(label = "Fecha", valor = fechaHoy); Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "Horómetro", value = horometro, onValueChange = { horometro = it }, suffix = "hrs", isNumber = true); Spacer(Modifier.height(8.dp))
-                //RowItemInput(label = "Nº Serie", value = numeroSerie, onValueChange = { numeroSerie = it })
+                RowItemDato(label = "Equipo", valor = idEquipo)
+
+                Spacer(Modifier.height(16.dp))
+
+                // --- DROPDOWN ASISTENCIA MEJORADO ---
+                Text(
+                    text = "Máquina Asistencia (Obligatorio)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia")) Color.Red else AzulOscuro,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+
+                ExposedDropdownMenuBox(
+                    expanded = expandedAsistencia,
+                    onExpandedChange = { expandedAsistencia = !expandedAsistencia },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = if (maquinaAsistenciaSeleccionada.isEmpty()) "Seleccione..." else maquinaAsistenciaSeleccionada,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAsistencia) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = AzulOscuro,
+                            errorBorderColor = Color.Red
+                        ),
+                        isError = maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia"),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedAsistencia,
+                        onDismissRequest = { expandedAsistencia = false },
+                        modifier = Modifier.background(Color.White)
+                    ) {
+                        listaMaquinasAsistencia.forEach { maquina ->
+                            val isSelected = (maquina == maquinaAsistenciaSeleccionada)
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = maquina,
+                                        fontSize = 16.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) AzulOscuro else Color.Black
+                                    )
+                                },
+                                onClick = {
+                                    maquinaAsistenciaSeleccionada = maquina
+                                    expandedAsistencia = false
+                                },
+                                modifier = Modifier.background(if (isSelected) Color(0xFFE3F2FD) else Color.Transparent)
+                            )
+                        }
+                    }
+                }
+                // ------------------------------------
+
+                Spacer(Modifier.height(16.dp))
+
+                RowItemDato(label = "Fecha", valor = fechaHoy)
+                Spacer(Modifier.height(8.dp))
+                RowItemInput(label = "Horómetro", value = horometro, onValueChange = { horometro = it }, suffix = "hrs", isNumber = true)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -269,8 +352,15 @@ fun PantallaRegistroGancho(
                 Button(
                     onClick = {
                         isSaving = true; mensajeError = ""
+
+                        // --- VALIDACIÓN ASISTENCIA ---
+                        if (maquinaAsistenciaSeleccionada.isEmpty()) {
+                            mensajeError = "Debe seleccionar una máquina de asistencia."
+                            isSaving = false
+                            return@Button
+                        }
+
                         // VALIDACIONES
-                        //if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
                         val h = cleanDouble(horometro)
                         val nP1 = cleanDouble(nomPhi1); val nR = cleanDouble(nomR); val nD = cleanDouble(nomD); val nP2 = cleanDouble(nomPhi2); val nH = cleanDouble(nomH); val nE = cleanDouble(nomE)
                         val mP1 = cleanDouble(medPhi1); val mR = cleanDouble(medR); val mD = cleanDouble(medD); val mP2 = cleanDouble(medPhi2); val mH = cleanDouble(medH); val mE = cleanDouble(medE)
@@ -286,10 +376,19 @@ fun PantallaRegistroGancho(
                             phi1Porcentaje = valPhi1, rPorcentaje = valR, dPorcentaje = valD, phi2Porcentaje = valPhi2, hPorcentaje = valH, ePorcentaje = valE
                         )
                         val bitacora = Bitacora(
-                            usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina, tipoAditamento = nombreAditamento,
-                            //numeroSerie = numeroSerie,
-                            horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
-                            requiereReemplazo = requiereReemplazo, observacion = observacion, detallesGancho = detalles,
+                            usuarioRut = Sesion.rutUsuarioActual,
+                            usuarioNombre = Sesion.nombreUsuarioActual,
+                            identificadorMaquina = idEquipo,
+                            tipoMaquina = tipoMaquina,
+                            tipoAditamento = nombreAditamento,
+                            // --- GUARDADO ---
+                            maquinaAsistencia = maquinaAsistenciaSeleccionada,
+                            horometro = h,
+                            porcentajeDesgasteGeneral = maxDanoVal,
+                            tieneFisura = tieneFisura,
+                            requiereReemplazo = requiereReemplazo,
+                            observacion = observacion,
+                            detallesGancho = detalles,
                             detallesEslabon = null, detallesCadena = null, detallesGrillete = null, detallesTerminal = null, detallesCable = null
                         )
 

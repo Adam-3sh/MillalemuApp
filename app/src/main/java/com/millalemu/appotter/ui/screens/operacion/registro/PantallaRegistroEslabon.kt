@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaRegistroEslabon(
     navController: NavController,
@@ -51,9 +53,13 @@ fun PantallaRegistroEslabon(
     val context = LocalContext.current
 
     // --- ESTADOS DE UI Y DATOS ---
-    //var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
+
+    // --- VARIABLES DE ASISTENCIA ---
+    var listaMaquinasAsistencia by remember { mutableStateOf<List<String>>(emptyList()) }
+    var maquinaAsistenciaSeleccionada by remember { mutableStateOf("") }
+    var expandedAsistencia by remember { mutableStateOf(false) }
 
     // Variables Nominales (Iniciales) - Eslabón tiene K, A, D, B
     var nomK by remember { mutableStateOf("") }
@@ -98,6 +104,23 @@ fun PantallaRegistroEslabon(
 
     fun cleanDouble(s: String): Double = s.replace(',', '.').trim().toDoubleOrNull() ?: 0.0
 
+    // --- CARGAR DATOS ASISTENCIA ---
+    LaunchedEffect(Unit) {
+        db.collection("maquinaria")
+            .whereEqualTo("tipo", "Asistencia")
+            .get()
+            .addOnSuccessListener { documents ->
+                listaMaquinasAsistencia = documents.mapNotNull { doc ->
+                    val id = doc.getString("identificador") ?: ""
+                    val modelo = doc.getString("modelo") ?: ""
+                    if (id.isNotEmpty()) {
+                        // Formato: MODELO - ID
+                        if (modelo.isNotEmpty()) "${modelo.uppercase()} - $id" else id
+                    } else null
+                }
+            }
+    }
+
     // --- CÁLCULO AUTOMÁTICO REACTIVO ---
     LaunchedEffect(nomK, nomA, nomD, nomB, medK, medA, medD, medB) {
         val nK = cleanDouble(nomK); val mK = cleanDouble(medK)
@@ -125,24 +148,22 @@ fun PantallaRegistroEslabon(
             .whereEqualTo("tipoAditamento", nombreAditamento)
             .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(1)
-            .get(Source.CACHE) // IMPORTANTE: Caché primero para evitar bloqueos
+            .get(Source.CACHE)
             .addOnSuccessListener { documents ->
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
                     ultima?.detallesEslabon?.let { d ->
-                        //numeroSerie = ultima.numeroSerie
                         nomK = d.kNominal.toString()
                         nomA = d.aNominal.toString()
                         nomD = d.dNominal.toString()
                         nomB = d.bNominal.toString()
                     }
                 } else {
-                    nominalesEditables = true // No hay historial, permitir editar
+                    nominalesEditables = true
                 }
                 isLoadingHistory = false
             }
             .addOnFailureListener {
-                // Si falla caché (vacía o error), habilitamos manual inmediatamente
                 isLoadingHistory = false
                 nominalesEditables = true
             }
@@ -204,6 +225,66 @@ fun PantallaRegistroEslabon(
             CardSeccion(titulo = "Datos Generales") {
                 RowItemDato(label = "Equipo", valor = idEquipo)
                 Spacer(Modifier.height(8.dp))
+
+                // --- DROPDOWN ASISTENCIA MEJORADO ---
+                Text(
+                    text = "Máquina Asistencia (Obligatorio)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia")) Color.Red else AzulOscuro,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+
+                ExposedDropdownMenuBox(
+                    expanded = expandedAsistencia,
+                    onExpandedChange = { expandedAsistencia = !expandedAsistencia },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = if (maquinaAsistenciaSeleccionada.isEmpty()) "Seleccione..." else maquinaAsistenciaSeleccionada,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAsistencia) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        // Texto tamaño 16.sp
+                        textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = AzulOscuro,
+                            errorBorderColor = Color.Red
+                        ),
+                        isError = maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia"),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedAsistencia,
+                        onDismissRequest = { expandedAsistencia = false },
+                        modifier = Modifier.background(Color.White)
+                    ) {
+                        listaMaquinasAsistencia.forEach { maquina ->
+                            val isSelected = (maquina == maquinaAsistenciaSeleccionada)
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = maquina,
+                                        fontSize = 16.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) AzulOscuro else Color.Black
+                                    )
+                                },
+                                onClick = {
+                                    maquinaAsistenciaSeleccionada = maquina
+                                    expandedAsistencia = false
+                                },
+                                modifier = Modifier.background(if (isSelected) Color(0xFFE3F2FD) else Color.Transparent)
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                // ------------------------------------
+
                 RowItemDato(label = "Fecha", valor = fechaHoy)
                 Spacer(Modifier.height(8.dp))
                 RowItemInput(
@@ -213,12 +294,6 @@ fun PantallaRegistroEslabon(
                     suffix = "hrs",
                     isNumber = true
                 )
-                /*Spacer(Modifier.height(8.dp))
-                RowItemInput(
-                    label = "Nº Serie",
-                    value = numeroSerie,
-                    onValueChange = { numeroSerie = it }
-                )*/
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -391,12 +466,13 @@ fun PantallaRegistroEslabon(
                         isSaving = true
                         mensajeError = ""
 
-                        // 1. VALIDACIONES
-                        /*if (numeroSerie.isBlank()) {
-                            mensajeError = "Falta el número de serie."
+                        // --- VALIDACIÓN ASISTENCIA ---
+                        if (maquinaAsistenciaSeleccionada.isEmpty()) {
+                            mensajeError = "Debe seleccionar una máquina de asistencia."
                             isSaving = false
                             return@Button
-                        }*/
+                        }
+
                         val h = cleanDouble(horometro)
                         if (h <= 0) {
                             mensajeError = "Falta el horómetro."
@@ -431,7 +507,8 @@ fun PantallaRegistroEslabon(
                             identificadorMaquina = idEquipo,
                             tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,
-                            //numeroSerie = numeroSerie,
+                            // --- GUARDADO DE ASISTENCIA ---
+                            maquinaAsistencia = maquinaAsistenciaSeleccionada,
                             horometro = h,
                             porcentajeDesgasteGeneral = maxDanoVal,
                             tieneFisura = tieneFisura,
@@ -441,10 +518,7 @@ fun PantallaRegistroEslabon(
                             detallesCadena = null, detallesGrillete = null, detallesGancho = null, detallesTerminal = null, detallesCable = null
                         )
 
-                        // 3. GUARDADO OFFLINE-FIRST REAL
-                        // Verificamos red ANTES de decidir si esperar respuesta
                         if (NetworkUtils.esRedDisponible(context)) {
-                            // Online: Esperamos respuesta para confirmar subida
                             db.collection("bitacoras").add(bitacora)
                                 .addOnSuccessListener {
                                     isSaving = false
@@ -456,10 +530,7 @@ fun PantallaRegistroEslabon(
                                     mensajeError = "Error al subir: ${it.message}"
                                 }
                         } else {
-                            // Offline: Guardamos localmente y salimos YA.
-                            // Firestore gestiona la cola de subida automáticamente.
                             db.collection("bitacoras").add(bitacora)
-
                             isSaving = false
                             Toast.makeText(context, "Guardado localmente (se subirá al tener internet)", Toast.LENGTH_LONG).show()
                             navController.popBackStack()
