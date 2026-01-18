@@ -55,7 +55,6 @@ object AppRoutes {
     const val EDITAR_USUARIO_ARG_ID = "usuarioId"
     const val CALCULADORA = "calculadora"
     const val FORMULARIO_ADITAMENTO = "formulario_aditamento"
-    const val REGISTRO_MEDIDAS_ROUTE = "registro_medidas"
     const val REGISTRO_ESLABON = "registro_eslabon"
     const val SELECCION_EQUIPO = "seleccion_equipo"
     const val REGISTRO_TERMINAL = "registro_terminal"
