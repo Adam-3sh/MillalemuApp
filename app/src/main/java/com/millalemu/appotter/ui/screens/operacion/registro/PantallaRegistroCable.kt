@@ -28,6 +28,7 @@ import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.DetallesCable
 import com.millalemu.appotter.db
 import com.millalemu.appotter.ui.components.CardSeccion
+// import com.millalemu.appotter.ui.components.HorizontalDivider <-- ELIMINADO
 import com.millalemu.appotter.ui.theme.AzulOscuro
 import com.millalemu.appotter.ui.theme.VerdeBoton
 import com.millalemu.appotter.utils.CableCalculations
@@ -37,6 +38,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaRegistroCable(
     navController: NavController,
@@ -70,10 +72,33 @@ fun PantallaRegistroCable(
     var calcDisminucion by remember { mutableStateOf(0.0) }
     var calcTotal by remember { mutableStateOf(0.0) }
 
-    // Variables visuales del estado (Usamos el nuevo sistema centralizado)
+    // Variables visuales del estado
     var estadoTexto by remember { mutableStateOf("PENDIENTE") }
     var estadoColor by remember { mutableStateOf(Color.Gray) }
     var estadoColorTexto by remember { mutableStateOf(Color.White) }
+
+    // --- VARIABLES DE ASISTENCIA ---
+    var listaMaquinasAsistencia by remember { mutableStateOf<List<String>>(emptyList()) }
+    var maquinaAsistenciaSeleccionada by remember { mutableStateOf("") }
+    var expandedAsistencia by remember { mutableStateOf(false) }
+
+    // --- CARGAR DATOS ASISTENCIA ---
+    LaunchedEffect(Unit) {
+        db.collection("maquinaria")
+            .whereEqualTo("tipo", "Asistencia")
+            .get()
+            .addOnSuccessListener { documents ->
+                listaMaquinasAsistencia = documents.mapNotNull { doc ->
+                    val id = doc.getString("identificador") ?: ""
+                    val modelo = doc.getString("modelo") ?: ""
+
+                    if (id.isNotEmpty()) {
+                        // Formato: MODELO - ID
+                        if (modelo.isNotEmpty()) "${modelo.uppercase()} - $id" else id
+                    } else null
+                }
+            }
+    }
 
     // --- EFECTO DE CÁLCULO EN TIEMPO REAL ---
     LaunchedEffect(alambres6d, alambres30d, diametroMedido, nivelCorrosion, tipoCable, presentaCorte) {
@@ -89,18 +114,16 @@ fun PantallaRegistroCable(
         if (tipoCable == "28mm") {
             calcSevDiametro = CableCalculations.calcularSeveridadDiametro28mm(dDiametro)
         } else {
-            // Por defecto 26mm
             calcSevDiametro = CableCalculations.calcularSeveridadDiametro26mm(dDiametro)
         }
 
-        // % Disminución informativo (usa la fórmula correcta para cada uno)
+        // % Disminución informativo
         calcDisminucion = CableCalculations.calcularPorcentajeDisminucion(dDiametro, tipoCable)
 
         // 2. Sumar Total
         calcTotal = CableCalculations.calcularDañoTotal(calcSevAlambres, calcSevDiametro, calcSevCorrosion)
 
-        // 3. Obtener Estado Visual Centralizado (¡Aquí está la magia!)
-        // Le pasamos el tipo de cable para que sepa qué rangos de colores usar.
+        // 3. Obtener Estado Visual
         val estadoVisual = CableCalculations.obtenerEstadoVisual(
             tipoCable = tipoCable,
             porcentajeTotal = calcTotal,
@@ -141,6 +164,66 @@ fun PantallaRegistroCable(
                 Column { EtiquetaCampo("Equipo"); Text(idEquipo, fontSize = 20.sp, fontWeight = FontWeight.Black, color = AzulOscuro) }
                 Column(horizontalAlignment = Alignment.End) { EtiquetaCampo("Fecha"); Text(fechaHoy, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // --- DROPDOWN ASISTENCIA MEJORADO ---
+            Text(
+                text = "Máquina Asistencia (Obligatorio)",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia")) Color.Red else AzulOscuro,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
+            ExposedDropdownMenuBox(
+                expanded = expandedAsistencia,
+                onExpandedChange = { expandedAsistencia = !expandedAsistencia },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = if (maquinaAsistenciaSeleccionada.isEmpty()) "Seleccione..." else maquinaAsistenciaSeleccionada,
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAsistencia) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        focusedBorderColor = AzulOscuro,
+                        errorBorderColor = Color.Red
+                    ),
+                    isError = maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia"),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                ExposedDropdownMenu(
+                    expanded = expandedAsistencia,
+                    onDismissRequest = { expandedAsistencia = false },
+                    modifier = Modifier.background(Color.White)
+                ) {
+                    listaMaquinasAsistencia.forEach { maquina ->
+                        val isSelected = (maquina == maquinaAsistenciaSeleccionada)
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = maquina,
+                                    fontSize = 16.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) AzulOscuro else Color.Black
+                                )
+                            },
+                            onClick = {
+                                maquinaAsistenciaSeleccionada = maquina
+                                expandedAsistencia = false
+                            },
+                            modifier = Modifier.background(if (isSelected) Color(0xFFE3F2FD) else Color.Transparent)
+                        )
+                    }
+                }
+            }
+            // ------------------------------------
+
             Spacer(Modifier.height(16.dp))
             CampoEntrada("Horómetro Actual", horometro, { if (it.all { c -> c.isDigit() || c == '.' }) horometro = it }, "hrs")
         }
@@ -170,19 +253,23 @@ fun PantallaRegistroCable(
                 CampoEntrada("M. Disponibles", metrosDisponible, { if (it.all { c -> c.isDigit() || c == '.' }) metrosDisponible = it }, "m", Modifier.weight(1f))
                 CampoEntrada("M. Revisados", metrosRevisado, { if (it.all { c -> c.isDigit() || c == '.' }) metrosRevisado = it }, "m", Modifier.weight(1f))
             }
-            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+
+            // Reemplazado HorizontalDivider por Divider
+            Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
+
             EtiquetaCampo("Alambres Rotos")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CampoEntrada("6D (Max 10)", alambres6d, { if (it.all { c -> c.isDigit() }) alambres6d = it }, "", Modifier.weight(1f))
                 CampoEntrada("30D (Max 20)", alambres30d, { if (it.all { c -> c.isDigit() }) alambres30d = it }, "", Modifier.weight(1f))
             }
-            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+
+            // Reemplazado HorizontalDivider por Divider
+            Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
 
             // SECCIÓN DIÁMETRO
             EtiquetaCampo("Estado Físico")
             CampoEntrada("Diámetro Medido", diametroMedido, { if (it.all { c -> c.isDigit() || c == '.' }) diametroMedido = it }, "mm")
 
-            // Texto informativo dinámico
             if (diametroMedido.isNotEmpty()) {
                 Text(
                     text = "Disminución Nominal: ${String.format("%.1f", calcDisminucion)}%",
@@ -240,7 +327,14 @@ fun PantallaRegistroCable(
         Button(
             onClick = {
                 mensajeError = ""
-                // Validaciones
+
+                // --- VALIDACIÓN ASISTENCIA ---
+                if (maquinaAsistenciaSeleccionada.isEmpty()) {
+                    mensajeError = "Debe seleccionar una máquina de asistencia."
+                    return@Button
+                }
+
+                // Validaciones Generales
                 if (horometro.isBlank() || tipoMedicion.isEmpty() || tipoCable.isEmpty() ||
                     metrosDisponible.isBlank() || metrosRevisado.isBlank() ||
                     alambres6d.isBlank() || alambres30d.isBlank() ||
@@ -264,7 +358,6 @@ fun PantallaRegistroCable(
                 val finalSevAlambres = CableCalculations.calcularSeveridadAlambres(dAlm6d, dAlm30d)
                 val finalSevCorrosion = CableCalculations.calcularSeveridadCorrosion(nivelCorrosion)
 
-                // Selección de fórmula final
                 val finalSevDiametro = if (tipoCable == "28mm") {
                     CableCalculations.calcularSeveridadDiametro28mm(dDiametro)
                 } else {
@@ -285,6 +378,8 @@ fun PantallaRegistroCable(
                     identificadorMaquina = idEquipo,
                     tipoMaquina = tipoMaquina,
                     tipoAditamento = "Cable de Asistencia",
+                    // --- GUARDADO DE ASISTENCIA ---
+                    maquinaAsistencia = maquinaAsistenciaSeleccionada,
                     horometro = dHorometro,
                     porcentajeDesgasteGeneral = finalTotal,
                     requiereReemplazo = requiereReemplazo,
@@ -315,7 +410,7 @@ fun PantallaRegistroCable(
     }
 }
 
-// --- CARD RESUMEN ---
+// --- CARD RESUMEN Y OTROS COMPONENTES ---
 @Composable
 fun CardResumenEstado(
     sevAlambres: Double,
@@ -340,7 +435,8 @@ fun CardResumenEstado(
             FilaProgreso("Severidad Diámetro", sevDiametro)
             FilaProgreso("Corrosión", sevCorrosion)
 
-            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+            // Reemplazado HorizontalDivider por Divider
+            Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
 
             // Resultado Final
             Row(
@@ -368,7 +464,6 @@ fun CardResumenEstado(
     }
 }
 
-// Componentes auxiliares...
 @Composable
 fun FilaProgreso(label: String, porcentaje: Double) {
     Column(Modifier.padding(bottom = 8.dp)) {
