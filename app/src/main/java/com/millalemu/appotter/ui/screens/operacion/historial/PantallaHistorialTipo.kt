@@ -82,7 +82,7 @@ fun PantallaHistorialTipo(navController: NavController) {
             // >>> NUEVO BOTÓN: ASISTENCIA GLOBAL <<<
             CardSeleccionTipoHistorial(
                 titulo = "Asistencia",
-                imagen = R.drawable.cable_asistencia, // Usamos esta imagen representativa
+                imagen = R.drawable.maquina_asistencia, // Usamos esta imagen representativa
                 colorTexto = Color(0xFF455A64), // Un color distintivo (Gris azulado)
                 onClick = { navController.navigate("historial_asistencia_global") }
             )
