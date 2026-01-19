@@ -52,6 +52,10 @@ fun PantallaRegistroEslabon(
 ) {
     val context = LocalContext.current
 
+    // 1. DEFINIR LA CONDICIÓN ESPECÍFICA (Solo Entrada y Salida llevan asistencia)
+    val requiereAsistencia = nombreAditamento.equals("Eslabón Entrada", ignoreCase = true) ||
+            nombreAditamento.equals("Eslabón Salida", ignoreCase = true)
+
     // --- ESTADOS DE UI Y DATOS ---
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
@@ -226,64 +230,65 @@ fun PantallaRegistroEslabon(
                 RowItemDato(label = "Equipo", valor = idEquipo)
                 Spacer(Modifier.height(8.dp))
 
-                // --- DROPDOWN ASISTENCIA MEJORADO ---
-                Text(
-                    text = "Máquina Asistencia (Obligatorio)",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia")) Color.Red else AzulOscuro,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-
-                ExposedDropdownMenuBox(
-                    expanded = expandedAsistencia,
-                    onExpandedChange = { expandedAsistencia = !expandedAsistencia },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = if (maquinaAsistenciaSeleccionada.isEmpty()) "Seleccione..." else maquinaAsistenciaSeleccionada,
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAsistencia) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        // Texto tamaño 16.sp
-                        textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = AzulOscuro,
-                            errorBorderColor = Color.Red
-                        ),
-                        isError = maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia"),
-                        shape = RoundedCornerShape(8.dp)
+                // 2. ENVOLVER LA UI DEL DROPDOWN CON EL IF (Ya lo tenías bien)
+                if (requiereAsistencia) {
+                    // --- DROPDOWN ASISTENCIA MEJORADO ---
+                    Text(
+                        text = "Máquina Asistencia (Obligatorio)",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia")) Color.Red else AzulOscuro,
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
-                    ExposedDropdownMenu(
+
+                    ExposedDropdownMenuBox(
                         expanded = expandedAsistencia,
-                        onDismissRequest = { expandedAsistencia = false },
-                        modifier = Modifier.background(Color.White)
+                        onExpandedChange = { expandedAsistencia = !expandedAsistencia },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        listaMaquinasAsistencia.forEach { maquina ->
-                            val isSelected = (maquina == maquinaAsistenciaSeleccionada)
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = maquina,
-                                        fontSize = 16.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) AzulOscuro else Color.Black
-                                    )
-                                },
-                                onClick = {
-                                    maquinaAsistenciaSeleccionada = maquina
-                                    expandedAsistencia = false
-                                },
-                                modifier = Modifier.background(if (isSelected) Color(0xFFE3F2FD) else Color.Transparent)
-                            )
+                        OutlinedTextField(
+                            value = if (maquinaAsistenciaSeleccionada.isEmpty()) "Seleccione..." else maquinaAsistenciaSeleccionada,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAsistencia) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White,
+                                focusedBorderColor = AzulOscuro,
+                                errorBorderColor = Color.Red
+                            ),
+                            isError = maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia"),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedAsistencia,
+                            onDismissRequest = { expandedAsistencia = false },
+                            modifier = Modifier.background(Color.White)
+                        ) {
+                            listaMaquinasAsistencia.forEach { maquina ->
+                                val isSelected = (maquina == maquinaAsistenciaSeleccionada)
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = maquina,
+                                            fontSize = 16.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) AzulOscuro else Color.Black
+                                        )
+                                    },
+                                    onClick = {
+                                        maquinaAsistenciaSeleccionada = maquina
+                                        expandedAsistencia = false
+                                    },
+                                    modifier = Modifier.background(if (isSelected) Color(0xFFE3F2FD) else Color.Transparent)
+                                )
+                            }
                         }
                     }
+                    Spacer(Modifier.height(12.dp))
                 }
-                Spacer(Modifier.height(12.dp))
-                // ------------------------------------
 
                 RowItemDato(label = "Fecha", valor = fechaHoy)
                 Spacer(Modifier.height(8.dp))
@@ -466,8 +471,9 @@ fun PantallaRegistroEslabon(
                         isSaving = true
                         mensajeError = ""
 
-                        // --- VALIDACIÓN ASISTENCIA ---
-                        if (maquinaAsistenciaSeleccionada.isEmpty()) {
+                        // --- CORRECCIÓN AQUÍ: VALIDACIÓN CONDICIONAL ---
+                        // Solo validamos si requiere asistencia. Si no requiere, se salta.
+                        if (requiereAsistencia && maquinaAsistenciaSeleccionada.isEmpty()) {
                             mensajeError = "Debe seleccionar una máquina de asistencia."
                             isSaving = false
                             return@Button
@@ -494,7 +500,7 @@ fun PantallaRegistroEslabon(
                             return@Button
                         }
 
-                        // 2. CREAR OBJETO BITÁCORA
+                        // CREAR OBJETO BITÁCORA
                         val detalles = DetallesEslabon(
                             kNominal = nK, aNominal = nA, dNominal = nD, bNominal = nB,
                             kActual = mK, aActual = mA, dActual = mD, bActual = mB,
@@ -507,8 +513,9 @@ fun PantallaRegistroEslabon(
                             identificadorMaquina = idEquipo,
                             tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,
-                            // --- GUARDADO DE ASISTENCIA ---
-                            maquinaAsistencia = maquinaAsistenciaSeleccionada,
+                            // --- CORRECCIÓN AQUÍ: GUARDADO CONDICIONAL ---
+                            // Si requiere asistencia, se guarda la seleccionada. Si no, va vacío.
+                            maquinaAsistencia = if (requiereAsistencia) maquinaAsistenciaSeleccionada else "",
                             horometro = h,
                             porcentajeDesgasteGeneral = maxDanoVal,
                             tieneFisura = tieneFisura,

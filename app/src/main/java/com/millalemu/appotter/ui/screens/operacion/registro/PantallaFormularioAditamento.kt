@@ -56,7 +56,7 @@ fun PantallaFormularioAditamento(
             ItemAditamento("Eslabón Salida", R.drawable.eslabon_articulado),
             ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
             ItemAditamento("Eslabón Entrada", R.drawable.eslabon_articulado),
-            ItemAditamento("Gancho de Ojo", R.drawable.gancho_ojo_fijo),
+            ItemAditamento("Gancho Ojo Fijo", R.drawable.gancho_ojo_fijo),
             ItemAditamento("Grillete Lira", R.drawable.grillete_cm_lira),
             ItemAditamento("Roldana", R.drawable.roldana),
             ItemAditamento("Grillete 1", R.drawable.grillete_cm_lira),
