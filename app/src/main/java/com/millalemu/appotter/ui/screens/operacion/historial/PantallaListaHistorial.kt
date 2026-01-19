@@ -146,6 +146,8 @@ fun PantallaListaHistorial(
     }
 }
 
+// ... (imports y resto del código igual)
+
 @Composable
 private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
@@ -153,16 +155,15 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--/--/----" }
 
-    // --- LÓGICA DE SEMÁFORO MEJORADA (Incluye Fisuras) ---
+    // --- LÓGICA DE SEMÁFORO (Igual que antes) ---
     val (colorEstado, textoEstado, fondoEstado) = when {
-        bitacora.tieneFisura -> Triple(Color(0xFFD32F2F), "FISURA", Color(0xFFFFEBEE)) // Rojo Intenso si hay fisura
-        bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE)) // Rojo
-        bitacora.porcentajeDesgasteGeneral >= 10.0 -> Triple(Color(0xFFD32F2F), "CRÍTICO", Color(0xFFFFEBEE)) // Rojo
-        bitacora.porcentajeDesgasteGeneral >= 5.0 -> Triple(Color(0xFFEF6C00), "ALERTA", Color(0xFFFFF3E0)) // Naranja
-        else -> Triple(Color(0xFF2E7D32), "OK", Color(0xFFE8F5E9)) // Verde
+        bitacora.tieneFisura -> Triple(Color(0xFFD32F2F), "FISURA", Color(0xFFFFEBEE))
+        bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE))
+        bitacora.porcentajeDesgasteGeneral >= 10.0 -> Triple(Color(0xFFD32F2F), "CRÍTICO", Color(0xFFFFEBEE))
+        bitacora.porcentajeDesgasteGeneral >= 5.0 -> Triple(Color(0xFFEF6C00), "ALERTA", Color(0xFFFFF3E0))
+        else -> Triple(Color(0xFF2E7D32), "OK", Color(0xFFE8F5E9))
     }
 
-    // Icono correspondiente
     val iconoEstado = if (textoEstado == "OK") Icons.Default.Check else Icons.Default.Warning
 
     Card(
@@ -175,14 +176,13 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // CABECERA
+            // CABECERA (Igual que antes)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text(text = fechaTexto, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
                     Text(text = "Horómetro: ${bitacora.horometro.toInt()} hrs", fontSize = 15.sp, color = Color.Gray)
                 }
 
-                // Badge de Estado
                 Surface(color = fondoEstado, shape = RoundedCornerShape(50), modifier = Modifier.border(1.dp, colorEstado.copy(alpha = 0.3f), RoundedCornerShape(50))) {
                     Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = iconoEstado, contentDescription = null, tint = colorEstado, modifier = Modifier.size(18.dp))
@@ -194,7 +194,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Barra de Desgaste
+            // Barra de Desgaste (Igual que antes)
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Desgaste General", fontSize = 14.sp, color = Color.Gray)
@@ -242,6 +242,28 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                     }
                 }
 
+                // >>> NUEVO: CAMPO MAQUINA ASISTENCIA (Solo si existe) <<<
+                if (!bitacora.maquinaAsistencia.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF1565C0), modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Máquina Asistencia: ",
+                            fontSize = 13.sp,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = bitacora.maquinaAsistencia,
+                            fontSize = 14.sp,
+                            color = Color(0xFF1565C0),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                // >>> FIN NUEVO CAMPO <<<
+
                 if (bitacora.observacion.isNotBlank()) {
                     Spacer(Modifier.height(12.dp))
                     Surface(color = Color(0xFFFFF8E1), shape = RoundedCornerShape(4.dp), border = BorderStroke(1.dp, Color(0xFFFFE0B2))) {
@@ -256,7 +278,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                 Text("Mediciones Técnicas:", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // SELECTOR DE TABLAS
+                // SELECTOR DE TABLAS (Igual que antes)
                 when {
                     bitacora.detallesGrillete != null -> TablaGrillete(bitacora.detallesGrillete)
                     bitacora.detallesRoldana != null -> TablaRoldana(bitacora.detallesRoldana)

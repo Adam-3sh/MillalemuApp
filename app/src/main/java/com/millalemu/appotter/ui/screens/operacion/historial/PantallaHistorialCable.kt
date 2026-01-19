@@ -117,17 +117,17 @@ fun PantallaHistorialCable(
     }
 }
 
+// ... (imports y resto del código igual)
+
 @Composable
 private fun ItemCableExpandible(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
-    // --- NUEVA LÓGICA DE ESTADO CENTRALIZADA ---
-    // 1. Recuperamos el tipo de cable (si es antiguo y no tiene, asumimos 26mm)
+    // (Lógica de estado y Card igual que antes...)
+    // ...
     val tipoCable = bitacora.detallesCable?.tipoCable ?: "26mm"
-
-    // 2. Usamos la función maestra que sabe distinguir entre la tabla de 26 y 28mm
     val estado = CableCalculations.obtenerEstadoVisual(
         tipoCable = tipoCable,
         porcentajeTotal = bitacora.porcentajeDesgasteGeneral,
@@ -144,9 +144,9 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(Modifier.padding(16.dp)) {
-            // --- CABECERA ---
+            // --- CABECERA (Igual que antes) ---
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Semáforo dinámico
+                // ... (Icono semáforo, Fecha, Horómetro, Porcentaje)
                 Surface(color = estado.fondo, shape = RoundedCornerShape(8.dp), modifier = Modifier.size(42.dp)) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(estado.icono, null, tint = estado.color, modifier = Modifier.size(24.dp))
@@ -154,13 +154,11 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                 }
                 Spacer(Modifier.width(12.dp))
 
-                // Info
                 Column(Modifier.weight(1f)) {
                     Text(fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AzulOscuro)
                     Text("Horómetro: ${bitacora.horometro.toInt()}", fontSize = 13.sp, color = Color.Gray)
                 }
 
-                // Porcentaje
                 Column(horizontalAlignment = Alignment.End) {
                     Text("${bitacora.porcentajeDesgasteGeneral.toInt()}%", fontSize = 20.sp, fontWeight = FontWeight.Black, color = estado.color)
                     Text(estado.texto, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = estado.color)
@@ -186,9 +184,28 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                     Text("${det.tipoCable} | ${det.tipoMedicion}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
 
+                // >>> NUEVO: CAMPO MAQUINA ASISTENCIA (Solo si existe) <<<
+                if (!bitacora.maquinaAsistencia.isNullOrBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Maq. Asistencia: ",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = bitacora.maquinaAsistencia,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AzulOscuro
+                        )
+                    }
+                }
+                // >>> FIN NUEVO CAMPO <<<
+
                 Spacer(Modifier.height(8.dp))
 
-                // Fila 2: METROS (Apilados)
+                // Fila 2: METROS (Apilados) (Igual que antes...)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -202,66 +219,40 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
 
                 Spacer(Modifier.height(12.dp))
 
-                // Tabla de Detalles
+                // ... (Resto de tablas Detalles de Medición, etc.)
                 Column(
                     modifier = Modifier
                         .background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp))
                         .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp))
                         .padding(12.dp)
                 ) {
+                    // ... (Tablas de detalles)
+                    // (Aquí sigue el código existente de FilaDetalle, etc.)
                     Text("Detalles de Medición", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom=8.dp))
 
-                    // REFERENCIA DE DIAMETRO DINAMICA
                     val referenciaTexto = if (det.tipoCable == "28mm") "Ref: 28.8mm" else "Ref: 26.4mm"
 
-                    // 1. Diámetro
-                    FilaDetalle(
-                        titulo = "Diámetro (${det.diametroMedido} mm)",
-                        porcentaje = det.porcentajeReduccion,
-                        infoExtra = referenciaTexto
-                    )
+                    FilaDetalle("Diámetro (${det.diametroMedido} mm)", det.porcentajeReduccion, referenciaTexto)
                     Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
 
-                    // 2. Alambres
                     val sevAlambres = CableCalculations.calcularSeveridadAlambres(det.alambresRotos6d, det.alambresRotos30d)
                     val maxAlambres = if (det.alambresRotos6d > det.alambresRotos30d) det.alambresRotos6d else det.alambresRotos30d
 
-                    FilaDetalle(
-                        titulo = "Alambres (Max: ${maxAlambres.toInt()})",
-                        porcentaje = sevAlambres,
-                        infoExtra = "6D:${det.alambresRotos6d.toInt()} | 30D:${det.alambresRotos30d.toInt()}"
-                    )
+                    FilaDetalle("Alambres (Max: ${maxAlambres.toInt()})", sevAlambres, "6D:${det.alambresRotos6d.toInt()} | 30D:${det.alambresRotos30d.toInt()}")
                     Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
 
-                    // 3. Corrosión
-                    FilaDetalle(
-                        titulo = "Corrosión (${det.nivelCorrosion})",
-                        porcentaje = det.porcentajeCorrosion,
-                        infoExtra = ""
-                    )
+                    FilaDetalle("Corrosión (${det.nivelCorrosion})", det.porcentajeCorrosion, "")
 
                     Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
 
-                    // 4. ALERTA DE CORTE
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
                             Text("¿Cable Cortado?", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = AzulOscuro)
                             Text("Acción correctiva", fontSize = 11.sp, color = Color.Gray)
                         }
-
                         val textoCorte = if (det.cableCortado) "SÍ (CORTADO)" else "NO"
                         val colorCorte = if (det.cableCortado) Color(0xFFD32F2F) else Color(0xFF2E7D32)
-
-                        Text(
-                            text = textoCorte,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black,
-                            color = colorCorte
-                        )
+                        Text(text = textoCorte, fontSize = 13.sp, fontWeight = FontWeight.Black, color = colorCorte)
                     }
                 }
 
