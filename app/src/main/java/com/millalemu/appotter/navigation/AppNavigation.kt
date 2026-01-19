@@ -35,6 +35,8 @@ import com.millalemu.appotter.ui.screens.operacion.registro.PantallaRegistroGril
 import com.millalemu.appotter.ui.screens.operacion.registro.PantallaRegistroRoldana
 import com.millalemu.appotter.ui.screens.operacion.registro.PantallaRegistroTerminal
 import com.millalemu.appotter.ui.screens.operacion.PantallaSeleccionarEquipo
+import com.millalemu.appotter.ui.screens.operacion.historial.PantallaHistorialAsistenciaDetalle
+import com.millalemu.appotter.ui.screens.operacion.historial.PantallaSeleccionMaquinaAsistencia
 
 object AppRoutes {
     const val LOGIN = "login"
@@ -261,6 +263,21 @@ fun AppNavigation(startDestination: String = AppRoutes.LOGIN) { // Agregamos par
             ) { entry ->
                 val id = entry.arguments?.getString("idEquipo") ?: ""
                 PantallaHistorialCable(navController, id)
+            }
+
+            // 1. Ruta GLOBAL (modificada para apuntar a la selección de máquinas)
+            composable("historial_asistencia_global") {
+                // Esta ahora abre la lista de máquinas únicas
+                PantallaSeleccionMaquinaAsistencia(navController)
+            }
+
+            // 2. Ruta DETALLE (Muestra los trabajos de UNA máquina de asistencia elegida)
+            composable(
+                route = "historial_asistencia_detalle/{nombreMaquina}",
+                arguments = listOf(navArgument("nombreMaquina") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val nombre = backStackEntry.arguments?.getString("nombreMaquina") ?: ""
+                PantallaHistorialAsistenciaDetalle(navController, nombre)
             }
         }
     }

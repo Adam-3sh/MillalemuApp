@@ -21,16 +21,11 @@ import com.millalemu.appotter.ui.screens.operacion.CardSeleccionTipo
 
 @Composable
 fun PantallaHistorialTipo(navController: NavController) {
-    // Azul para Historial (para diferenciar de operación verde)
     val azulOscuro = Color(0xFF1565C0)
     val azulClaro = Color(0xFF42A5F5)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-    ) {
-        // --- ENCABEZADO AZUL ---
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) {
+        // --- ENCABEZADO ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -67,12 +62,9 @@ fun PantallaHistorialTipo(navController: NavController) {
 
         // --- OPCIONES ---
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp) // Espaciado un poco menor para que quepan 3
         ) {
-            // Usamos la misma Card bonita pero con acciones de Historial
             CardSeleccionTipoHistorial(
                 titulo = "Madereo",
                 imagen = R.drawable.madereo,
@@ -86,14 +78,19 @@ fun PantallaHistorialTipo(navController: NavController) {
                 colorTexto = azulOscuro,
                 onClick = { navController.navigate("${AppRoutes.HISTORIAL_EQUIPOS}/Volteo") }
             )
+
+            // >>> NUEVO BOTÓN: ASISTENCIA GLOBAL <<<
+            CardSeleccionTipoHistorial(
+                titulo = "Asistencia",
+                imagen = R.drawable.cable_asistencia, // Usamos esta imagen representativa
+                colorTexto = Color(0xFF455A64), // Un color distintivo (Gris azulado)
+                onClick = { navController.navigate("historial_asistencia_global") }
+            )
         }
     }
 }
 
-// Versión de la Card para Historial (misma estructura, diferente color botón)
 @Composable
 fun CardSeleccionTipoHistorial(titulo: String, imagen: Int, colorTexto: Color, onClick: () -> Unit) {
-    // Reutilizamos la lógica visual de la CardSeleccionTipo anterior
-    // Pero aquí la defino por si quieres personalizarla distinto
     CardSeleccionTipo(titulo, imagen, onClick)
 }
