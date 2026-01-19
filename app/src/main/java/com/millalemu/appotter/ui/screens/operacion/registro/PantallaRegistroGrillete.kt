@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,7 +41,6 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaRegistroGrillete(
     navController: NavController,
@@ -53,13 +51,9 @@ fun PantallaRegistroGrillete(
     val context = LocalContext.current
 
     // --- ESTADOS DE UI Y DATOS ---
+    //var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
-
-    // --- VARIABLES DE ASISTENCIA ---
-    var listaMaquinasAsistencia by remember { mutableStateOf<List<String>>(emptyList()) }
-    var maquinaAsistenciaSeleccionada by remember { mutableStateOf("") }
-    var expandedAsistencia by remember { mutableStateOf(false) }
 
     // --- VARIABLES NOMINALES (9 Medidas: A, B, C, D, E, F, H, L, N) ---
     var nomA by remember { mutableStateOf("") }
@@ -128,24 +122,6 @@ fun PantallaRegistroGrillete(
 
     fun cleanDouble(s: String): Double = s.replace(',', '.').trim().toDoubleOrNull() ?: 0.0
 
-    // --- CARGAR DATOS ASISTENCIA ---
-    LaunchedEffect(Unit) {
-        db.collection("maquinaria")
-            .whereEqualTo("tipo", "Asistencia")
-            .get()
-            .addOnSuccessListener { documents ->
-                listaMaquinasAsistencia = documents.mapNotNull { doc ->
-                    val id = doc.getString("identificador") ?: ""
-                    val modelo = doc.getString("modelo") ?: ""
-
-                    if (id.isNotEmpty()) {
-                        // Formato: MODELO - ID
-                        if (modelo.isNotEmpty()) "${modelo.uppercase()} - $id" else id
-                    } else null
-                }
-            }
-    }
-
     // --- CÁLCULO AUTOMÁTICO ---
     LaunchedEffect(
         nomA, nomB, nomC, nomD, nomE, nomF, nomH, nomL, nomN,
@@ -179,7 +155,10 @@ fun PantallaRegistroGrillete(
             .addOnSuccessListener { documents ->
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
+                    // Nota: Aquí se asume que DetallesGrillete también se actualizó en la BD o se mapeará manual
                     ultima?.detallesGrillete?.let { d ->
+                        //numeroSerie = ultima.numeroSerie
+                        // Asignamos según corresponda a la nueva estructura
                         nomA = d.aNominal.toString(); nomB = d.bNominal.toString(); nomC = d.cNominal.toString()
                         nomD = d.dNominal.toString(); nomE = d.eNominal.toString(); nomF = d.fNominal.toString()
                         nomH = d.hNominal.toString(); nomL = d.lNominal.toString(); nomN = d.nNominal.toString()
@@ -211,73 +190,10 @@ fun PantallaRegistroGrillete(
 
             // DATOS GENERALES
             CardSeccion(titulo = "Datos Generales") {
-                RowItemDato(label = "Equipo", valor = idEquipo)
-
-                Spacer(Modifier.height(16.dp))
-
-                // --- DROPDOWN ASISTENCIA MEJORADO ---
-                Text(
-                    text = "Máquina Asistencia (Obligatorio)",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia")) Color.Red else AzulOscuro,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-
-                ExposedDropdownMenuBox(
-                    expanded = expandedAsistencia,
-                    onExpandedChange = { expandedAsistencia = !expandedAsistencia },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = if (maquinaAsistenciaSeleccionada.isEmpty()) "Seleccione..." else maquinaAsistenciaSeleccionada,
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAsistencia) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        // Texto tamaño 16.sp
-                        textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = AzulOscuro,
-                            errorBorderColor = Color.Red
-                        ),
-                        isError = maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia"),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedAsistencia,
-                        onDismissRequest = { expandedAsistencia = false },
-                        modifier = Modifier.background(Color.White)
-                    ) {
-                        listaMaquinasAsistencia.forEach { maquina ->
-                            val isSelected = (maquina == maquinaAsistenciaSeleccionada)
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = maquina,
-                                        fontSize = 16.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) AzulOscuro else Color.Black
-                                    )
-                                },
-                                onClick = {
-                                    maquinaAsistenciaSeleccionada = maquina
-                                    expandedAsistencia = false
-                                },
-                                modifier = Modifier.background(if (isSelected) Color(0xFFE3F2FD) else Color.Transparent)
-                            )
-                        }
-                    }
-                }
-                // ------------------------------------
-
-                Spacer(Modifier.height(16.dp))
-
-                RowItemDato(label = "Fecha", valor = fechaHoy)
-                Spacer(Modifier.height(8.dp))
-                RowItemInput(label = "Horómetro", value = horometro, onValueChange = { horometro = it }, suffix = "hrs", isNumber = true)
+                RowItemDato(label = "Equipo", valor = idEquipo); Spacer(Modifier.height(8.dp))
+                RowItemDato(label = "Fecha", valor = fechaHoy); Spacer(Modifier.height(8.dp))
+                RowItemInput(label = "Horómetro", value = horometro, onValueChange = { horometro = it }, suffix = "hrs", isNumber = true); Spacer(Modifier.height(8.dp))
+                //RowItemInput(label = "Nº Serie", value = numeroSerie, onValueChange = { numeroSerie = it })
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -412,16 +328,11 @@ fun PantallaRegistroGrillete(
                 Button(
                     onClick = {
                         isSaving = true; mensajeError = ""
-
-                        // --- VALIDACIÓN ASISTENCIA ---
-                        if (maquinaAsistenciaSeleccionada.isEmpty()) {
-                            mensajeError = "Debe seleccionar una máquina de asistencia."
-                            isSaving = false
-                            return@Button
-                        }
-
                         // 1. VALIDACIONES
+                        //if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
                         val h = cleanDouble(horometro)
+                        if (h <= 0) { mensajeError = "Falta el horómetro."; isSaving = false; return@Button }
+
                         val nA = cleanDouble(nomA); val nB = cleanDouble(nomB); val nC = cleanDouble(nomC)
                         val nD = cleanDouble(nomD); val nE = cleanDouble(nomE); val nF = cleanDouble(nomF)
                         val nH = cleanDouble(nomH); val nL = cleanDouble(nomL); val nN = cleanDouble(nomN)
@@ -430,7 +341,6 @@ fun PantallaRegistroGrillete(
                         val mD = cleanDouble(medD); val mE = cleanDouble(medE); val mF = cleanDouble(medF)
                         val mH = cleanDouble(medH); val mL = cleanDouble(medL); val mN = cleanDouble(medN)
 
-                        if (h <= 0) { mensajeError = "Falta el horómetro."; isSaving = false; return@Button }
                         if (nA <= 0 || nB <= 0 || nC <= 0 || nD <= 0 || nE <= 0 || nF <= 0 || nH <= 0 || nL <= 0 || nN <= 0) {
                             mensajeError = "Faltan medidas NOMINALES."; isSaving = false; return@Button
                         }
@@ -438,26 +348,18 @@ fun PantallaRegistroGrillete(
                             mensajeError = "Faltan medidas ACTUALES."; isSaving = false; return@Button
                         }
 
-                        // 2. CREAR BITÁCORA
+                        // 2. CREAR BITÁCORA - Actualizar nombres en tu data class DetallesGrillete
                         val detalles = DetallesGrillete(
                             aNominal = nA, bNominal = nB, cNominal = nC, dNominal = nD, eNominal = nE, fNominal = nF, hNominal = nH, lNominal = nL, nNominal = nN,
                             aActual = mA, bActual = mB, cActual = mC, dActual = mD, eActual = mE, fActual = mF, hActual = mH, lActual = mL, nActual = mN,
                             aPorcentaje = valA, bPorcentaje = valB, cPorcentaje = valC, dPorcentaje = valD, ePorcentaje = valE, fPorcentaje = valF, hPorcentaje = valH, lPorcentaje = valL, nPorcentaje = valN
                         )
                         val bitacora = Bitacora(
-                            usuarioRut = Sesion.rutUsuarioActual,
-                            usuarioNombre = Sesion.nombreUsuarioActual,
-                            identificadorMaquina = idEquipo,
-                            tipoMaquina = tipoMaquina,
+                            usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,
-                            // --- GUARDADO DE ASISTENCIA ---
-                            maquinaAsistencia = maquinaAsistenciaSeleccionada,
-                            horometro = h,
-                            porcentajeDesgasteGeneral = maxDanoVal,
-                            tieneFisura = tieneFisura,
-                            requiereReemplazo = requiereReemplazo,
-                            observacion = observacion,
-                            detallesGrillete = detalles,
+                            //numeroSerie = numeroSerie,
+                            horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
+                            requiereReemplazo = requiereReemplazo, observacion = observacion, detallesGrillete = detalles,
                             detallesEslabon = null, detallesCadena = null, detallesGancho = null, detallesTerminal = null, detallesCable = null
                         )
 
@@ -475,7 +377,7 @@ fun PantallaRegistroGrillete(
                         } else {
                             db.collection("bitacoras").add(bitacora)
                             isSaving = false
-                            Toast.makeText(context, "Guardado localmente (se subirá al tener internet)", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "Guardado localmente", Toast.LENGTH_LONG).show()
                             navController.popBackStack()
                         }
                     },
