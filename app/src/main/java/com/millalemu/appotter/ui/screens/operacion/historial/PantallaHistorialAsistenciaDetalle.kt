@@ -30,7 +30,7 @@ import com.google.firebase.firestore.Query
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.*
 import com.millalemu.appotter.db
-import com.millalemu.appotter.utils.CableCalculations // Importante para la fidelidad del cable
+import com.millalemu.appotter.utils.CableCalculations
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -116,11 +116,11 @@ fun PantallaHistorialAsistenciaDetalle(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(lista) { bitacora ->
-                        // DETECTAMOS SI ES CABLE U OTRO ADITAMENTO
+                        // AHORA AMBOS TIPOS USAN LA MISMA ESTRUCTURA VISUAL
                         if (bitacora.tipoAditamento.contains("Cable", ignoreCase = true)) {
-                            ItemCableAsistencia(bitacora)
+                            ItemCableEstandarizado(bitacora)
                         } else {
-                            ItemGenericoAsistencia(bitacora)
+                            ItemGenericoEstandarizado(bitacora)
                         }
                     }
                 }
@@ -129,16 +129,15 @@ fun PantallaHistorialAsistenciaDetalle(
     }
 }
 
-// ==========================================
-// 1. CARD ESPECÍFICA PARA CABLE (Alta Fidelidad)
-// ==========================================
+// =========================================================
+// 1. CARD CABLE (ESTILO "DASHBOARD" - MODELO A SEGUIR)
+// =========================================================
 @Composable
-fun ItemCableAsistencia(bitacora: Bitacora) {
+fun ItemCableEstandarizado(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
-    // Cálculos de estado visual usando la utilidad oficial
     val tipoCable = bitacora.detallesCable?.tipoCable ?: "26mm"
     val estado = CableCalculations.obtenerEstadoVisual(
         tipoCable = tipoCable,
@@ -156,43 +155,23 @@ fun ItemCableAsistencia(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(Modifier.padding(16.dp)) {
-            // --- CABECERA ---
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Icono Semáforo
-                Surface(color = estado.fondo, shape = RoundedCornerShape(8.dp), modifier = Modifier.size(42.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(estado.icono, null, tint = estado.color, modifier = Modifier.size(24.dp))
-                    }
-                }
-                Spacer(Modifier.width(12.dp))
-
-                // Info Principal
-                Column(Modifier.weight(1f)) {
-                    Text("Asistió a: ${bitacora.identificadorMaquina}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1565C0))
-                    Text(fechaTexto, fontSize = 13.sp, color = Color.Gray)
-                }
-
-                // Porcentaje
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("${bitacora.porcentajeDesgasteGeneral.toInt()}%", fontSize = 20.sp, fontWeight = FontWeight.Black, color = estado.color)
-                    Text(estado.texto, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = estado.color)
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-            LinearProgressIndicator(
-                progress = { (bitacora.porcentajeDesgasteGeneral / 100).toFloat().coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-                color = estado.color,
-                trackColor = Color(0xFFEEEEEE)
+            // --- HEADER ESTANDARIZADO ---
+            HeaderTarjetaUnificada(
+                titulo = bitacora.tipoAditamento,
+                subtitulo = "Asistió a: ${bitacora.identificadorMaquina}",
+                metaData = "$fechaTexto | ${bitacora.horometro.toInt()} hrs",
+                porcentaje = bitacora.porcentajeDesgasteGeneral,
+                colorEstado = estado.color,
+                textoEstado = estado.texto,
+                fondoEstado = estado.fondo,
+                iconoEstado = estado.icono
             )
 
-            // --- DETALLE EXPANDIBLE ---
+            // --- DETALLE ESPECÍFICO CABLE ---
             if (expandido && bitacora.detallesCable != null) {
-                val det = bitacora.detallesCable!! // Safe unwrap checked above
+                val det = bitacora.detallesCable!!
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
 
-                // Fila 1: Inspector y Tipo
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                     Text("Insp: ${bitacora.usuarioNombre}", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.weight(1f))
                     Text("${det.tipoCable} | ${det.tipoMedicion}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
@@ -200,7 +179,7 @@ fun ItemCableAsistencia(bitacora: Bitacora) {
 
                 Spacer(Modifier.height(8.dp))
 
-                // Fila 2: CAJA GRIS DE METROS (Igual a PantallaHistorialCable)
+                // Caja Metros
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -214,7 +193,7 @@ fun ItemCableAsistencia(bitacora: Bitacora) {
 
                 Spacer(Modifier.height(12.dp))
 
-                // Fila 3: TABLA DE DETALLES TÉCNICOS
+                // Tabla Detalles Cable
                 Column(
                     modifier = Modifier
                         .background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp))
@@ -235,7 +214,6 @@ fun ItemCableAsistencia(bitacora: Bitacora) {
                     Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
 
                     FilaDetalleCable("Corrosión (${det.nivelCorrosion})", det.porcentajeCorrosion, "")
-
                     Divider(Modifier.padding(vertical = 6.dp), color = Color.LightGray, thickness = 0.5.dp)
 
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -258,16 +236,17 @@ fun ItemCableAsistencia(bitacora: Bitacora) {
     }
 }
 
-// ==========================================
-// 2. CARD GENÉRICA (Para otros aditamentos)
-// ==========================================
+// =========================================================
+// 2. CARD GENÉRICA (ADAPTADA AL ESTILO DEL CABLE)
+// =========================================================
 @Composable
-fun ItemGenericoAsistencia(bitacora: Bitacora) {
+fun ItemGenericoEstandarizado(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
 
-    val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
-    val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--/--/----" }
+    val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
+    val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
+    // Lógica de colores idéntica a la pantalla original
     val (colorEstado, textoEstado, fondoEstado) = when {
         bitacora.tieneFisura -> Triple(Color(0xFFD32F2F), "FISURA", Color(0xFFFFEBEE))
         bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE))
@@ -278,7 +257,7 @@ fun ItemGenericoAsistencia(bitacora: Bitacora) {
     val iconoEstado = if (textoEstado == "OK") Icons.Default.Check else Icons.Default.Warning
 
     Card(
-        elevation = CardDefaults.cardElevation(4.dp),
+        elevation = CardDefaults.cardElevation(3.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         modifier = Modifier
@@ -287,48 +266,33 @@ fun ItemGenericoAsistencia(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = bitacora.tipoAditamento, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
-                    Text(text = "Asistió a: ${bitacora.identificadorMaquina}", fontSize = 14.sp, color = Color(0xFF1565C0), fontWeight = FontWeight.Bold)
-                    Text(text = fechaTexto, fontSize = 13.sp, color = Color.Gray)
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Surface(color = fondoEstado, shape = RoundedCornerShape(50), modifier = Modifier.border(1.dp, colorEstado.copy(alpha = 0.3f), RoundedCornerShape(50))) {
-                        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = iconoEstado, contentDescription = null, tint = colorEstado, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = textoEstado, color = colorEstado, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("${String.format("%.1f", bitacora.porcentajeDesgasteGeneral)}%", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (bitacora.porcentajeDesgasteGeneral > 0) colorEstado else Color.Gray)
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { (bitacora.porcentajeDesgasteGeneral / 100).toFloat().coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(6.dp).background(Color(0xFFEEEEEE), RoundedCornerShape(3.dp)),
-                color = colorEstado,
-                trackColor = Color.Transparent
+            // --- HEADER ESTANDARIZADO (Reutiliza el diseño del Cable) ---
+            HeaderTarjetaUnificada(
+                titulo = bitacora.tipoAditamento,
+                subtitulo = "Asistió a: ${bitacora.identificadorMaquina}",
+                metaData = "$fechaTexto | ${bitacora.horometro.toInt()} hrs",
+                porcentaje = bitacora.porcentajeDesgasteGeneral,
+                colorEstado = colorEstado,
+                textoEstado = textoEstado,
+                fondoEstado = fondoEstado,
+                iconoEstado = iconoEstado
             )
-
-            // Flecha
-            Box(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), contentAlignment = Alignment.Center) {
-                Icon(if (expandido) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, "Ver más", tint = Color.LightGray)
-            }
 
             if (expandido) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                // Info Responsable
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
                         Text("Responsable:", fontSize = 12.sp, color = Color.Gray)
                         Text(bitacora.usuarioNombre, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                        Text("Inspección Visual:", fontSize = 12.sp, color = Color.Gray)
-                        if (bitacora.tieneFisura) Text("¡FISURA DETECTADA!", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.Red)
-                        else Text("Sin fisuras", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                    // La inspección visual ahora se muestra como texto de refuerzo si es grave
+                    if (bitacora.tieneFisura) {
+                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                            Text("Detalle Visual:", fontSize = 12.sp, color = Color.Gray)
+                            Text("¡FISURA DETECTADA!", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color.Red)
+                        }
                     }
                 }
 
@@ -346,13 +310,14 @@ fun ItemGenericoAsistencia(bitacora: Bitacora) {
                 Text("Mediciones Técnicas:", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF455A64))
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Tablas Específicas (Contenido único del genérico)
                 when {
-                    bitacora.detallesGrillete != null -> TablaGrilleteA(bitacora.detallesGrillete)
-                    bitacora.detallesRoldana != null -> TablaRoldanaA(bitacora.detallesRoldana)
-                    bitacora.detallesEslabon != null -> TablaEslabonA(bitacora.detallesEslabon)
-                    bitacora.detallesCadena != null -> TablaCadenaA(bitacora.detallesCadena)
-                    bitacora.detallesGancho != null -> TablaGanchoA(bitacora.detallesGancho)
-                    bitacora.detallesTerminal != null -> TablaTerminalA(bitacora.detallesTerminal)
+                    bitacora.detallesGrillete != null -> TablaGrilleteFiel(bitacora.detallesGrillete)
+                    bitacora.detallesRoldana != null -> TablaRoldanaFiel(bitacora.detallesRoldana)
+                    bitacora.detallesEslabon != null -> TablaEslabonFiel(bitacora.detallesEslabon)
+                    bitacora.detallesCadena != null -> TablaCadenaFiel(bitacora.detallesCadena)
+                    bitacora.detallesGancho != null -> TablaGanchoFiel(bitacora.detallesGancho)
+                    bitacora.detallesTerminal != null -> TablaTerminalFiel(bitacora.detallesTerminal)
                     else -> Text("Sin datos dimensionales", fontSize = 14.sp, fontStyle = FontStyle.Italic, color = Color.Gray)
                 }
             }
@@ -360,8 +325,58 @@ fun ItemGenericoAsistencia(bitacora: Bitacora) {
     }
 }
 
+// =========================================================
+// 3. COMPONENTE HEADER UNIFICADO (LA CLAVE DE LA ESTANDARIZACIÓN)
+// =========================================================
+@Composable
+fun HeaderTarjetaUnificada(
+    titulo: String,
+    subtitulo: String,
+    metaData: String,
+    porcentaje: Double,
+    colorEstado: Color,
+    textoEstado: String,
+    fondoEstado: Color,
+    iconoEstado: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Icono Semáforo (Izquierda)
+            Surface(color = fondoEstado, shape = RoundedCornerShape(8.dp), modifier = Modifier.size(48.dp)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(iconoEstado, null, tint = colorEstado, modifier = Modifier.size(28.dp))
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+
+            // Textos Centrales
+            Column(Modifier.weight(1f)) {
+                Text(text = titulo, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+                Text(text = subtitulo, fontSize = 14.sp, color = Color(0xFF1565C0), fontWeight = FontWeight.Bold)
+                Text(text = metaData, fontSize = 13.sp, color = Color.Gray)
+            }
+
+            // Porcentaje y Estado (Derecha)
+            Column(horizontalAlignment = Alignment.End) {
+                Text("${porcentaje.toInt()}%", fontSize = 22.sp, fontWeight = FontWeight.Black, color = colorEstado)
+                Text(textoEstado, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colorEstado)
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Barra de progreso común
+        LinearProgressIndicator(
+            progress = { (porcentaje / 100).toFloat().coerceIn(0f, 1f) },
+            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+            color = colorEstado,
+            trackColor = Color(0xFFEEEEEE)
+        )
+    }
+}
+
 // ==========================================
-// 3. COMPONENTES AUXILIARES
+// 4. COMPONENTES DE TABLA (SIN CAMBIOS)
 // ==========================================
 
 @Composable
@@ -393,7 +408,7 @@ fun FilaDetalleCable(titulo: String, porcentaje: Double, infoExtra: String) {
 }
 
 @Composable
-fun HeaderTablaA() {
+fun HeaderTablaFiel() {
     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
         Text("MED", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color.DarkGray)
         Text("NOM", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color.DarkGray)
@@ -404,14 +419,16 @@ fun HeaderTablaA() {
 }
 
 @Composable
-fun FilaTablaA(nombre: String, nom: Double, act: Double, porc: Double, limiteAlerta: Double = 10.0) {
+fun FilaTablaFiel(nombre: String, nom: Double, act: Double, porc: Double, limiteAlerta: Double = 10.0) {
     val colorAlerta = if (porc >= limiteAlerta) Color.Red else Color.Black
+    val esE_Critico = (nombre == "E" && porc >= 5.0)
+
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text(nombre, Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(nombre, Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if(nombre=="E") Color(0xFF1565C0) else Color.Black)
         Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.Center)
         Text("$act", Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.Center)
         Text(
-            text = "${String.format("%.1f", porc)}%",
+            text = "${String.format("%.1f", porc)}%${if(esE_Critico) " (!)" else ""}",
             Modifier.weight(1f),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
@@ -423,73 +440,75 @@ fun FilaTablaA(nombre: String, nom: Double, act: Double, porc: Double, limiteAle
 }
 
 @Composable
-fun TablaGrilleteA(det: DetallesGrillete) {
+fun TablaGrilleteFiel(det: DetallesGrillete) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        HeaderTablaA()
-        FilaTablaA("A", det.aNominal, det.aActual, det.aPorcentaje)
-        FilaTablaA("B", det.bNominal, det.bActual, det.bPorcentaje)
-        FilaTablaA("C", det.cNominal, det.cActual, det.cPorcentaje)
-        FilaTablaA("D", det.dNominal, det.dActual, det.dPorcentaje)
-        FilaTablaA("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0)
-        FilaTablaA("F", det.fNominal, det.fActual, det.fPorcentaje)
-        FilaTablaA("H", det.hNominal, det.hActual, det.hPorcentaje)
-        FilaTablaA("L", det.lNominal, det.lActual, det.lPorcentaje)
-        FilaTablaA("N", det.nNominal, det.nActual, det.nPorcentaje)
+        HeaderTablaFiel()
+        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje)
+        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
+        FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
+        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
+        FilaTablaFiel("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0)
+        FilaTablaFiel("F", det.fNominal, det.fActual, det.fPorcentaje)
+        FilaTablaFiel("H", det.hNominal, det.hActual, det.hPorcentaje)
+        FilaTablaFiel("L", det.lNominal, det.lActual, det.lPorcentaje)
+        FilaTablaFiel("N", det.nNominal, det.nActual, det.nPorcentaje)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("* E es crítico si > 5%", fontSize = 12.sp, color = Color.Gray, fontStyle = FontStyle.Italic)
     }
 }
 
 @Composable
-fun TablaRoldanaA(det: DetallesRoldana) {
+fun TablaRoldanaFiel(det: DetallesRoldana) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        HeaderTablaA()
-        FilaTablaA("A", det.aNominal, det.aActual, det.aPorcentaje)
-        FilaTablaA("B", det.bNominal, det.bActual, det.bPorcentaje)
-        FilaTablaA("C", det.cNominal, det.cActual, det.cPorcentaje)
+        HeaderTablaFiel()
+        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje)
+        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
+        FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
     }
 }
 
 @Composable
-fun TablaEslabonA(det: DetallesEslabon) {
+fun TablaEslabonFiel(det: DetallesEslabon) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        HeaderTablaA()
-        FilaTablaA("K", det.kNominal, det.kActual, det.kPorcentaje)
-        FilaTablaA("A", det.aNominal, det.aActual, det.aPorcentaje)
-        FilaTablaA("D", det.dNominal, det.dActual, det.dPorcentaje)
-        FilaTablaA("B", det.bNominal, det.bActual, det.bPorcentaje)
+        HeaderTablaFiel()
+        FilaTablaFiel("K", det.kNominal, det.kActual, det.kPorcentaje)
+        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje)
+        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
+        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
     }
 }
 
 @Composable
-fun TablaCadenaA(det: DetallesCadena) {
+fun TablaCadenaFiel(det: DetallesCadena) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        HeaderTablaA()
-        FilaTablaA("B", det.bNominal, det.bActual, det.bPorcentaje)
-        FilaTablaA("C", det.cNominal, det.cActual, det.cPorcentaje)
-        FilaTablaA("D", det.dNominal, det.dActual, det.dPorcentaje)
+        HeaderTablaFiel()
+        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
+        FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
+        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
     }
 }
 
 @Composable
-fun TablaGanchoA(det: DetallesGancho) {
+fun TablaGanchoFiel(det: DetallesGancho) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        HeaderTablaA()
-        FilaTablaA("∅1", det.phi1Nominal, det.phi1Actual, det.phi1Porcentaje)
-        FilaTablaA("R", det.rNominal, det.rActual, det.rPorcentaje)
-        FilaTablaA("D", det.dNominal, det.dActual, det.dPorcentaje)
-        FilaTablaA("∅2", det.phi2Nominal, det.phi2Actual, det.phi2Porcentaje)
-        FilaTablaA("H", det.hNominal, det.hActual, det.hPorcentaje)
-        FilaTablaA("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0)
+        HeaderTablaFiel()
+        FilaTablaFiel("∅1", det.phi1Nominal, det.phi1Actual, det.phi1Porcentaje)
+        FilaTablaFiel("R", det.rNominal, det.rActual, det.rPorcentaje)
+        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
+        FilaTablaFiel("∅2", det.phi2Nominal, det.phi2Actual, det.phi2Porcentaje)
+        FilaTablaFiel("H", det.hNominal, det.hActual, det.hPorcentaje)
+        FilaTablaFiel("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0)
     }
 }
 
 @Composable
-fun TablaTerminalA(det: DetallesTerminal) {
+fun TablaTerminalFiel(det: DetallesTerminal) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        HeaderTablaA()
-        FilaTablaA("A", det.aNominal, det.aActual, det.aPorcentaje)
-        FilaTablaA("B", det.bNominal, det.bActual, det.bPorcentaje)
-        FilaTablaA("C", det.cNominal, det.cActual, det.cPorcentaje)
-        FilaTablaA("D", det.dNominal, det.dActual, det.dPorcentaje)
-        FilaTablaA("E", det.eNominal, det.eActual, det.ePorcentaje)
+        HeaderTablaFiel()
+        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje)
+        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
+        FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
+        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
+        FilaTablaFiel("E", det.eNominal, det.eActual, det.ePorcentaje)
     }
 }
