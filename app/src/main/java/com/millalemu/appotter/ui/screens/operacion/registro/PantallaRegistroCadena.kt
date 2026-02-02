@@ -109,7 +109,13 @@ fun PantallaRegistroCadena(
         val nC = cleanDouble(nomC); val mC = cleanDouble(medC)
         val nD = cleanDouble(nomD); val mD = cleanDouble(medD)
 
-        fun calc(n: Double, m: Double): Double = if (n <= 0.0 || m <= 0.0) 0.0 else abs((n - m) / n) * 100.0
+        // Reemplaza tu función calc antigua por esta:
+        fun calc(n: Double, m: Double): Double {
+            if (n <= 0.0 || m <= 0.0) return 0.0
+            val bruto = kotlin.math.abs((n - m) / n) * 100.0
+            // Corrección de redondeo para precisión exacta
+            return ((bruto * 10 + 0.5).toInt()) / 10.0
+        }
 
         valB = calc(nB, mB); valC = calc(nC, mC); valD = calc(nD, mD)
 

@@ -114,9 +114,12 @@ fun PantallaRegistroGancho(
     // --- CÁLCULO AUTOMÁTICO ---
     LaunchedEffect(nomPhi1, nomR, nomD, nomPhi2, nomH, nomE, medPhi1, medR, medD, medPhi2, medH, medE) {
         fun calc(nStr: String, mStr: String): Double {
-            val n = cleanDouble(nStr); val m = cleanDouble(mStr)
+            val n = cleanDouble(nStr)
+            val m = cleanDouble(mStr)
             if (n <= 0.0 || m <= 0.0) return 0.0
-            return abs((n - m) / n) * 100.0
+
+            val bruto = kotlin.math.abs((n - m) / n) * 100.0
+            return ((bruto * 10 + 0.5).toInt()) / 10.0
         }
         valPhi1 = calc(nomPhi1, medPhi1); valR = calc(nomR, medR); valD = calc(nomD, medD)
         valPhi2 = calc(nomPhi2, medPhi2); valH = calc(nomH, medH); valE = calc(nomE, medE)

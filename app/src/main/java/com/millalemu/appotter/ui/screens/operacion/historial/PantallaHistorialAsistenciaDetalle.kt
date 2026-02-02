@@ -31,7 +31,7 @@ import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.*
 import com.millalemu.appotter.db
 import com.millalemu.appotter.utils.CableCalculations
-import com.millalemu.appotter.utils.Sesion // Importante: Importamos la Sesión
+import com.millalemu.appotter.utils.Sesion
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -45,48 +45,55 @@ fun PantallaHistorialAsistenciaDetalle(
     var cargando by remember { mutableStateOf(true) }
     var mensajeError by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(nombreMaquinaAsistencia) {
+    // CAMBIO OFFLINE: Usamos DisposableEffect para mantener la conexión viva y escuchar la caché local
+    DisposableEffect(nombreMaquinaAsistencia) {
         val nombreLimpio = nombreMaquinaAsistencia.trim()
 
-        // --- LOGICA DE PERMISOS (Igual a PantallaListaHistorial) ---
+        // --- LOGICA DE PERMISOS ---
         val rolActual = Sesion.rolUsuarioActual
         val rutActual = Sesion.rutUsuarioActual
         val esOperador = rolActual.equals("Operador", ignoreCase = true)
 
-        db.collection("bitacoras")
+        // Usamos addSnapshotListener: Esto carga la caché (offline) inmediatamente
+        // y luego actualiza si hay internet.
+        val listener = db.collection("bitacoras")
             .whereEqualTo("maquinaAsistencia", nombreLimpio)
             .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(100)
-            .get()
-            .addOnSuccessListener { result ->
-                if (result.isEmpty) {
-                    Log.d("HistorialDetalle", "Sin resultados para: $nombreLimpio")
-                }
-
-                // Obtenemos todos los registros de la BD
-                val todos = result.toObjects(Bitacora::class.java)
-
-                // --- FILTRADO EN MEMORIA SEGÚN ROL ---
-                lista = todos.filter { bitacora ->
-                    if (esOperador) {
-                        // Si es operador, solo ve sus propios registros (por RUT)
-                        bitacora.usuarioRut == rutActual
+            .addSnapshotListener { result, e ->
+                if (e != null) {
+                    Log.e("HistorialDetalle", "ERROR FIREBASE: ${e.message}")
+                    cargando = false
+                    if (e.message?.contains("index") == true) {
+                        mensajeError = "Falta crear índice en Firebase. Revisa el Logcat."
                     } else {
-                        // Si es Admin o Supervisor, ve todo
-                        true
+                        mensajeError = "Error al cargar: ${e.message}"
                     }
+                    return@addSnapshotListener
                 }
-                cargando = false
-            }
-            .addOnFailureListener { e ->
-                Log.e("HistorialDetalle", "ERROR FIREBASE: ${e.message}")
-                cargando = false
-                if (e.message?.contains("index") == true) {
-                    mensajeError = "Falta crear índice en Firebase. Revisa el Logcat."
-                } else {
-                    mensajeError = "Error al cargar: ${e.message}"
+
+                if (result != null) {
+                    // Obtenemos todos los registros (ya sea de caché o servidor)
+                    val todos = result.toObjects(Bitacora::class.java)
+
+                    // --- FILTRADO EN MEMORIA SEGÚN ROL ---
+                    lista = todos.filter { bitacora ->
+                        if (esOperador) {
+                            // Si es operador, solo ve sus propios registros
+                            bitacora.usuarioRut == rutActual
+                        } else {
+                            // Si es Admin o Supervisor, ve todo
+                            true
+                        }
+                    }
+                    cargando = false
                 }
             }
+
+        // Importante: Limpiamos el listener cuando salimos de la pantalla
+        onDispose {
+            listener.remove()
+        }
     }
 
     Scaffold(
@@ -104,7 +111,7 @@ fun PantallaHistorialAsistenciaDetalle(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF455A64), // Color distintivo para Asistencia
+                    containerColor = Color(0xFF455A64),
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -124,7 +131,6 @@ fun PantallaHistorialAsistenciaDetalle(
                     Text(mensajeError!!, color = Color.Red, fontWeight = FontWeight.Bold)
                 }
             } else if (lista.isEmpty()) {
-                // Mensaje diferenciado si no hay datos o si están ocultos por permisos
                 Column(
                     modifier = Modifier.align(Alignment.Center).padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -150,7 +156,6 @@ fun PantallaHistorialAsistenciaDetalle(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(lista) { bitacora ->
-                        // USAMOS LA VISUALIZACIÓN ESTANDARIZADA
                         if (bitacora.tipoAditamento.contains("Cable", ignoreCase = true)) {
                             ItemCableEstandarizado(bitacora)
                         } else {
@@ -189,7 +194,6 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(Modifier.padding(16.dp)) {
-            // --- HEADER ESTANDARIZADO ---
             HeaderTarjetaUnificada(
                 titulo = bitacora.tipoAditamento,
                 subtitulo = "Asistió a: ${bitacora.identificadorMaquina}",
@@ -201,7 +205,6 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
                 iconoEstado = estado.icono
             )
 
-            // --- DETALLE ESPECÍFICO CABLE ---
             if (expandido && bitacora.detallesCable != null) {
                 val det = bitacora.detallesCable!!
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
@@ -213,7 +216,6 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
 
                 Spacer(Modifier.height(8.dp))
 
-                // Caja Metros
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -227,7 +229,6 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
 
                 Spacer(Modifier.height(12.dp))
 
-                // Tabla Detalles Cable
                 Column(
                     modifier = Modifier
                         .background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp))
@@ -280,7 +281,6 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
-    // Lógica de colores idéntica a la pantalla original
     val (colorEstado, textoEstado, fondoEstado) = when {
         bitacora.tieneFisura -> Triple(Color(0xFFD32F2F), "FISURA", Color(0xFFFFEBEE))
         bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE))
@@ -300,7 +300,6 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // --- HEADER ESTANDARIZADO (Reutiliza el diseño del Cable) ---
             HeaderTarjetaUnificada(
                 titulo = bitacora.tipoAditamento,
                 subtitulo = "Asistió a: ${bitacora.identificadorMaquina}",
@@ -315,13 +314,11 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
             if (expandido) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-                // Info Responsable
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
                         Text("Responsable:", fontSize = 12.sp, color = Color.Gray)
                         Text(bitacora.usuarioNombre, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    // La inspección visual ahora se muestra como texto de refuerzo si es grave
                     if (bitacora.tieneFisura) {
                         Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                             Text("Detalle Visual:", fontSize = 12.sp, color = Color.Gray)
@@ -344,7 +341,6 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
                 Text("Mediciones Técnicas:", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF455A64))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Tablas Específicas (Contenido único del genérico)
                 when {
                     bitacora.detallesGrillete != null -> TablaGrilleteFiel(bitacora.detallesGrillete)
                     bitacora.detallesRoldana != null -> TablaRoldanaFiel(bitacora.detallesRoldana)
@@ -359,9 +355,6 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
     }
 }
 
-// =========================================================
-// 3. COMPONENTE HEADER UNIFICADO (LA CLAVE DE LA ESTANDARIZACIÓN)
-// =========================================================
 @Composable
 fun HeaderTarjetaUnificada(
     titulo: String,
@@ -375,31 +368,23 @@ fun HeaderTarjetaUnificada(
 ) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Icono Semáforo (Izquierda)
             Surface(color = fondoEstado, shape = RoundedCornerShape(8.dp), modifier = Modifier.size(48.dp)) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(iconoEstado, null, tint = colorEstado, modifier = Modifier.size(28.dp))
                 }
             }
             Spacer(Modifier.width(12.dp))
-
-            // Textos Centrales
             Column(Modifier.weight(1f)) {
                 Text(text = titulo, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
                 Text(text = subtitulo, fontSize = 14.sp, color = Color(0xFF1565C0), fontWeight = FontWeight.Bold)
                 Text(text = metaData, fontSize = 13.sp, color = Color.Gray)
             }
-
-            // Porcentaje y Estado (Derecha)
             Column(horizontalAlignment = Alignment.End) {
                 Text("${porcentaje.toInt()}%", fontSize = 22.sp, fontWeight = FontWeight.Black, color = colorEstado)
                 Text(textoEstado, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colorEstado)
             }
         }
-
         Spacer(Modifier.height(12.dp))
-
-        // Barra de progreso común
         LinearProgressIndicator(
             progress = { (porcentaje / 100).toFloat().coerceIn(0f, 1f) },
             modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
@@ -410,21 +395,15 @@ fun HeaderTarjetaUnificada(
 }
 
 // ==========================================
-// 4. COMPONENTES DE TABLA (SIN CAMBIOS)
+// 3. COMPONENTES DE TABLA (SIN CAMBIOS)
 // ==========================================
 
 @Composable
 fun FilaDetalleCable(titulo: String, porcentaje: Double, infoExtra: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Column {
             Text(titulo, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1565C0))
-            if (infoExtra.isNotEmpty()) {
-                Text(infoExtra, fontSize = 11.sp, color = Color.Gray)
-            }
+            if (infoExtra.isNotEmpty()) Text(infoExtra, fontSize = 11.sp, color = Color.Gray)
         }
         val colorBadge = when {
             porcentaje >= 100 -> Color(0xFFD32F2F)
@@ -432,12 +411,7 @@ fun FilaDetalleCable(titulo: String, porcentaje: Double, infoExtra: String) {
             porcentaje > 0 -> Color(0xFF2E7D32)
             else -> Color.LightGray
         }
-        Text(
-            text = "${porcentaje.toInt()}% Daño",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = colorBadge
-        )
+        Text(text = "${porcentaje.toInt()}% Daño", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colorBadge)
     }
 }
 
@@ -456,19 +430,11 @@ fun HeaderTablaFiel() {
 fun FilaTablaFiel(nombre: String, nom: Double, act: Double, porc: Double, limiteAlerta: Double = 10.0) {
     val colorAlerta = if (porc >= limiteAlerta) Color.Red else Color.Black
     val esE_Critico = (nombre == "E" && porc >= 5.0)
-
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Text(nombre, Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if(nombre=="E") Color(0xFF1565C0) else Color.Black)
         Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.Center)
         Text("$act", Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.Center)
-        Text(
-            text = "${String.format("%.1f", porc)}%${if(esE_Critico) " (!)" else ""}",
-            Modifier.weight(1f),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.End,
-            color = colorAlerta
-        )
+        Text(text = "${String.format("%.1f", porc)}%${if(esE_Critico) " (!)" else ""}", Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorAlerta)
     }
     HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.5f))
 }

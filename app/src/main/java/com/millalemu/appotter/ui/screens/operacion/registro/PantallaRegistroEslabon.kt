@@ -132,7 +132,11 @@ fun PantallaRegistroEslabon(
         val nD = cleanDouble(nomD); val mD = cleanDouble(medD)
         val nB = cleanDouble(nomB); val mB = cleanDouble(medB)
 
-        fun calc(n: Double, m: Double): Double = if (n <= 0.0 || m <= 0.0) 0.0 else abs((n - m) / n) * 100.0
+        fun calc(n: Double, m: Double): Double {
+            if (n <= 0.0 || m <= 0.0) return 0.0
+            val bruto = kotlin.math.abs((n - m) / n) * 100.0
+            return ((bruto * 10 + 0.5).toInt()) / 10.0
+        }
 
         valK = calc(nK, mK); valA = calc(nA, mA); valD = calc(nD, mD); valB = calc(nB, mB)
 
