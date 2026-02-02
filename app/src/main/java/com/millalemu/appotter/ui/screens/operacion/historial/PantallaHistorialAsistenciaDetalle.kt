@@ -31,6 +31,7 @@ import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.*
 import com.millalemu.appotter.db
 import com.millalemu.appotter.utils.CableCalculations
+import com.millalemu.appotter.utils.Sesion // Importante: Importamos la Sesión
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -47,6 +48,11 @@ fun PantallaHistorialAsistenciaDetalle(
     LaunchedEffect(nombreMaquinaAsistencia) {
         val nombreLimpio = nombreMaquinaAsistencia.trim()
 
+        // --- LOGICA DE PERMISOS (Igual a PantallaListaHistorial) ---
+        val rolActual = Sesion.rolUsuarioActual
+        val rutActual = Sesion.rutUsuarioActual
+        val esOperador = rolActual.equals("Operador", ignoreCase = true)
+
         db.collection("bitacoras")
             .whereEqualTo("maquinaAsistencia", nombreLimpio)
             .orderBy("fecha", Query.Direction.DESCENDING)
@@ -56,7 +62,20 @@ fun PantallaHistorialAsistenciaDetalle(
                 if (result.isEmpty) {
                     Log.d("HistorialDetalle", "Sin resultados para: $nombreLimpio")
                 }
-                lista = result.toObjects(Bitacora::class.java)
+
+                // Obtenemos todos los registros de la BD
+                val todos = result.toObjects(Bitacora::class.java)
+
+                // --- FILTRADO EN MEMORIA SEGÚN ROL ---
+                lista = todos.filter { bitacora ->
+                    if (esOperador) {
+                        // Si es operador, solo ve sus propios registros (por RUT)
+                        bitacora.usuarioRut == rutActual
+                    } else {
+                        // Si es Admin o Supervisor, ve todo
+                        true
+                    }
+                }
                 cargando = false
             }
             .addOnFailureListener { e ->
@@ -85,7 +104,7 @@ fun PantallaHistorialAsistenciaDetalle(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF455A64),
+                    containerColor = Color(0xFF455A64), // Color distintivo para Asistencia
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -105,18 +124,33 @@ fun PantallaHistorialAsistenciaDetalle(
                     Text(mensajeError!!, color = Color.Red, fontWeight = FontWeight.Bold)
                 }
             } else if (lista.isEmpty()) {
-                Text(
-                    "Sin registros encontrados.",
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color.Gray
-                )
+                // Mensaje diferenciado si no hay datos o si están ocultos por permisos
+                Column(
+                    modifier = Modifier.align(Alignment.Center).padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Default.Info, null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "Sin registros visibles.",
+                        color = Color.Gray,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (Sesion.rolUsuarioActual.equals("Operador", true)) {
+                        Text(
+                            "(Solo puedes ver tus propios registros)",
+                            fontSize = 12.sp,
+                            color = Color.LightGray
+                        )
+                    }
+                }
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(lista) { bitacora ->
-                        // AHORA AMBOS TIPOS USAN LA MISMA ESTRUCTURA VISUAL
+                        // USAMOS LA VISUALIZACIÓN ESTANDARIZADA
                         if (bitacora.tipoAditamento.contains("Cable", ignoreCase = true)) {
                             ItemCableEstandarizado(bitacora)
                         } else {
