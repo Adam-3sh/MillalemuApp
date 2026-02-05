@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack // <--- IMPORTANTE: Import agregado
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -77,13 +78,27 @@ fun PantallaListaMaquinas(navController: NavController) {
             .padding(16.dp)
             .verticalScroll(rememberScrollState()) // Scroll vertical para toda la pantalla
     ) {
-        Text(
-            text = "Flota de Maquinaria",
-            fontSize = 26.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF1565C0),
+        // --- MODIFICACIÓN: Fila con Botón Volver y Título ---
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 20.dp)
-        )
+        ) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = Color(0xFF1565C0)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Flota de Maquinaria",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF1565C0)
+            )
+        }
+        // ----------------------------------------------------
 
         if (cargando) {
             Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {

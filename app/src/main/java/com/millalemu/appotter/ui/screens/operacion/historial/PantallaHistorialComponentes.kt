@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -68,10 +72,24 @@ fun PantallaHistorialComponentes(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFF1565C0))
-                .padding(vertical = 20.dp),
-            contentAlignment = Alignment.Center
+                .padding(vertical = 20.dp)
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // BOTÓN PARA VOLVER
+            IconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = Color.White
+                )
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text("HISTORIAL DE INSPECCIONES", color = Color.White, fontSize = 12.sp)
                 Text(
                     text = "$idEquipo ($tipoMaquina)",

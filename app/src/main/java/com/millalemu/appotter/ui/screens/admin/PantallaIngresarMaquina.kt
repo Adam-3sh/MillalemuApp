@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,7 +20,7 @@ import com.google.firebase.firestore.FieldValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavController) {
+fun PantallaIngresarMaquina(navController: NavController) {
 
     // 1. Agregamos "Asistencia" a la lista de tipos
     val opcionesTipo = listOf("Madereo", "Volteo", "Asistencia")
@@ -38,20 +40,36 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
     var guardando by remember { mutableStateOf(false) }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Nueva Maquinaria",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF1565C0),
-            modifier = Modifier.padding(vertical = 24.dp)
-        )
+        // --- MODIFICACIÓN: Fila con Botón Volver y Título ---
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 24.dp)
+        ) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = Color(0xFF1565C0)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Nueva Maquinaria",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1565C0)
+            )
+        }
+        // ----------------------------------------------------
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -167,12 +185,12 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
         Button(
             onClick = {
                 mensajeError = ""
+                // -------------------------------------------------------------
+                //  NOTA: Validaciones y lógica de guardado SIN CAMBIOS
+                // -------------------------------------------------------------
                 val idNormalizado = identificador.trim().uppercase()
 
                 // 1. Regex Modificado: Acepta guion (-) O signo igual (=)
-                // ^[A-Z]{2}  -> Dos letras
-                // [-=]       -> Un guion O un igual
-                // \d{2}$     -> Dos números
                 val regex = Regex("^[A-Z]{2}[-=]\\d{2}$")
 
                 if (!regex.matches(idNormalizado)) {
@@ -180,27 +198,24 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
                     return@Button
                 }
 
-                // 2. Validaciones Específicas por Tipo
+                // 2. Validaciones Específicas por Tipo (Copiadas tal cual)
                 val prefijo = idNormalizado.take(2)
                 var esValido = true
 
                 when (tipoSeleccionado) {
                     "Asistencia" -> {
-                        // Regla estricta para Asistencia: Debe tener "AM" y "="
                         if (prefijo != "AM" || !idNormalizado.contains("=")) {
                             mensajeError = "Asistencia debe iniciar con 'AM' y usar '=' (Ej: AM=01)"
                             esValido = false
                         }
                     }
                     "Madereo" -> {
-                        // Regla para Madereo: Debe tener "SG" y "-"
                         if (prefijo != "SG" || !idNormalizado.contains("-")) {
                             mensajeError = "Madereo debe iniciar con 'SG' y usar '-' (Ej: SG-01)"
                             esValido = false
                         }
                     }
                     "Volteo" -> {
-                        // Regla para Volteo: HM o FM y "-"
                         if ((prefijo != "HM" && prefijo != "FM") || !idNormalizado.contains("-")) {
                             mensajeError = "Volteo debe iniciar con 'HM' o 'FM' y usar '-' (Ej: HM-01)"
                             esValido = false
@@ -219,14 +234,12 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
                                 guardando = false
                                 mensajeError = "¡Error! El equipo $idNormalizado ya existe."
                             } else {
-                                // Preparamos los datos
                                 val nuevaMaquinaMap = hashMapOf(
                                     "identificador" to idNormalizado,
                                     "tipo" to tipoSeleccionado,
                                     "horometro" to 0.0,
                                     "fechaCreacion" to FieldValue.serverTimestamp(),
                                     "estado" to "Operativo",
-                                    // Guardamos el modelo solo si es Asistencia, si no, cadena vacía
                                     "modelo" to if (tipoSeleccionado == "Asistencia") modeloSeleccionado else ""
                                 )
 
@@ -248,7 +261,9 @@ fun PantallaIngresarMaquina(modifier: Modifier = Modifier, navController: NavCon
                         }
                 }
             },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             enabled = !guardando,
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
         ) {
