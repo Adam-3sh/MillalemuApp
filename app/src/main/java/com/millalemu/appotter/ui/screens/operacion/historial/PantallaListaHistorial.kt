@@ -146,8 +146,6 @@ fun PantallaListaHistorial(
     }
 }
 
-// ... (imports y resto del código igual)
-
 @Composable
 private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
@@ -155,7 +153,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--/--/----" }
 
-    // --- LÓGICA DE SEMÁFORO (Igual que antes) ---
+    // --- LÓGICA DE SEMÁFORO ---
     val (colorEstado, textoEstado, fondoEstado) = when {
         bitacora.tieneFisura -> Triple(Color(0xFFD32F2F), "FISURA", Color(0xFFFFEBEE))
         bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE))
@@ -176,7 +174,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // CABECERA (Igual que antes)
+            // CABECERA
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text(text = fechaTexto, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
@@ -194,7 +192,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Barra de Desgaste (Igual que antes)
+            // Barra de Desgaste
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Desgaste General", fontSize = 14.sp, color = Color.Gray)
@@ -242,7 +240,6 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                     }
                 }
 
-                // >>> NUEVO: CAMPO MAQUINA ASISTENCIA (Solo si existe) <<<
                 if (!bitacora.maquinaAsistencia.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -262,7 +259,6 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                         )
                     }
                 }
-                // >>> FIN NUEVO CAMPO <<<
 
                 if (bitacora.observacion.isNotBlank()) {
                     Spacer(Modifier.height(12.dp))
@@ -278,7 +274,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                 Text("Mediciones Técnicas:", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // SELECTOR DE TABLAS (Igual que antes)
+                // SELECTOR DE TABLAS
                 when {
                     bitacora.detallesGrillete != null -> TablaGrillete(bitacora.detallesGrillete)
                     bitacora.detallesRoldana != null -> TablaRoldana(bitacora.detallesRoldana)
@@ -294,7 +290,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     }
 }
 
-// === COMPONENTES AUXILIARES ACTUALIZADOS CON FUENTE MÁS GRANDE ===
+// === COMPONENTES AUXILIARES ACTUALIZADOS ===
 
 @Composable
 fun DatoFila(titulo: String, valor: String) {
@@ -379,6 +375,7 @@ fun TablaEslabon(det: DetallesEslabon) {
 fun TablaCadena(det: DetallesCadena) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         HeaderTabla()
+        FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje) // NUEVA FILA AÑADIDA AQUÍ
         FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
         FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
         FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)

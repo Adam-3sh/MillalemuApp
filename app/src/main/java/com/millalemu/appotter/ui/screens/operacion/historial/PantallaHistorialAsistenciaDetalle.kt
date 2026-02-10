@@ -482,6 +482,7 @@ fun TablaEslabonFiel(det: DetallesEslabon) {
 fun TablaCadenaFiel(det: DetallesCadena) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         HeaderTablaFiel()
+        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje) // NUEVA MEDIDA AQUÍ
         FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
         FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
         FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)

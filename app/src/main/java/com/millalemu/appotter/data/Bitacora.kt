@@ -55,12 +55,18 @@ data class DetallesEslabon(
 
 @Keep
 data class DetallesCadena(
+    @get:PropertyName("anominal") @set:PropertyName("anominal") var aNominal: Double = 0.0,
+    @get:PropertyName("aactual") @set:PropertyName("aactual") var aActual: Double = 0.0,
+    @get:PropertyName("aporcentaje") @set:PropertyName("aporcentaje") var aPorcentaje: Double = 0.0,
+
     @get:PropertyName("bnominal") @set:PropertyName("bnominal") var bNominal: Double = 0.0,
     @get:PropertyName("bactual") @set:PropertyName("bactual") var bActual: Double = 0.0,
     @get:PropertyName("bporcentaje") @set:PropertyName("bporcentaje") var bPorcentaje: Double = 0.0,
+
     @get:PropertyName("cnominal") @set:PropertyName("cnominal") var cNominal: Double = 0.0,
     @get:PropertyName("cactual") @set:PropertyName("cactual") var cActual: Double = 0.0,
     @get:PropertyName("cporcentaje") @set:PropertyName("cporcentaje") var cPorcentaje: Double = 0.0,
+
     @get:PropertyName("dnominal") @set:PropertyName("dnominal") var dNominal: Double = 0.0,
     @get:PropertyName("dactual") @set:PropertyName("dactual") var dActual: Double = 0.0,
     @get:PropertyName("dporcentaje") @set:PropertyName("dporcentaje") var dPorcentaje: Double = 0.0

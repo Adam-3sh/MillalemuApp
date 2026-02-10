@@ -65,22 +65,26 @@ fun PantallaRegistroCadena(
     var expandedAsistencia by remember { mutableStateOf(false) }
 
     // Variables Nominales (Iniciales)
+    var nomA by remember { mutableStateOf("") }
     var nomB by remember { mutableStateOf("") }
     var nomC by remember { mutableStateOf("") }
     var nomD by remember { mutableStateOf("") }
     var nominalesEditables by remember { mutableStateOf(false) }
 
     // Variables Actuales (Medidas)
+    var medA by remember { mutableStateOf("") }
     var medB by remember { mutableStateOf("") }
     var medC by remember { mutableStateOf("") }
     var medD by remember { mutableStateOf("") }
 
     // Variables de Cálculo (Porcentajes)
+    var valA by remember { mutableStateOf(0.0) }
     var valB by remember { mutableStateOf(0.0) }
     var valC by remember { mutableStateOf(0.0) }
     var valD by remember { mutableStateOf(0.0) }
 
     // Textos para mostrar resultados
+    var resA_txt by remember { mutableStateOf("0%") }
     var resB_txt by remember { mutableStateOf("0%") }
     var resC_txt by remember { mutableStateOf("0%") }
     var resD_txt by remember { mutableStateOf("0%") }
@@ -104,26 +108,26 @@ fun PantallaRegistroCadena(
     fun cleanDouble(s: String): Double = s.replace(',', '.').trim().toDoubleOrNull() ?: 0.0
 
     // --- CÁLCULO AUTOMÁTICO ---
-    LaunchedEffect(nomB, nomC, nomD, medB, medC, medD) {
+    LaunchedEffect(nomA, nomB, nomC, nomD, medA, medB, medC, medD) {
+        val nA = cleanDouble(nomA); val mA = cleanDouble(medA)
         val nB = cleanDouble(nomB); val mB = cleanDouble(medB)
         val nC = cleanDouble(nomC); val mC = cleanDouble(medC)
         val nD = cleanDouble(nomD); val mD = cleanDouble(medD)
 
-        // Reemplaza tu función calc antigua por esta:
         fun calc(n: Double, m: Double): Double {
             if (n <= 0.0 || m <= 0.0) return 0.0
             val bruto = kotlin.math.abs((n - m) / n) * 100.0
-            // Corrección de redondeo para precisión exacta
             return ((bruto * 10 + 0.5).toInt()) / 10.0
         }
 
-        valB = calc(nB, mB); valC = calc(nC, mC); valD = calc(nD, mD)
+        valA = calc(nA, mA); valB = calc(nB, mB); valC = calc(nC, mC); valD = calc(nD, mD)
 
+        resA_txt = "%.1f%%".format(valA)
         resB_txt = "%.1f%%".format(valB)
         resC_txt = "%.1f%%".format(valC)
         resD_txt = "%.1f%%".format(valD)
 
-        maxDanoVal = listOf(valB, valC, valD).maxOrNull() ?: 0.0
+        maxDanoVal = listOf(valA, valB, valC, valD).maxOrNull() ?: 0.0
         porcentajeDanoGlobal = "%.1f%%".format(maxDanoVal)
     }
 
@@ -139,7 +143,6 @@ fun PantallaRegistroCadena(
                     val modelo = doc.getString("modelo") ?: ""
 
                     if (id.isNotEmpty()) {
-                        // Si hay modelo, lo mostramos primero: "FALCON - AM=01"
                         if (modelo.isNotEmpty()) "${modelo.uppercase()} - $id" else id
                     } else null
                 }
@@ -156,6 +159,7 @@ fun PantallaRegistroCadena(
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
                     ultima?.detallesCadena?.let { d ->
+                        nomA = d.aNominal.toString()
                         nomB = d.bNominal.toString()
                         nomC = d.cNominal.toString()
                         nomD = d.dNominal.toString()
@@ -222,13 +226,11 @@ fun PantallaRegistroCadena(
                 RowItemDato(label = "Equipo Principal", valor = idEquipo)
                 Spacer(Modifier.height(8.dp))
 
-                // 2. ENVOLVER LA UI DEL DROPDOWN CON EL IF
                 if (requiereAsistencia) {
-                    // --- DROPDOWN ASISTENCIA (OBLIGATORIO Y TEXTO GRANDE) ---
                     Text(
-                        text = "Máquina Asistencia (Obligatorio)", // Quitamos "Opcional"
+                        text = "Máquina Asistencia (Obligatorio)",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold, // Texto más destacado
+                        fontWeight = FontWeight.Bold,
                         color = if (maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia")) Color.Red else AzulOscuro,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
@@ -244,7 +246,6 @@ fun PantallaRegistroCadena(
                             readOnly = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAsistencia) },
                             modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            // Aumentamos el tamaño del texto seleccionado
                             textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = Color.White,
@@ -261,15 +262,13 @@ fun PantallaRegistroCadena(
                             modifier = Modifier.background(Color.White)
                         ) {
                             listaMaquinasAsistencia.forEach { maquina ->
-                                // Verificamos si esta opción es la que está seleccionada
                                 val isSelected = (maquina == maquinaAsistenciaSeleccionada)
 
                                 DropdownMenuItem(
                                     text = {
                                         Text(
                                             text = maquina,
-                                            fontSize = 16.sp, // Tamaño corregido
-                                            // Si está seleccionado, lo ponemos en Negrita y Azul
+                                            fontSize = 16.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                             color = if (isSelected) AzulOscuro else Color.Black
                                         )
@@ -278,14 +277,12 @@ fun PantallaRegistroCadena(
                                         maquinaAsistenciaSeleccionada = maquina
                                         expandedAsistencia = false
                                     },
-                                    // Fondo suave azul si está seleccionado para que destaque
                                     modifier = Modifier.background(if (isSelected) Color(0xFFE3F2FD) else Color.Transparent)
                                 )
                             }
                         }
                     }
                     Spacer(Modifier.height(12.dp))
-                    // ----------------------------------
                 }
 
                 RowItemDato(label = "Fecha", valor = fechaHoy)
@@ -323,12 +320,13 @@ fun PantallaRegistroCadena(
             ) {
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text("", Modifier.weight(0.6f))
-                    listOf("B", "C", "D").forEach {
+                    listOf("A", "B", "C", "D").forEach {
                         Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
                     }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Nominal", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Nom.", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    CeldaGrid(nomA, { nomA = it }, nominalesEditables)
                     CeldaGrid(nomB, { nomB = it }, nominalesEditables)
                     CeldaGrid(nomC, { nomC = it }, nominalesEditables)
                     CeldaGrid(nomD, { nomD = it }, nominalesEditables)
@@ -336,6 +334,7 @@ fun PantallaRegistroCadena(
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Real", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    CeldaGrid(medA, { medA = it }, true, true)
                     CeldaGrid(medB, { medB = it }, true, true)
                     CeldaGrid(medC, { medC = it }, true, true)
                     CeldaGrid(medD, { medD = it }, true, true)
@@ -347,6 +346,7 @@ fun PantallaRegistroCadena(
                     Spacer(Modifier.height(8.dp))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("Daño", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Red)
+                        CeldaResultado(resA_txt)
                         CeldaResultado(resB_txt)
                         CeldaResultado(resC_txt)
                         CeldaResultado(resD_txt)
@@ -451,27 +451,25 @@ fun PantallaRegistroCadena(
                         isSaving = true
                         mensajeError = ""
 
-                        // --- VALIDACIÓN ASISTENCIA (CONDICIONAL) ---
                         if (requiereAsistencia && maquinaAsistenciaSeleccionada.isEmpty()) {
                             mensajeError = "Debe seleccionar una máquina de asistencia."
                             isSaving = false
                             return@Button
                         }
-                        // -------------------------------------------
 
                         val h = cleanDouble(horometro)
                         if (h <= 0) { mensajeError = "Falta el horómetro."; isSaving = false; return@Button }
 
-                        val nB = cleanDouble(nomB); val nC = cleanDouble(nomC); val nD = cleanDouble(nomD)
-                        val mB = cleanDouble(medB); val mC = cleanDouble(medC); val mD = cleanDouble(medD)
+                        val nA = cleanDouble(nomA); val nB = cleanDouble(nomB); val nC = cleanDouble(nomC); val nD = cleanDouble(nomD)
+                        val mA = cleanDouble(medA); val mB = cleanDouble(medB); val mC = cleanDouble(medC); val mD = cleanDouble(medD)
 
-                        if (nB <= 0 || nC <= 0 || nD <= 0) { mensajeError = "Faltan medidas NOMINALES."; isSaving = false; return@Button }
-                        if (mB <= 0 || mC <= 0 || mD <= 0) { mensajeError = "Faltan medidas ACTUALES."; isSaving = false; return@Button }
+                        if (nA <= 0 || nB <= 0 || nC <= 0 || nD <= 0) { mensajeError = "Faltan medidas NOMINALES."; isSaving = false; return@Button }
+                        if (mA <= 0 || mB <= 0 || mC <= 0 || mD <= 0) { mensajeError = "Faltan medidas ACTUALES."; isSaving = false; return@Button }
 
                         val detalles = DetallesCadena(
-                            bNominal = nB, cNominal = nC, dNominal = nD,
-                            bActual = mB, cActual = mC, dActual = mD,
-                            bPorcentaje = valB, cPorcentaje = valC, dPorcentaje = valD
+                            aNominal = nA, bNominal = nB, cNominal = nC, dNominal = nD,
+                            aActual = mA, bActual = mB, cActual = mC, dActual = mD,
+                            aPorcentaje = valA, bPorcentaje = valB, cPorcentaje = valC, dPorcentaje = valD
                         )
 
                         val bitacora = Bitacora(
@@ -480,7 +478,6 @@ fun PantallaRegistroCadena(
                             identificadorMaquina = idEquipo,
                             tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,
-                            // Aquí guardamos "MODELO - AM=01" completo SI REQUIERE
                             maquinaAsistencia = if (requiereAsistencia) maquinaAsistenciaSeleccionada else "",
                             horometro = h,
                             porcentajeDesgasteGeneral = maxDanoVal,
