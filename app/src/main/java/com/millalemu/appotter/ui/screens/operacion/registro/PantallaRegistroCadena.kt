@@ -558,7 +558,7 @@ fun PantallaRegistroCadena(
 
                         // IMAGEN MÁS GRANDE Y PROPORCIONAL
                         Image(
-                            painter = painterResource(id = R.drawable.medidas_eslabon),
+                            painter = painterResource(id = R.drawable.medidas_cadena),
                             contentDescription = "Esquema de Cadena",
                             modifier = Modifier
                                 .weight(1f) // Esto hace que la imagen empuje el botón hacia abajo y tome todo el espacio disponible

@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
@@ -51,9 +54,11 @@ fun PantallaRegistroRoldana(
     val context = LocalContext.current
 
     // --- ESTADOS DE UI Y DATOS ---
-    //var numeroSerie by remember { mutableStateOf("") }
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
+
+    // --- ESTADO PARA MOSTRAR EL ESQUEMA ---
+    var mostrarEsquema by remember { mutableStateOf(false) }
 
     // --- VARIABLES NOMINALES (3 Medidas: A, B, C) ---
     var nomA by remember { mutableStateOf("") }
@@ -128,7 +133,6 @@ fun PantallaRegistroRoldana(
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
                     ultima?.detallesRoldana?.let { d ->
-                        //numeroSerie = ultima.numeroSerie
                         nomA = d.aNominal.toString()
                         nomB = d.bNominal.toString()
                         nomC = d.cNominal.toString()
@@ -164,7 +168,6 @@ fun PantallaRegistroRoldana(
                 RowItemDato(label = "Equipo", valor = idEquipo); Spacer(Modifier.height(8.dp))
                 RowItemDato(label = "Fecha", valor = fechaHoy); Spacer(Modifier.height(8.dp))
                 RowItemInput(label = "Horómetro", value = horometro, onValueChange = { horometro = it }, suffix = "hrs", isNumber = true); Spacer(Modifier.height(8.dp))
-                //RowItemInput(label = "Nº Serie", value = numeroSerie, onValueChange = { numeroSerie = it })
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -177,6 +180,18 @@ fun PantallaRegistroRoldana(
                     }
                 }
             }) {
+                // --- BOTÓN VER IMAGEN DE EXTREMO A EXTREMO ---
+                Button(
+                    onClick = { mostrarEsquema = true },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AzulOscuro),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("VER IMAGEN", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+
                 // Cabecera
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text("", Modifier.weight(0.6f))
@@ -252,7 +267,6 @@ fun PantallaRegistroRoldana(
                     onClick = {
                         isSaving = true; mensajeError = ""
                         // 1. VALIDACIONES
-                        //if (numeroSerie.isBlank()) { mensajeError = "Falta el número de serie."; isSaving = false; return@Button }
                         val h = cleanDouble(horometro)
                         if (h <= 0) { mensajeError = "Falta horómetro."; isSaving = false; return@Button }
 
@@ -271,7 +285,6 @@ fun PantallaRegistroRoldana(
                         val bitacora = Bitacora(
                             usuarioRut = Sesion.rutUsuarioActual, usuarioNombre = Sesion.nombreUsuarioActual, identificadorMaquina = idEquipo, tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,
-                            //numeroSerie = numeroSerie,
                             horometro = h, porcentajeDesgasteGeneral = maxDanoVal, tieneFisura = tieneFisura,
                             requiereReemplazo = requiereReemplazo, observacion = observacion, detallesRoldana = detalles,
                             detallesEslabon = null, detallesCadena = null, detallesGrillete = null, detallesGancho = null, detallesTerminal = null, detallesCable = null
@@ -301,6 +314,61 @@ fun PantallaRegistroRoldana(
                 ) { if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp)) else Text("Guardar", fontWeight = FontWeight.Bold) }
             }
             Spacer(Modifier.height(48.dp))
+        }
+
+        // --- VENTANA EMERGENTE GRANDE PARA LA IMAGEN ---
+        if (mostrarEsquema) {
+            Dialog(
+                onDismissRequest = { mostrarEsquema = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth(0.95f)
+                        .fillMaxHeight(0.80f),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White,
+                    shadowElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Imagen Medidas Roldana",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = AzulOscuro,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        // IMAGEN DE REFERENCIA
+                        Image(
+                            painter = painterResource(id = R.drawable.medidas_roldana),
+                            contentDescription = "Esquema de Roldana",
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFEEEEEE))
+                                .padding(8.dp),
+                            contentScale = ContentScale.Fit
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // BOTÓN CERRAR
+                        Button(
+                            onClick = { mostrarEsquema = false },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AzulOscuro),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("CERRAR", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
+                }
+            }
         }
     }
 }

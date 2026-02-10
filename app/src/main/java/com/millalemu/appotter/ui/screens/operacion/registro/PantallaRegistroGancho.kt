@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
@@ -55,6 +58,9 @@ fun PantallaRegistroGancho(
     // --- ESTADOS DE UI Y DATOS ---
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
+
+    // --- ESTADO PARA MOSTRAR EL ESQUEMA ---
+    var mostrarEsquema by remember { mutableStateOf(false) }
 
     // --- VARIABLES DE ASISTENCIA ---
     var listaMaquinasAsistencia by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -267,6 +273,18 @@ fun PantallaRegistroGancho(
                     }
                 }
             }) {
+                // --- BOTÓN VER IMAGEN DE EXTRAMO A EXTREMO ---
+                Button(
+                    onClick = { mostrarEsquema = true },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AzulOscuro),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("VER IMAGEN", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+
                 // FILA 1: Phi1, R, D
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text("", Modifier.weight(0.5f))
@@ -418,6 +436,61 @@ fun PantallaRegistroGancho(
                 ) { if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp)) else Text("Guardar", fontWeight = FontWeight.Bold) }
             }
             Spacer(Modifier.height(48.dp))
+        }
+
+        // --- VENTANA EMERGENTE GRANDE PARA LA IMAGEN ---
+        if (mostrarEsquema) {
+            Dialog(
+                onDismissRequest = { mostrarEsquema = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth(0.95f)
+                        .fillMaxHeight(0.80f),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White,
+                    shadowElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Imagen Medidas Gancho",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = AzulOscuro,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        // IMAGEN DE REFERENCIA (Temporalmente usa la del gancho)
+                        Image(
+                            painter = painterResource(id = R.drawable.medidas_gancho),
+                            contentDescription = "Esquema de Gancho",
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFEEEEEE))
+                                .padding(8.dp),
+                            contentScale = ContentScale.Fit
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // BOTÓN CERRAR
+                        Button(
+                            onClick = { mostrarEsquema = false },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AzulOscuro),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("CERRAR", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
+                }
+            }
         }
     }
 }
