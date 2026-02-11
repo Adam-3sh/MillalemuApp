@@ -104,10 +104,14 @@ fun PantallaRegistroEslabon(
 
     var mensajeError by remember { mutableStateOf("") }
     var switchManual by remember { mutableStateOf(false) }
-    val esCritico = maxDanoVal >= 10.0
+
+    // --- NUEVA LÓGICA DE INSPECCIÓN VISUAL ---
+    var tieneFisura by remember { mutableStateOf(false) }
+
+    // Es crítico si el daño es >= 10% O si TIENE FISURA
+    val esCritico = maxDanoVal >= 10.0 || tieneFisura
     val requiereReemplazo = esCritico || switchManual
 
-    var tieneFisura by remember { mutableStateOf(false) }
     var observacion by remember { mutableStateOf("") }
     var isSaving by remember { mutableStateOf(false) }
     var isLoadingHistory by remember { mutableStateOf(true) }
@@ -441,8 +445,10 @@ fun PantallaRegistroEslabon(
                     Column(Modifier.weight(1f)) {
                         Text("¿Requiere reemplazo?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         if (esCritico) {
+                            // --- MENSAJE DINÁMICO SEGÚN LA CAUSA DEL BLOQUEO ---
+                            val causaBloqueo = if (tieneFisura) "(Bloqueado por fisura detectada)" else "(Bloqueado por daño crítico)"
                             Text(
-                                "(Bloqueado por daño crítico)",
+                                text = causaBloqueo,
                                 fontSize = 11.sp,
                                 color = Color.Red,
                                 fontWeight = FontWeight.Bold
@@ -493,8 +499,6 @@ fun PantallaRegistroEslabon(
                         isSaving = true
                         mensajeError = ""
 
-                        // --- CORRECCIÓN AQUÍ: VALIDACIÓN CONDICIONAL ---
-                        // Solo validamos si requiere asistencia. Si no requiere, se salta.
                         if (requiereAsistencia && maquinaAsistenciaSeleccionada.isEmpty()) {
                             mensajeError = "Debe seleccionar una máquina de asistencia."
                             isSaving = false
@@ -522,7 +526,6 @@ fun PantallaRegistroEslabon(
                             return@Button
                         }
 
-                        // CREAR OBJETO BITÁCORA
                         val detalles = DetallesEslabon(
                             kNominal = nK, aNominal = nA, dNominal = nD, bNominal = nB,
                             kActual = mK, aActual = mA, dActual = mD, bActual = mB,
@@ -535,8 +538,6 @@ fun PantallaRegistroEslabon(
                             identificadorMaquina = idEquipo,
                             tipoMaquina = tipoMaquina,
                             tipoAditamento = nombreAditamento,
-                            // --- CORRECCIÓN AQUÍ: GUARDADO CONDICIONAL ---
-                            // Si requiere asistencia, se guarda la seleccionada. Si no, va vacío.
                             maquinaAsistencia = if (requiereAsistencia) maquinaAsistenciaSeleccionada else "",
                             horometro = h,
                             porcentajeDesgasteGeneral = maxDanoVal,
@@ -605,7 +606,6 @@ fun PantallaRegistroEslabon(
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
 
-                        // IMAGEN DE REFERENCIA
                         Image(
                             painter = painterResource(id = R.drawable.medidas_eslabon),
                             contentDescription = "Esquema de Eslabón",
@@ -620,7 +620,6 @@ fun PantallaRegistroEslabon(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // BOTÓN CERRAR
                         Button(
                             onClick = { mostrarEsquema = false },
                             modifier = Modifier.fillMaxWidth().height(50.dp),

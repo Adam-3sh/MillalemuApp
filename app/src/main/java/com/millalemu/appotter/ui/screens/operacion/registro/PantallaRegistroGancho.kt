@@ -106,11 +106,13 @@ fun PantallaRegistroGancho(
     var mensajeError by remember { mutableStateOf("") }
     var switchManual by remember { mutableStateOf(false) }
 
-    // REGLA DE NEGOCIO ESPECÍFICA DE GANCHO: Phi2 > 5% es crítico, el resto > 10%
-    val esCritico = (valPhi2 >= 5.0) || (maxDanoVal >= 10.0)
+    // --- NUEVA LÓGICA DE INSPECCIÓN VISUAL ---
+    var tieneFisura by remember { mutableStateOf(false) }
+
+    // REGLA DE NEGOCIO ESPECÍFICA DE GANCHO: Phi2 > 5% es crítico, el resto > 10%, O si tiene fisura
+    val esCritico = (valPhi2 >= 5.0) || (maxDanoVal >= 10.0) || tieneFisura
     val requiereReemplazo = esCritico || switchManual
 
-    var tieneFisura by remember { mutableStateOf(false) }
     var observacion by remember { mutableStateOf("") }
     var isSaving by remember { mutableStateOf(false) }
     var isLoadingHistory by remember { mutableStateOf(true) }
@@ -355,7 +357,16 @@ fun PantallaRegistroGancho(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("¿Requiere reemplazo?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        if (esCritico) Text("(Bloqueado por daño crítico)", fontSize = 11.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                        if (esCritico) {
+                            // --- MENSAJE DINÁMICO SEGÚN LA CAUSA DEL BLOQUEO ---
+                            val causaBloqueo = if (tieneFisura) "(Bloqueado por fisura detectada)" else "(Bloqueado por daño crítico)"
+                            Text(
+                                text = causaBloqueo,
+                                fontSize = 11.sp,
+                                color = Color.Red,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                     Switch(checked = requiereReemplazo, onCheckedChange = { if (!esCritico) switchManual = it }, enabled = !esCritico, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = if (esCritico) Color.Red else Color(0xFF2E7D32), disabledCheckedTrackColor = Color.Red.copy(alpha = 0.6f)))
                 }
@@ -464,7 +475,7 @@ fun PantallaRegistroGancho(
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
 
-                        // IMAGEN DE REFERENCIA (Temporalmente usa la del gancho)
+                        // IMAGEN DE REFERENCIA
                         Image(
                             painter = painterResource(id = R.drawable.medidas_gancho),
                             contentDescription = "Esquema de Gancho",

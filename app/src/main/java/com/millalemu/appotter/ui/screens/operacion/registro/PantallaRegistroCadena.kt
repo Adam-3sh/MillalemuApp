@@ -101,10 +101,14 @@ fun PantallaRegistroCadena(
 
     var mensajeError by remember { mutableStateOf("") }
     var switchManual by remember { mutableStateOf(false) }
-    val esCritico = maxDanoVal >= 10.0
+
+    // --- NUEVA LÓGICA DE INSPECCIÓN VISUAL ---
+    var tieneFisura by remember { mutableStateOf(false) }
+
+    // Es crítico si el daño es >= 10% O si TIENE FISURA
+    val esCritico = maxDanoVal >= 10.0 || tieneFisura
     val requiereReemplazo = esCritico || switchManual
 
-    var tieneFisura by remember { mutableStateOf(false) }
     var observacion by remember { mutableStateOf("") }
     var isSaving by remember { mutableStateOf(false) }
     var isLoadingHistory by remember { mutableStateOf(true) }
@@ -418,7 +422,14 @@ fun PantallaRegistroCadena(
                     Column(Modifier.weight(1f)) {
                         Text("¿Requiere reemplazo?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         if (esCritico) {
-                            Text("(Bloqueado por daño crítico)", fontSize = 11.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                            // --- MENSAJE DINÁMICO SEGÚN LA CAUSA DEL BLOQUEO ---
+                            val causaBloqueo = if (tieneFisura) "(Bloqueado por fisura detectada)" else "(Bloqueado por daño crítico)"
+                            Text(
+                                text = causaBloqueo,
+                                fontSize = 11.sp,
+                                color = Color.Red,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                     Switch(

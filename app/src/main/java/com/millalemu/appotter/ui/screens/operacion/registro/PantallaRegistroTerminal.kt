@@ -103,11 +103,13 @@ fun PantallaRegistroTerminal(
     var mensajeError by remember { mutableStateOf("") }
     var switchManual by remember { mutableStateOf(false) }
 
-    // Regla estándar: > 10% es crítico
-    val esCritico = maxDanoVal >= 10.0
+    // --- NUEVA LÓGICA DE INSPECCIÓN VISUAL ---
+    var tieneFisura by remember { mutableStateOf(false) }
+
+    // Regla estándar: > 10% es crítico O si tiene fisura
+    val esCritico = maxDanoVal >= 10.0 || tieneFisura
     val requiereReemplazo = esCritico || switchManual
 
-    var tieneFisura by remember { mutableStateOf(false) }
     var observacion by remember { mutableStateOf("") }
     var isSaving by remember { mutableStateOf(false) }
     var isLoadingHistory by remember { mutableStateOf(true) }
@@ -348,7 +350,10 @@ fun PantallaRegistroTerminal(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("¿Requiere reemplazo?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        if (esCritico) Text("(Bloqueado por daño crítico)", fontSize = 11.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                        if (esCritico) {
+                            val causaBloqueo = if (tieneFisura) "(Bloqueado por fisura detectada)" else "(Bloqueado por daño crítico)"
+                            Text(causaBloqueo, fontSize = 11.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                        }
                     }
                     Switch(checked = requiereReemplazo, onCheckedChange = { if (!esCritico) switchManual = it }, enabled = !esCritico, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = if (esCritico) Color.Red else Color(0xFF2E7D32), disabledCheckedTrackColor = Color.Red.copy(alpha = 0.6f)))
                 }
