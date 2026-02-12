@@ -186,7 +186,10 @@ data class DetallesCable(
 
     // Resultados de Severidad (Cálculos)
     @get:PropertyName("porcentajereduccion") @set:PropertyName("porcentajereduccion") var porcentajeReduccion: Double = 0.0, // Severidad por diámetro
-    @get:PropertyName("porcentajecorrosion") @set:PropertyName("porcentajecorrosion") var porcentajeCorrosion: Double = 0.0 // Severidad por corrosión
+    @get:PropertyName("porcentajecorrosion") @set:PropertyName("porcentajecorrosion") var porcentajeCorrosion: Double = 0.0, // Severidad por corrosión
+
+    // --- CAMPO NUEVO PARA CONTROL DE STOCK ---
+    @get:PropertyName("metroscortados") @set:PropertyName("metroscortados") var metrosCortados: Double = 0.0
 )
 
 @Keep

@@ -24,11 +24,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.Source
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.DetallesCable
 import com.millalemu.appotter.db
 import com.millalemu.appotter.ui.components.CardSeccion
-// import com.millalemu.appotter.ui.components.HorizontalDivider <-- ELIMINADO
 import com.millalemu.appotter.ui.theme.AzulOscuro
 import com.millalemu.appotter.ui.theme.VerdeBoton
 import com.millalemu.appotter.utils.CableCalculations
@@ -51,9 +52,13 @@ fun PantallaRegistroCable(
     // --- INPUTS ---
     var horometro by remember { mutableStateOf("") }
     var tipoMedicion by remember { mutableStateOf("") }
-    var tipoCable by remember { mutableStateOf("26mm") } // Por defecto 26mm
+    var tipoCable by remember { mutableStateOf("26mm") }
 
+    // --- GESTIÓN DE METROS ---
     var metrosDisponible by remember { mutableStateOf("") }
+    var metrosCortados by remember { mutableStateOf("") }
+    var editandoDisponible by remember { mutableStateOf(false) } // Controla si se puede editar el disponible
+
     var metrosRevisado by remember { mutableStateOf("") }
 
     var alambres6d by remember { mutableStateOf("") }
@@ -77,13 +82,19 @@ fun PantallaRegistroCable(
     var estadoColor by remember { mutableStateOf(Color.Gray) }
     var estadoColorTexto by remember { mutableStateOf(Color.White) }
 
+    // Variable para controlar si el corte fue forzado por daño crítico (para revertirlo si se corrige)
+    var forzadoPorCritico by remember { mutableStateOf(false) }
+
     // --- VARIABLES DE ASISTENCIA ---
     var listaMaquinasAsistencia by remember { mutableStateOf<List<String>>(emptyList()) }
     var maquinaAsistenciaSeleccionada by remember { mutableStateOf("") }
     var expandedAsistencia by remember { mutableStateOf(false) }
 
-    // --- CARGAR DATOS ASISTENCIA ---
+    var isLoadingHistory by remember { mutableStateOf(true) }
+
+    // --- CARGAR DATOS (ASISTENCIA + ÚLTIMO METRAJE) ---
     LaunchedEffect(Unit) {
+        // 1. Cargar Maquinas
         db.collection("maquinaria")
             .whereEqualTo("tipo", "Asistencia")
             .get()
@@ -91,17 +102,38 @@ fun PantallaRegistroCable(
                 listaMaquinasAsistencia = documents.mapNotNull { doc ->
                     val id = doc.getString("identificador") ?: ""
                     val modelo = doc.getString("modelo") ?: ""
-
                     if (id.isNotEmpty()) {
-                        // Formato: MODELO - ID
                         if (modelo.isNotEmpty()) "${modelo.uppercase()} - $id" else id
                     } else null
                 }
             }
+
+        // 2. Cargar Historial para obtener Metros Disponibles
+        db.collection("bitacoras")
+            .whereEqualTo("identificadorMaquina", idEquipo)
+            .whereEqualTo("tipoAditamento", "Cable de Asistencia")
+            .orderBy("fecha", Query.Direction.DESCENDING)
+            .limit(1)
+            .get(Source.CACHE)
+            .addOnSuccessListener { documents ->
+                if (!documents.isEmpty) {
+                    val ultima = documents.documents[0].toObject(Bitacora::class.java)
+                    ultima?.detallesCable?.let { d ->
+                        // Cargamos lo que quedó disponible la última vez
+                        if (d.metrosDisponible > 0) {
+                            metrosDisponible = d.metrosDisponible.toString()
+                        }
+                    }
+                }
+                isLoadingHistory = false
+            }
+            .addOnFailureListener {
+                isLoadingHistory = false
+            }
     }
 
     // --- EFECTO DE CÁLCULO EN TIEMPO REAL ---
-    LaunchedEffect(alambres6d, alambres30d, diametroMedido, nivelCorrosion, tipoCable, presentaCorte) {
+    LaunchedEffect(alambres6d, alambres30d, diametroMedido, nivelCorrosion, tipoCable) {
         val dAlm6d = alambres6d.toDoubleOrNull() ?: 0.0
         val dAlm30d = alambres30d.toDoubleOrNull() ?: 0.0
         val dDiametro = diametroMedido.replace(',', '.').toDoubleOrNull() ?: 0.0
@@ -110,20 +142,30 @@ fun PantallaRegistroCable(
         calcSevAlambres = CableCalculations.calcularSeveridadAlambres(dAlm6d, dAlm30d)
         calcSevCorrosion = CableCalculations.calcularSeveridadCorrosion(nivelCorrosion)
 
-        // Lógica dual: 26mm vs 28mm
         if (tipoCable == "28mm") {
             calcSevDiametro = CableCalculations.calcularSeveridadDiametro28mm(dDiametro)
         } else {
             calcSevDiametro = CableCalculations.calcularSeveridadDiametro26mm(dDiametro)
         }
 
-        // % Disminución informativo
         calcDisminucion = CableCalculations.calcularPorcentajeDisminucion(dDiametro, tipoCable)
-
-        // 2. Sumar Total
         calcTotal = CableCalculations.calcularDañoTotal(calcSevAlambres, calcSevDiametro, calcSevCorrosion)
 
-        // 3. Obtener Estado Visual
+        // --- LÓGICA DE CORTE AUTOMÁTICO INTELIGENTE ---
+        if (calcTotal >= 100.0) {
+            // Si llega a 100%, forzamos el SÍ y recordamos que fue forzado
+            if (presentaCorte != true) {
+                presentaCorte = true
+                forzadoPorCritico = true
+            }
+        } else {
+            // Si baja de 100% Y fue forzado anteriormente, lo liberamos (volvemos a NO)
+            if (forzadoPorCritico) {
+                presentaCorte = false
+                forzadoPorCritico = false
+            }
+        }
+
         val estadoVisual = CableCalculations.obtenerEstadoVisual(
             tipoCable = tipoCable,
             porcentajeTotal = calcTotal,
@@ -138,275 +180,410 @@ fun PantallaRegistroCable(
     var isSaving by remember { mutableStateOf(false) }
     var mensajeError by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // ENCABEZADO
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(bottom = 20.dp).fillMaxWidth()
-        ) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = AzulOscuro, modifier = Modifier.size(28.dp))
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Registro de Cable", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = AzulOscuro)
+    if (isLoadingHistory) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = AzulOscuro)
         }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F5))
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // ENCABEZADO
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 20.dp).fillMaxWidth()
+            ) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = AzulOscuro, modifier = Modifier.size(28.dp))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Registro de Cable", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = AzulOscuro)
+            }
 
-        // SECCIONES DE DATOS
-        CardSeccion(titulo = "Información del Equipo") {
-            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                Column { EtiquetaCampo("Equipo"); Text(idEquipo, fontSize = 20.sp, fontWeight = FontWeight.Black, color = AzulOscuro) }
-                Column(horizontalAlignment = Alignment.End) { EtiquetaCampo("Fecha"); Text(fechaHoy, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+            // DATOS GENERALES
+            CardSeccion(titulo = "Información del Equipo") {
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                    Column { EtiquetaCampo("Equipo"); Text(idEquipo, fontSize = 20.sp, fontWeight = FontWeight.Black, color = AzulOscuro) }
+                    Column(horizontalAlignment = Alignment.End) { EtiquetaCampo("Fecha"); Text(fechaHoy, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // --- DROPDOWN ASISTENCIA ---
+                Text(
+                    text = "Máquina Asistencia (Obligatorio)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia")) Color.Red else AzulOscuro,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+
+                ExposedDropdownMenuBox(
+                    expanded = expandedAsistencia,
+                    onExpandedChange = { expandedAsistencia = !expandedAsistencia },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = if (maquinaAsistenciaSeleccionada.isEmpty()) "Seleccione..." else maquinaAsistenciaSeleccionada,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAsistencia) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = AzulOscuro,
+                            errorBorderColor = Color.Red
+                        ),
+                        isError = maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia"),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedAsistencia,
+                        onDismissRequest = { expandedAsistencia = false },
+                        modifier = Modifier.background(Color.White)
+                    ) {
+                        listaMaquinasAsistencia.forEach { maquina ->
+                            val isSelected = (maquina == maquinaAsistenciaSeleccionada)
+                            DropdownMenuItem(
+                                text = { Text(text = maquina, fontSize = 16.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, color = if (isSelected) AzulOscuro else Color.Black) },
+                                onClick = {
+                                    maquinaAsistenciaSeleccionada = maquina
+                                    expandedAsistencia = false
+                                },
+                                modifier = Modifier.background(if (isSelected) Color(0xFFE3F2FD) else Color.Transparent)
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                CampoEntrada("Horómetro Actual", horometro, { if (it.all { c -> c.isDigit() || c == '.' }) horometro = it }, "hrs")
             }
 
             Spacer(Modifier.height(16.dp))
 
-            // --- DROPDOWN ASISTENCIA MEJORADO ---
-            Text(
-                text = "Máquina Asistencia (Obligatorio)",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia")) Color.Red else AzulOscuro,
-                modifier = Modifier.padding(bottom = 4.dp)
+            CardSeccion(titulo = "Configuración") {
+                EtiquetaCampo("Intervalo")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BotonSeleccionColor("10 Horas", tipoMedicion == "10h", AzulOscuro, onClick = { tipoMedicion = "10h" }, modifier = Modifier.weight(1f))
+                    BotonSeleccionColor("100 Horas", tipoMedicion == "100h", AzulOscuro, onClick = { tipoMedicion = "100h" }, modifier = Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(16.dp))
+                EtiquetaCampo("Diámetro Cable")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BotonSeleccionColor("26 mm", tipoCable == "26mm", AzulOscuro, onClick = { tipoCable = "26mm" }, modifier = Modifier.weight(1f))
+                    BotonSeleccionColor("28 mm", tipoCable == "28mm", AzulOscuro, onClick = { tipoCable = "28mm" }, modifier = Modifier.weight(1f))
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // --- SECCIÓN INVENTARIO (METROS CORTADOS MOVIDO A CONCLUSIÓN) ---
+            CardSeccion(titulo = "Inventario de Cable") {
+                // 1. METROS DISPONIBLES
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    // CORRECCIÓN 1: Etiqueta limpia
+                    Text("Metros Disponibles", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AzulOscuro, modifier = Modifier.weight(1f))
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (editandoDisponible) Color.Gray else AzulOscuro,
+                        modifier = Modifier.clickable { editandoDisponible = !editandoDisponible }
+                    ) {
+                        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(if(editandoDisponible) "BLOQUEAR" else "EDITAR", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(if(editandoDisponible) Icons.Default.Lock else Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = metrosDisponible,
+                    onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) metrosDisponible = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = editandoDisponible,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = Color.Black,
+                        disabledBorderColor = Color.Gray,
+                        disabledContainerColor = Color(0xFFEEEEEE),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    suffix = { Text("m", fontWeight = FontWeight.Bold) },
+                    textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                )
+
+                Spacer(Modifier.height(16.dp))
+                CampoEntrada("Metros Revisados", metrosRevisado, { if (it.all { c -> c.isDigit() || c == '.' }) metrosRevisado = it }, "m")
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            CardSeccion(titulo = "Mediciones Físicas") {
+                EtiquetaCampo("Alambres Rotos")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CampoEntrada("6D (Max 10)", alambres6d, { if (it.all { c -> c.isDigit() }) alambres6d = it }, "", Modifier.weight(1f))
+                    CampoEntrada("30D (Max 20)", alambres30d, { if (it.all { c -> c.isDigit() }) alambres30d = it }, "", Modifier.weight(1f))
+                }
+
+                Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
+
+                EtiquetaCampo("Estado Físico")
+                CampoEntrada("Diámetro Medido", diametroMedido, { if (it.all { c -> c.isDigit() || c == '.' }) diametroMedido = it }, "mm")
+
+                if (diametroMedido.isNotEmpty()) {
+                    Text(
+                        text = "Disminución Nominal: ${String.format("%.1f", calcDisminucion)}%",
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+                EtiquetaCampo("Corrosión")
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BotonSeleccionColor("Superficial", nivelCorrosion == "Superficial", Color(0xFF4CAF50), Color.Black, { nivelCorrosion = "Superficial" }, Modifier.fillMaxWidth())
+                    BotonSeleccionColor("Áspera", nivelCorrosion == "Áspera", Color(0xFFFF9800), Color.Black, { nivelCorrosion = "Áspera" }, Modifier.fillMaxWidth())
+                    BotonSeleccionColor("Picada", nivelCorrosion == "Picada", Color(0xFFE53935), Color.Black, { nivelCorrosion = "Picada" }, Modifier.fillMaxWidth())
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // --- RESUMEN VISUAL ---
+            CardResumenEstado(
+                sevAlambres = calcSevAlambres,
+                sevDiametro = calcSevDiametro,
+                sevCorrosion = calcSevCorrosion,
+                total = calcTotal,
+                estadoTexto = estadoTexto,
+                estadoColor = estadoColor,
+                colorTexto = estadoColorTexto
             )
 
-            ExposedDropdownMenuBox(
-                expanded = expandedAsistencia,
-                onExpandedChange = { expandedAsistencia = !expandedAsistencia },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = if (maquinaAsistenciaSeleccionada.isEmpty()) "Seleccione..." else maquinaAsistenciaSeleccionada,
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAsistencia) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
-                    textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        focusedBorderColor = AzulOscuro,
-                        errorBorderColor = Color.Red
-                    ),
-                    isError = maquinaAsistenciaSeleccionada.isEmpty() && mensajeError.contains("asistencia"),
-                    shape = RoundedCornerShape(8.dp)
-                )
-                ExposedDropdownMenu(
-                    expanded = expandedAsistencia,
-                    onDismissRequest = { expandedAsistencia = false },
-                    modifier = Modifier.background(Color.White)
-                ) {
-                    listaMaquinasAsistencia.forEach { maquina ->
-                        val isSelected = (maquina == maquinaAsistenciaSeleccionada)
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = maquina,
-                                    fontSize = 16.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) AzulOscuro else Color.Black
-                                )
-                            },
-                            onClick = {
-                                maquinaAsistenciaSeleccionada = maquina
-                                expandedAsistencia = false
-                            },
-                            modifier = Modifier.background(if (isSelected) Color(0xFFE3F2FD) else Color.Transparent)
+            Spacer(Modifier.height(24.dp))
+
+            // --- SECCIÓN CONCLUSIÓN (CON METROS CORTADOS) ---
+            CardSeccion(titulo = "Conclusión y Cierre") {
+                EtiquetaCampo("¿Se cortó el cable?")
+
+                val bloqueoCritico = calcTotal >= 100.0
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Botón SÍ
+                    BotonSeleccionColor(
+                        texto = "SÍ",
+                        seleccionado = presentaCorte == true,
+                        colorBase = Color(0xFFE53935),
+                        colorTextoSeleccionado = Color.White,
+                        onClick = { presentaCorte = true },
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // Botón NO (Deshabilitado visualmente si es crítico)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(60.dp)
+                            .border(2.dp, if (bloqueoCritico) Color.LightGray else Color.Gray, RoundedCornerShape(10.dp))
+                            .background(if (presentaCorte == false && !bloqueoCritico) Color(0xFF4CAF50) else Color.White, RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable(enabled = !bloqueoCritico) { presentaCorte = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (presentaCorte == false && !bloqueoCritico) {
+                                Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Text("NO", color = if (presentaCorte == false && !bloqueoCritico) Color.White else if(bloqueoCritico) Color.LightGray else Color.Black, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        }
+                    }
+                }
+
+                if (bloqueoCritico) {
+                    Text(
+                        text = "(Bloqueado: Daño crítico 100% requiere corte)",
+                        fontSize = 12.sp,
+                        color = Color.Red,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
+                // CORRECCIÓN 2: INPUT DE METROS CORTADOS AQUÍ
+                if (presentaCorte == true) {
+                    Spacer(Modifier.height(16.dp))
+                    Divider(color = Color.LightGray)
+                    Spacer(Modifier.height(16.dp))
+
+                    Text(
+                        text = "Ingrese la cantidad cortada:",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AzulOscuro,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = metrosCortados,
+                        onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) metrosCortados = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        suffix = { Text("metros", fontWeight = FontWeight.Bold) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = AzulOscuro
+                        ),
+                        textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(8.dp),
+                        label = { Text("Metros Cortados") }
+                    )
+
+                    val disp = metrosDisponible.toDoubleOrNull() ?: 0.0
+                    val cortados = metrosCortados.toDoubleOrNull() ?: 0.0
+                    val restante = (disp - cortados).coerceAtLeast(0.0)
+
+                    if (metrosCortados.isNotEmpty()) {
+                        // CORRECCIÓN 3: Etiqueta de saldo actualizada
+                        Text(
+                            text = "Metros Disponibles Actualizados: ${String.format("%.1f", restante)} m",
+                            color = if(restante < 50) Color.Red else Color(0xFF2E7D32),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 8.dp)
                         )
                     }
                 }
-            }
-            // ------------------------------------
 
-            Spacer(Modifier.height(16.dp))
-            CampoEntrada("Horómetro Actual", horometro, { if (it.all { c -> c.isDigit() || c == '.' }) horometro = it }, "hrs")
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        CardSeccion(titulo = "Configuración") {
-            EtiquetaCampo("Intervalo")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                BotonSeleccionColor("10 Horas", tipoMedicion == "10h", AzulOscuro, onClick = { tipoMedicion = "10h" }, modifier = Modifier.weight(1f))
-                BotonSeleccionColor("100 Horas", tipoMedicion == "100h", AzulOscuro, onClick = { tipoMedicion = "100h" }, modifier = Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(16.dp))
-
-            // SELECCIÓN DE CABLE (ACTIVA LA LÓGICA 26/28)
-            EtiquetaCampo("Diámetro Cable")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                BotonSeleccionColor("26 mm", tipoCable == "26mm", AzulOscuro, onClick = { tipoCable = "26mm" }, modifier = Modifier.weight(1f))
-                BotonSeleccionColor("28 mm", tipoCable == "28mm", AzulOscuro, onClick = { tipoCable = "28mm" }, modifier = Modifier.weight(1f))
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        CardSeccion(titulo = "Mediciones") {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                CampoEntrada("M. Disponibles", metrosDisponible, { if (it.all { c -> c.isDigit() || c == '.' }) metrosDisponible = it }, "m", Modifier.weight(1f))
-                CampoEntrada("M. Revisados", metrosRevisado, { if (it.all { c -> c.isDigit() || c == '.' }) metrosRevisado = it }, "m", Modifier.weight(1f))
-            }
-
-            // Reemplazado HorizontalDivider por Divider
-            Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
-
-            EtiquetaCampo("Alambres Rotos")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                CampoEntrada("6D (Max 10)", alambres6d, { if (it.all { c -> c.isDigit() }) alambres6d = it }, "", Modifier.weight(1f))
-                CampoEntrada("30D (Max 20)", alambres30d, { if (it.all { c -> c.isDigit() }) alambres30d = it }, "", Modifier.weight(1f))
-            }
-
-            // Reemplazado HorizontalDivider por Divider
-            Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
-
-            // SECCIÓN DIÁMETRO
-            EtiquetaCampo("Estado Físico")
-            CampoEntrada("Diámetro Medido", diametroMedido, { if (it.all { c -> c.isDigit() || c == '.' }) diametroMedido = it }, "mm")
-
-            if (diametroMedido.isNotEmpty()) {
-                Text(
-                    text = "Disminución Nominal: ${String.format("%.1f", calcDisminucion)}%",
-                    color = Color.Gray,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                Spacer(Modifier.height(16.dp))
+                EtiquetaCampo("Observaciones")
+                OutlinedTextField(
+                    value = observacion, onValueChange = { observacion = it },
+                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
-            EtiquetaCampo("Corrosión")
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                BotonSeleccionColor("Superficial", nivelCorrosion == "Superficial", Color(0xFF4CAF50), Color.Black, { nivelCorrosion = "Superficial" }, Modifier.fillMaxWidth())
-                BotonSeleccionColor("Áspera", nivelCorrosion == "Áspera", Color(0xFFFF9800), Color.Black, { nivelCorrosion = "Áspera" }, Modifier.fillMaxWidth())
-                BotonSeleccionColor("Picada", nivelCorrosion == "Picada", Color(0xFFE53935), Color.Black, { nivelCorrosion = "Picada" }, Modifier.fillMaxWidth())
-            }
-        }
+            if (mensajeError.isNotEmpty()) Text(mensajeError, color = Color.Red, modifier = Modifier.padding(top = 8.dp), fontWeight = FontWeight.Bold)
 
-        Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
 
-        // --- RESUMEN VISUAL ---
-        CardResumenEstado(
-            sevAlambres = calcSevAlambres,
-            sevDiametro = calcSevDiametro,
-            sevCorrosion = calcSevCorrosion,
-            total = calcTotal,
-            estadoTexto = estadoTexto,
-            estadoColor = estadoColor,
-            colorTexto = estadoColorTexto
-        )
+            Button(
+                onClick = {
+                    mensajeError = ""
 
-        Spacer(Modifier.height(24.dp))
+                    if (maquinaAsistenciaSeleccionada.isEmpty()) {
+                        mensajeError = "Debe seleccionar una máquina de asistencia."
+                        return@Button
+                    }
 
-        CardSeccion(titulo = "Conclusión y Cierre") {
-            EtiquetaCampo("¿Se cortó el cable?")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                BotonSeleccionColor("SÍ", presentaCorte == true, Color(0xFFE53935), Color.Black, { presentaCorte = true }, Modifier.weight(1f))
-                BotonSeleccionColor("NO", presentaCorte == false, Color(0xFF4CAF50), Color.Black, { presentaCorte = false }, Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(16.dp))
-            EtiquetaCampo("Observaciones")
-            OutlinedTextField(
-                value = observacion, onValueChange = { observacion = it },
-                modifier = Modifier.fillMaxWidth().height(100.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
-            )
-        }
+                    if (horometro.isBlank() || tipoMedicion.isEmpty() || tipoCable.isEmpty() ||
+                        metrosDisponible.isBlank() || metrosRevisado.isBlank() ||
+                        alambres6d.isBlank() || alambres30d.isBlank() ||
+                        diametroMedido.isBlank() || nivelCorrosion.isEmpty() || presentaCorte == null
+                    ) {
+                        mensajeError = "Por favor complete todos los campos."
+                        return@Button
+                    }
 
-        if (mensajeError.isNotEmpty()) Text(mensajeError, color = Color.Red, modifier = Modifier.padding(top = 8.dp), fontWeight = FontWeight.Bold)
+                    val dMetrosDispOriginal = metrosDisponible.replace(',', '.').toDoubleOrNull() ?: 0.0
+                    val dMetrosCortados = metrosCortados.replace(',', '.').toDoubleOrNull() ?: 0.0
 
-        Spacer(Modifier.height(32.dp))
+                    if (presentaCorte == true && dMetrosCortados <= 0) {
+                        mensajeError = "Si declara corte, debe ingresar los 'Metros Cortados'."
+                        return@Button
+                    }
+                    if (dMetrosCortados > dMetrosDispOriginal) {
+                        mensajeError = "No puede cortar más metros de los disponibles."
+                        return@Button
+                    }
 
-        Button(
-            onClick = {
-                mensajeError = ""
+                    isSaving = true
 
-                // --- VALIDACIÓN ASISTENCIA ---
-                if (maquinaAsistenciaSeleccionada.isEmpty()) {
-                    mensajeError = "Debe seleccionar una máquina de asistencia."
-                    return@Button
-                }
+                    val dHorometro = horometro.replace(',', '.').toDoubleOrNull() ?: 0.0
+                    val dMetrosRev = metrosRevisado.replace(',', '.').toDoubleOrNull() ?: 0.0
+                    val dAlm6d = alambres6d.toDoubleOrNull() ?: 0.0
+                    val dAlm30d = alambres30d.toDoubleOrNull() ?: 0.0
+                    val dDiametro = diametroMedido.replace(',', '.').toDoubleOrNull() ?: 0.0
 
-                // Validaciones Generales
-                if (horometro.isBlank() || tipoMedicion.isEmpty() || tipoCable.isEmpty() ||
-                    metrosDisponible.isBlank() || metrosRevisado.isBlank() ||
-                    alambres6d.isBlank() || alambres30d.isBlank() ||
-                    diametroMedido.isBlank() || nivelCorrosion.isEmpty() || presentaCorte == null
-                ) {
-                    mensajeError = "Por favor complete todos los campos."
-                    return@Button
-                }
+                    val dMetrosDispFinal = dMetrosDispOriginal - dMetrosCortados
 
-                isSaving = true
+                    val finalSevAlambres = CableCalculations.calcularSeveridadAlambres(dAlm6d, dAlm30d)
+                    val finalSevCorrosion = CableCalculations.calcularSeveridadCorrosion(nivelCorrosion)
+                    val finalSevDiametro = if (tipoCable == "28mm") {
+                        CableCalculations.calcularSeveridadDiametro28mm(dDiametro)
+                    } else {
+                        CableCalculations.calcularSeveridadDiametro26mm(dDiametro)
+                    }
 
-                // Conversión y Guardado
-                val dHorometro = horometro.replace(',', '.').toDoubleOrNull() ?: 0.0
-                val dMetrosDisp = metrosDisponible.replace(',', '.').toDoubleOrNull() ?: 0.0
-                val dMetrosRev = metrosRevisado.replace(',', '.').toDoubleOrNull() ?: 0.0
-                val dAlm6d = alambres6d.toDoubleOrNull() ?: 0.0
-                val dAlm30d = alambres30d.toDoubleOrNull() ?: 0.0
-                val dDiametro = diametroMedido.replace(',', '.').toDoubleOrNull() ?: 0.0
+                    val finalTotal = CableCalculations.calcularDañoTotal(finalSevAlambres, finalSevDiametro, finalSevCorrosion)
+                    val requiereReemplazo = (finalTotal >= 100.0) || (presentaCorte == true)
 
-                // CÁLCULO FINAL DE GUARDADO (SEGURIDAD)
-                val finalSevAlambres = CableCalculations.calcularSeveridadAlambres(dAlm6d, dAlm30d)
-                val finalSevCorrosion = CableCalculations.calcularSeveridadCorrosion(nivelCorrosion)
+                    val detalles = DetallesCable(
+                        tipoMedicion = tipoMedicion,
+                        tipoCable = tipoCable,
+                        cableCortado = presentaCorte!!,
+                        metrosDisponible = dMetrosDispFinal,
+                        metrosRevisado = dMetrosRev,
+                        diametroMedido = dDiametro,
+                        nivelCorrosion = nivelCorrosion,
+                        alambresRotos6d = dAlm6d,
+                        alambresRotos30d = dAlm30d,
+                        porcentajeReduccion = finalSevDiametro,
+                        porcentajeCorrosion = finalSevCorrosion,
+                        metrosCortados = dMetrosCortados
+                    )
 
-                val finalSevDiametro = if (tipoCable == "28mm") {
-                    CableCalculations.calcularSeveridadDiametro28mm(dDiametro)
-                } else {
-                    CableCalculations.calcularSeveridadDiametro26mm(dDiametro)
-                }
+                    val bitacora = Bitacora(
+                        usuarioRut = Sesion.rutUsuarioActual,
+                        usuarioNombre = Sesion.nombreUsuarioActual,
+                        identificadorMaquina = idEquipo,
+                        tipoMaquina = tipoMaquina,
+                        tipoAditamento = "Cable de Asistencia",
+                        maquinaAsistencia = maquinaAsistenciaSeleccionada,
+                        horometro = dHorometro,
+                        porcentajeDesgasteGeneral = finalTotal,
+                        requiereReemplazo = requiereReemplazo,
+                        observacion = observacion,
+                        detallesCable = detalles
+                    )
 
-                val finalTotal = CableCalculations.calcularDañoTotal(finalSevAlambres, finalSevDiametro, finalSevCorrosion)
-                val requiereReemplazo = (finalTotal >= 100.0) || (presentaCorte == true)
-
-                val detalles = DetallesCable(
-                    tipoMedicion, tipoCable, presentaCorte!!, dMetrosDisp, dMetrosRev,
-                    dDiametro, nivelCorrosion, dAlm6d, dAlm30d, finalSevDiametro, finalSevCorrosion
-                )
-
-                val bitacora = Bitacora(
-                    usuarioRut = Sesion.rutUsuarioActual,
-                    usuarioNombre = Sesion.nombreUsuarioActual,
-                    identificadorMaquina = idEquipo,
-                    tipoMaquina = tipoMaquina,
-                    tipoAditamento = "Cable de Asistencia",
-                    // --- GUARDADO DE ASISTENCIA ---
-                    maquinaAsistencia = maquinaAsistenciaSeleccionada,
-                    horometro = dHorometro,
-                    porcentajeDesgasteGeneral = finalTotal,
-                    requiereReemplazo = requiereReemplazo,
-                    observacion = observacion,
-                    detallesCable = detalles
-                )
-
-                if (NetworkUtils.esRedDisponible(context)) {
-                    db.collection("bitacoras").add(bitacora).addOnSuccessListener {
+                    if (NetworkUtils.esRedDisponible(context)) {
+                        db.collection("bitacoras").add(bitacora).addOnSuccessListener {
+                            isSaving = false
+                            navController.popBackStack()
+                        }.addOnFailureListener { isSaving = false; mensajeError = it.message ?: "Error" }
+                    } else {
+                        db.collection("bitacoras").add(bitacora)
                         isSaving = false
+                        Toast.makeText(context, "Guardado OFFLINE", Toast.LENGTH_LONG).show()
                         navController.popBackStack()
-                    }.addOnFailureListener { isSaving = false; mensajeError = it.message ?: "Error" }
-                } else {
-                    db.collection("bitacoras").add(bitacora)
-                    isSaving = false
-                    Toast.makeText(context, "Guardado OFFLINE", Toast.LENGTH_LONG).show()
-                    navController.popBackStack()
-                }
-            },
-            modifier = Modifier.fillMaxWidth().height(55.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton),
-            enabled = !isSaving
-        ) {
-            Text(if (isSaving) "Guardando..." else "GUARDAR REGISTRO", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(55.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = VerdeBoton),
+                enabled = !isSaving
+            ) {
+                Text(if (isSaving) "Guardando..." else "GUARDAR REGISTRO", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(40.dp))
         }
-        Spacer(Modifier.height(40.dp))
     }
 }
 
@@ -435,10 +612,8 @@ fun CardResumenEstado(
             FilaProgreso("Severidad Diámetro", sevDiametro)
             FilaProgreso("Corrosión", sevCorrosion)
 
-            // Reemplazado HorizontalDivider por Divider
             Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
 
-            // Resultado Final
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -450,7 +625,6 @@ fun CardResumenEstado(
 
             Spacer(Modifier.height(8.dp))
 
-            // Banner de Estado
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
