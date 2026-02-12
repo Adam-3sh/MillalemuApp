@@ -45,17 +45,12 @@ fun PantallaHistorialAsistenciaDetalle(
     var cargando by remember { mutableStateOf(true) }
     var mensajeError by remember { mutableStateOf<String?>(null) }
 
-    // CAMBIO OFFLINE: Usamos DisposableEffect para mantener la conexión viva y escuchar la caché local
     DisposableEffect(nombreMaquinaAsistencia) {
         val nombreLimpio = nombreMaquinaAsistencia.trim()
-
-        // --- LOGICA DE PERMISOS ---
         val rolActual = Sesion.rolUsuarioActual
         val rutActual = Sesion.rutUsuarioActual
         val esOperador = rolActual.equals("Operador", ignoreCase = true)
 
-        // Usamos addSnapshotListener: Esto carga la caché (offline) inmediatamente
-        // y luego actualiza si hay internet.
         val listener = db.collection("bitacoras")
             .whereEqualTo("maquinaAsistencia", nombreLimpio)
             .orderBy("fecha", Query.Direction.DESCENDING)
@@ -73,24 +68,14 @@ fun PantallaHistorialAsistenciaDetalle(
                 }
 
                 if (result != null) {
-                    // Obtenemos todos los registros (ya sea de caché o servidor)
                     val todos = result.toObjects(Bitacora::class.java)
-
-                    // --- FILTRADO EN MEMORIA SEGÚN ROL ---
                     lista = todos.filter { bitacora ->
-                        if (esOperador) {
-                            // Si es operador, solo ve sus propios registros
-                            bitacora.usuarioRut == rutActual
-                        } else {
-                            // Si es Admin o Supervisor, ve todo
-                            true
-                        }
+                        if (esOperador) bitacora.usuarioRut == rutActual else true
                     }
                     cargando = false
                 }
             }
 
-        // Importante: Limpiamos el listener cuando salimos de la pantalla
         onDispose {
             listener.remove()
         }
@@ -220,11 +205,19 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color(0xFFF0F4F8), RoundedCornerShape(6.dp))
-                        .padding(8.dp)
+                        .padding(10.dp)
                 ) {
-                    Text("M. Disponibles: ${det.metrosDisponible.toInt()}m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    // Aumentado el tamaño de fuente para mejor lectura
+                    Text("M. Disponibles: ${det.metrosDisponible.toInt()} m", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+
+                    // MOSTRAR METROS CORTADOS SI EXISTEN
+                    if (det.metrosCortados > 0) {
+                        Spacer(Modifier.height(4.dp))
+                        Text("M. Cortados: ${det.metrosCortados.toInt()} m", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.Red)
+                    }
+
                     Spacer(Modifier.height(4.dp))
-                    Text("M. Revisados: ${det.metrosRevisado.toInt()}m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
+                    Text("M. Revisados: ${det.metrosRevisado.toInt()} m", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -235,7 +228,7 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
                         .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp))
                         .padding(12.dp)
                 ) {
-                    Text("Detalles de Medición", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom=8.dp))
+                    Text("Detalles de Medición", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom=8.dp))
 
                     val referenciaTexto = if (det.tipoCable == "28mm") "Ref: 28.8mm" else "Ref: 26.4mm"
 
@@ -258,7 +251,7 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
                         }
                         val textoCorte = if (det.cableCortado) "SÍ (CORTADO)" else "NO"
                         val colorCorte = if (det.cableCortado) Color(0xFFD32F2F) else Color(0xFF2E7D32)
-                        Text(text = textoCorte, fontSize = 13.sp, fontWeight = FontWeight.Black, color = colorCorte)
+                        Text(text = textoCorte, fontSize = 14.sp, fontWeight = FontWeight.Black, color = colorCorte)
                     }
                 }
 
@@ -395,15 +388,15 @@ fun HeaderTarjetaUnificada(
 }
 
 // ==========================================
-// 3. COMPONENTES DE TABLA (SIN CAMBIOS)
+// 3. COMPONENTES DE TABLA (Mejorada Legibilidad)
 // ==========================================
 
 @Composable
 fun FilaDetalleCable(titulo: String, porcentaje: Double, infoExtra: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Column {
-            Text(titulo, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1565C0))
-            if (infoExtra.isNotEmpty()) Text(infoExtra, fontSize = 11.sp, color = Color.Gray)
+            Text(titulo, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1565C0)) // Aumentado a 14sp
+            if (infoExtra.isNotEmpty()) Text(infoExtra, fontSize = 12.sp, color = Color.Gray) // Aumentado a 12sp
         }
         val colorBadge = when {
             porcentaje >= 100 -> Color(0xFFD32F2F)
@@ -411,17 +404,17 @@ fun FilaDetalleCable(titulo: String, porcentaje: Double, infoExtra: String) {
             porcentaje > 0 -> Color(0xFF2E7D32)
             else -> Color.LightGray
         }
-        Text(text = "${porcentaje.toInt()}% Daño", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colorBadge)
+        Text(text = "${porcentaje.toInt()}% Daño", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = colorBadge) // Aumentado a 13sp
     }
 }
 
 @Composable
 fun HeaderTablaFiel() {
     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-        Text("MED", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color.DarkGray)
-        Text("NOM", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color.DarkGray)
-        Text("ACT", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color.DarkGray)
-        Text("% DESG", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.End, color = Color.DarkGray)
+        Text("MED", Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color.DarkGray) // 13sp
+        Text("NOM", Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color.DarkGray)
+        Text("ACT", Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color.DarkGray)
+        Text("% DESG", Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.End, color = Color.DarkGray)
     }
     HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
 }
@@ -431,10 +424,10 @@ fun FilaTablaFiel(nombre: String, nom: Double, act: Double, porc: Double, limite
     val colorAlerta = if (porc >= limiteAlerta) Color.Red else Color.Black
     val esE_Critico = (nombre == "E" && porc >= 5.0)
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text(nombre, Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if(nombre=="E") Color(0xFF1565C0) else Color.Black)
-        Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.Center)
-        Text("$act", Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.Center)
-        Text(text = "${String.format("%.1f", porc)}%${if(esE_Critico) " (!)" else ""}", Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorAlerta)
+        Text(nombre, Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if(nombre=="E") Color(0xFF1565C0) else Color.Black) // 15sp
+        Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 15.sp, textAlign = TextAlign.Center)
+        Text("$act", Modifier.weight(1f), fontSize = 15.sp, textAlign = TextAlign.Center)
+        Text(text = "${String.format("%.1f", porc)}%${if(esE_Critico) " (!)" else ""}", Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorAlerta)
     }
     HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.5f))
 }
@@ -482,7 +475,7 @@ fun TablaEslabonFiel(det: DetallesEslabon) {
 fun TablaCadenaFiel(det: DetallesCadena) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         HeaderTablaFiel()
-        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje) // NUEVA MEDIDA AQUÍ
+        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje)
         FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
         FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
         FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)

@@ -375,7 +375,7 @@ fun TablaEslabon(det: DetallesEslabon) {
 fun TablaCadena(det: DetallesCadena) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         HeaderTabla()
-        FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje) // NUEVA FILA AÑADIDA AQUÍ
+        FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje)
         FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
         FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
         FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
@@ -412,12 +412,24 @@ fun TablaCable(det: DetallesCable) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         Text("Longitudes", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
         DatoFila("Disponible", "${det.metrosDisponible.toInt()} m")
+
+        // --- AQUÍ ESTÁ EL CAMBIO ---
+        // Mostramos el corte solo si existe
+        if (det.metrosCortados > 0) {
+            Row(modifier = Modifier.padding(vertical = 4.dp)) {
+                Text(text = "Cortado", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Red, modifier = Modifier.width(100.dp))
+                Text(text = "${det.metrosCortados.toInt()} m", fontSize = 14.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+            }
+        }
+
         DatoFila("Revisado", "${det.metrosRevisado.toInt()} m")
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp, color = Color.LightGray)
+
         Text("Alambres Rotos", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
         DatoFila("6d / 1 Paso", "${det.alambresRotos6d.toInt()}")
         DatoFila("30d / 5 Pasos", "${det.alambresRotos30d.toInt()}")
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp, color = Color.LightGray)
+
         Text("Estado del Cable", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
         FilaPorcentajeCable("Reducción Ø", det.porcentajeReduccion)
         FilaPorcentajeCable("Corrosión", det.porcentajeCorrosion)
