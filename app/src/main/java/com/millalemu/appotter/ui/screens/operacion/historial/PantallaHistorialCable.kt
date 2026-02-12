@@ -26,7 +26,7 @@ import androidx.navigation.NavController
 import com.google.firebase.firestore.Query
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.db
-import com.millalemu.appotter.ui.components.AzulOscuro
+import com.millalemu.appotter.ui.theme.AzulOscuro
 import com.millalemu.appotter.utils.CableCalculations
 import com.millalemu.appotter.utils.Sesion
 import java.text.SimpleDateFormat
@@ -87,7 +87,11 @@ fun PantallaHistorialCable(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = AzulOscuro)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = AzulOscuro,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
             )
         }
     ) { p ->
@@ -117,16 +121,12 @@ fun PantallaHistorialCable(
     }
 }
 
-// ... (imports y resto del código igual)
-
 @Composable
 private fun ItemCableExpandible(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
-    // (Lógica de estado y Card igual que antes...)
-    // ...
     val tipoCable = bitacora.detallesCable?.tipoCable ?: "26mm"
     val estado = CableCalculations.obtenerEstadoVisual(
         tipoCable = tipoCable,
@@ -144,9 +144,8 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(Modifier.padding(16.dp)) {
-            // --- CABECERA (Igual que antes) ---
+            // --- CABECERA ---
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // ... (Icono semáforo, Fecha, Horómetro, Porcentaje)
                 Surface(color = estado.fondo, shape = RoundedCornerShape(8.dp), modifier = Modifier.size(42.dp)) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(estado.icono, null, tint = estado.color, modifier = Modifier.size(24.dp))
@@ -155,7 +154,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                 Spacer(Modifier.width(12.dp))
 
                 Column(Modifier.weight(1f)) {
-                    Text(fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AzulOscuro)
+                    Text(fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
                     Text("Horómetro: ${bitacora.horometro.toInt()}", fontSize = 13.sp, color = Color.Gray)
                 }
 
@@ -175,7 +174,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
 
             // --- DETALLE DESPLEGABLE ---
             if (expandido && bitacora.detallesCable != null) {
-                val det = bitacora.detallesCable
+                val det = bitacora.detallesCable!!
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
 
                 // Fila 1: Inspector y Tipo
@@ -205,30 +204,35 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
 
                 Spacer(Modifier.height(8.dp))
 
-                // Fila 2: METROS (Apilados) (Igual que antes...)
+                // Fila 2: METROS (Apilados y destacados)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color(0xFFF0F4F8), RoundedCornerShape(6.dp))
-                        .padding(8.dp)
+                        .padding(10.dp)
                 ) {
-                    Text("M. Disponibles: ${det.metrosDisponible.toInt()}m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    // Letra un poco más grande para mejor lectura
+                    Text("M. Disponibles: ${det.metrosDisponible.toInt()} m", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+
+                    // Si se cortó cable, lo mostramos en ROJO
+                    if (det.metrosCortados > 0) {
+                        Spacer(Modifier.height(4.dp))
+                        Text("M. Cortados: -${det.metrosCortados.toInt()} m", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color(0xFFD32F2F))
+                    }
+
                     Spacer(Modifier.height(4.dp))
-                    Text("M. Revisados: ${det.metrosRevisado.toInt()}m", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    Text("M. Revisados: ${det.metrosRevisado.toInt()} m", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
 
                 Spacer(Modifier.height(12.dp))
 
-                // ... (Resto de tablas Detalles de Medición, etc.)
                 Column(
                     modifier = Modifier
                         .background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp))
                         .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp))
                         .padding(12.dp)
                 ) {
-                    // ... (Tablas de detalles)
-                    // (Aquí sigue el código existente de FilaDetalle, etc.)
-                    Text("Detalles de Medición", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom=8.dp))
+                    Text("Detalles de Medición", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom=8.dp))
 
                     val referenciaTexto = if (det.tipoCable == "28mm") "Ref: 28.8mm" else "Ref: 26.4mm"
 
@@ -252,7 +256,7 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                         }
                         val textoCorte = if (det.cableCortado) "SÍ (CORTADO)" else "NO"
                         val colorCorte = if (det.cableCortado) Color(0xFFD32F2F) else Color(0xFF2E7D32)
-                        Text(text = textoCorte, fontSize = 13.sp, fontWeight = FontWeight.Black, color = colorCorte)
+                        Text(text = textoCorte, fontSize = 14.sp, fontWeight = FontWeight.Black, color = colorCorte)
                     }
                 }
 
@@ -265,19 +269,19 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
     }
 }
 
-// --- COMPONENTES AUXILIARES ---
+// --- COMPONENTES AUXILIARES (PRIVADOS PARA EVITAR CONFLICTOS) ---
 
 @Composable
-fun FilaDetalle(titulo: String, porcentaje: Double, infoExtra: String) {
+private fun FilaDetalle(titulo: String, porcentaje: Double, infoExtra: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(titulo, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = AzulOscuro)
+            Text(titulo, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = AzulOscuro) // Fuente mejorada
             if (infoExtra.isNotEmpty()) {
-                Text(infoExtra, fontSize = 11.sp, color = Color.Gray)
+                Text(infoExtra, fontSize = 12.sp, color = Color.Gray)
             }
         }
 
@@ -290,7 +294,7 @@ fun FilaDetalle(titulo: String, porcentaje: Double, infoExtra: String) {
 
         Text(
             text = "${porcentaje.toInt()}% Daño",
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = colorBadge
         )
