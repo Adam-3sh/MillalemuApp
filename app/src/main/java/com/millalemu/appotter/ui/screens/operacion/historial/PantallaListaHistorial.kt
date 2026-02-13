@@ -54,13 +54,34 @@ fun PantallaListaHistorial(
     var lista by remember { mutableStateOf<List<Bitacora>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
 
-    // Usamos DisposableEffect para escuchar cambios en tiempo real (OFFLINE FIRST)
+    // --- LÓGICA DE ALIAS: RELACIONAR NOMBRE NUEVO CON EL VIEJO ---
+    val nombreBuscado = nombreAditamento.trim()
+    val nombresValidos = remember(nombreBuscado) {
+        val listaNombres = mutableListOf(nombreBuscado) // Agrega el nombre actual (ej: Grillete 1 Izq)
+
+        // Agrega el nombre antiguo para no perder el historial
+        when (nombreBuscado) {
+            "Grillete 1 Izq" -> listaNombres.add("Grillete 1")
+            "Grillete 2 Der" -> listaNombres.add("Grillete 2")
+            "Grillete 3 Izq" -> listaNombres.add("Grillete 3")
+            "Grillete 4 Der" -> listaNombres.add("Grillete 4")
+
+            "Eslabón 1 Izq" -> listaNombres.add("Eslabón 1")
+            "Eslabón 2 Der" -> listaNombres.add("Eslabón 2")
+            "Eslabón 3 Izq" -> listaNombres.add("Eslabón 3")
+            "Eslabón 4 Der" -> listaNombres.add("Eslabón 4")
+
+            "Cadena 1 Izq" -> listaNombres.add("Cadena 1")
+            "Cadena 2 Der" -> listaNombres.add("Cadena 2")
+        }
+        listaNombres
+    }
+
     DisposableEffect(Unit) {
         val rolActual = Sesion.rolUsuarioActual
         val rutActual = Sesion.rutUsuarioActual
         val esOperador = rolActual.equals("Operador", ignoreCase = true)
 
-        // Escucha cambios en tiempo real
         val listener = db.collection("bitacoras")
             .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(100)
@@ -73,15 +94,17 @@ fun PantallaListaHistorial(
                 if (snapshots != null) {
                     val todos = snapshots.toObjects(Bitacora::class.java)
 
-                    // --- FILTRADO ---
+                    // --- FILTRADO INTELIGENTE ---
                     lista = todos.filter { bitacora ->
                         val maquinaOk = bitacora.identificadorMaquina.trim().equals(idEquipo.trim(), ignoreCase = true)
-
-                        val nombreBuscado = nombreAditamento.trim()
                         val nombreEnBitacora = bitacora.tipoAditamento.trim()
-                        val componenteOk = nombreEnBitacora.equals(nombreBuscado, ignoreCase = true) ||
-                                (nombreBuscado == "Cable" && nombreEnBitacora.contains("Cable")) ||
-                                (nombreBuscado.startsWith("Cable") && nombreEnBitacora.startsWith("Cable"))
+
+                        // Si es Cable, usamos la lógica de siempre. Si no, buscamos en la lista de alias.
+                        val componenteOk = if (nombreBuscado.startsWith("Cable") || nombreBuscado == "Cable") {
+                            nombreEnBitacora.contains("Cable", ignoreCase = true)
+                        } else {
+                            nombresValidos.any { it.equals(nombreEnBitacora, ignoreCase = true) }
+                        }
 
                         val permisosOk = if (esOperador) bitacora.usuarioRut == rutActual else true
 
@@ -135,7 +158,7 @@ fun PantallaListaHistorial(
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp) // Más espacio entre tarjetas
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(lista) { bitacora ->
                         ItemBitacoraExpandible(bitacora)
@@ -145,6 +168,8 @@ fun PantallaListaHistorial(
         }
     }
 }
+
+// --- TODO LO DE ABAJO SIGUE EXACTAMENTE IGUAL ---
 
 @Composable
 private fun ItemBitacoraExpandible(bitacora: Bitacora) {
@@ -413,8 +438,7 @@ fun TablaCable(det: DetallesCable) {
         Text("Longitudes", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
         DatoFila("Disponible", "${det.metrosDisponible.toInt()} m")
 
-        // --- AQUÍ ESTÁ EL CAMBIO ---
-        // Mostramos el corte solo si existe
+        // --- MOSTRAR CORTADO SI EXISTE (ACTUALIZADO) ---
         if (det.metrosCortados > 0) {
             Row(modifier = Modifier.padding(vertical = 4.dp)) {
                 Text(text = "Cortado", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Red, modifier = Modifier.width(100.dp))
