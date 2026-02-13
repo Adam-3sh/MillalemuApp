@@ -169,8 +169,6 @@ fun PantallaListaHistorial(
     }
 }
 
-// --- TODO LO DE ABAJO SIGUE EXACTAMENTE IGUAL ---
-
 @Composable
 private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
