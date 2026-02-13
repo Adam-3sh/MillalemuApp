@@ -154,7 +154,7 @@ fun PantallaHistorialAsistenciaDetalle(
 }
 
 // =========================================================
-// 1. CARD CABLE (ESTILO "DASHBOARD" - MODELO A SEGUIR)
+// 1. CARD CABLE (ESTILO "DASHBOARD")
 // =========================================================
 @Composable
 fun ItemCableEstandarizado(bitacora: Bitacora) {
@@ -207,15 +207,11 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
                         .background(Color(0xFFF0F4F8), RoundedCornerShape(6.dp))
                         .padding(10.dp)
                 ) {
-                    // Aumentado el tamaño de fuente para mejor lectura
                     Text("M. Disponibles: ${det.metrosDisponible.toInt()} m", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-
-                    // MOSTRAR METROS CORTADOS SI EXISTEN
                     if (det.metrosCortados > 0) {
                         Spacer(Modifier.height(4.dp))
-                        Text("M. Cortados: ${det.metrosCortados.toInt()} m", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.Red)
+                        Text("M. Cortados: ${det.metrosCortados.toInt()} m", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Red)
                     }
-
                     Spacer(Modifier.height(4.dp))
                     Text("M. Revisados: ${det.metrosRevisado.toInt()} m", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
                 }
@@ -265,12 +261,11 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
 }
 
 // =========================================================
-// 2. CARD GENÉRICA (ADAPTADA AL ESTILO DEL CABLE)
+// 2. CARD GENÉRICA
 // =========================================================
 @Composable
 fun ItemGenericoEstandarizado(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
-
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
@@ -306,7 +301,6 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
 
             if (expandido) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
                         Text("Responsable:", fontSize = 12.sp, color = Color.Gray)
@@ -319,7 +313,6 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
                         }
                     }
                 }
-
                 if (bitacora.observacion.isNotBlank()) {
                     Spacer(Modifier.height(12.dp))
                     Surface(color = Color(0xFFFFF8E1), shape = RoundedCornerShape(4.dp), border = BorderStroke(1.dp, Color(0xFFFFE0B2))) {
@@ -329,7 +322,6 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
                         }
                     }
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Mediciones Técnicas:", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF455A64))
                 Spacer(modifier = Modifier.height(8.dp))
@@ -350,14 +342,8 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
 
 @Composable
 fun HeaderTarjetaUnificada(
-    titulo: String,
-    subtitulo: String,
-    metaData: String,
-    porcentaje: Double,
-    colorEstado: Color,
-    textoEstado: String,
-    fondoEstado: Color,
-    iconoEstado: androidx.compose.ui.graphics.vector.ImageVector
+    titulo: String, subtitulo: String, metaData: String, porcentaje: Double, colorEstado: Color,
+    textoEstado: String, fondoEstado: Color, iconoEstado: androidx.compose.ui.graphics.vector.ImageVector
 ) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -388,15 +374,15 @@ fun HeaderTarjetaUnificada(
 }
 
 // ==========================================
-// 3. COMPONENTES DE TABLA (Mejorada Legibilidad)
+// 3. COMPONENTES DE TABLA
 // ==========================================
 
 @Composable
 fun FilaDetalleCable(titulo: String, porcentaje: Double, infoExtra: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Column {
-            Text(titulo, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1565C0)) // Aumentado a 14sp
-            if (infoExtra.isNotEmpty()) Text(infoExtra, fontSize = 12.sp, color = Color.Gray) // Aumentado a 12sp
+            Text(titulo, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1565C0))
+            if (infoExtra.isNotEmpty()) Text(infoExtra, fontSize = 12.sp, color = Color.Gray)
         }
         val colorBadge = when {
             porcentaje >= 100 -> Color(0xFFD32F2F)
@@ -404,14 +390,14 @@ fun FilaDetalleCable(titulo: String, porcentaje: Double, infoExtra: String) {
             porcentaje > 0 -> Color(0xFF2E7D32)
             else -> Color.LightGray
         }
-        Text(text = "${porcentaje.toInt()}% Daño", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = colorBadge) // Aumentado a 13sp
+        Text(text = "${porcentaje.toInt()}% Daño", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = colorBadge)
     }
 }
 
 @Composable
 fun HeaderTablaFiel() {
     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-        Text("MED", Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color.DarkGray) // 13sp
+        Text("MED", Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color.DarkGray)
         Text("NOM", Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color.DarkGray)
         Text("ACT", Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color.DarkGray)
         Text("% DESG", Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.End, color = Color.DarkGray)
@@ -422,13 +408,14 @@ fun HeaderTablaFiel() {
 @Composable
 fun FilaTablaFiel(nombre: String, nom: Double, act: Double, porc: Double, limiteAlerta: Double = 10.0) {
     val colorAlerta = if (porc >= limiteAlerta) Color.Red else Color.Black
-    val esA_Critico = (nombre == "A" && porc >= 5.0) // CAMBIO: Ahora A es crítico al 5%
+    // REGLA: A y ∅2 son críticos al 5%
+    val esCriticoEspecial = (nombre == "A" || nombre == "∅2") && porc >= 5.0
 
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text(nombre, Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if(nombre=="A") Color(0xFF1565C0) else Color.Black) // A se destaca
+        Text(nombre, Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if(nombre=="A" || nombre=="∅2") Color(0xFF1565C0) else Color.Black)
         Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 15.sp, textAlign = TextAlign.Center)
         Text("$act", Modifier.weight(1f), fontSize = 15.sp, textAlign = TextAlign.Center)
-        Text(text = "${String.format("%.1f", porc)}%${if(esA_Critico) " (!)" else ""}", Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorAlerta)
+        Text(text = "${String.format("%.1f", porc)}%${if(esCriticoEspecial) " (!)" else ""}", Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, color = colorAlerta)
     }
     HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.5f))
 }
@@ -437,51 +424,12 @@ fun FilaTablaFiel(nombre: String, nom: Double, act: Double, porc: Double, limite
 fun TablaGrilleteFiel(det: DetallesGrillete) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         HeaderTablaFiel()
-        // --- AQUÍ ESTÁ EL CAMBIO CRÍTICO: ALERTA EN 'A' AL 5% ---
         FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje, limiteAlerta = 5.0)
-        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
-        FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
-        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
-        // E ahora es normal (10%)
-        FilaTablaFiel("E", det.eNominal, det.eActual, det.ePorcentaje)
-        FilaTablaFiel("F", det.fNominal, det.fActual, det.fPorcentaje)
-        FilaTablaFiel("H", det.hNominal, det.hActual, det.hPorcentaje)
-        FilaTablaFiel("L", det.lNominal, det.lActual, det.lPorcentaje)
-        FilaTablaFiel("N", det.nNominal, det.nActual, det.nPorcentaje)
+        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje); FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje); FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
+        FilaTablaFiel("E", det.eNominal, det.eActual, det.ePorcentaje); FilaTablaFiel("F", det.fNominal, det.fActual, det.fPorcentaje); FilaTablaFiel("H", det.hNominal, det.hActual, det.hPorcentaje)
+        FilaTablaFiel("L", det.lNominal, det.lActual, det.lPorcentaje); FilaTablaFiel("N", det.nNominal, det.nActual, det.nPorcentaje)
         Spacer(modifier = Modifier.height(4.dp))
         Text("* A es crítico si > 5%", fontSize = 12.sp, color = Color.Gray, fontStyle = FontStyle.Italic)
-    }
-}
-
-@Composable
-fun TablaRoldanaFiel(det: DetallesRoldana) {
-    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        HeaderTablaFiel()
-        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje)
-        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
-        FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
-    }
-}
-
-@Composable
-fun TablaEslabonFiel(det: DetallesEslabon) {
-    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        HeaderTablaFiel()
-        FilaTablaFiel("K", det.kNominal, det.kActual, det.kPorcentaje)
-        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje)
-        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
-        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
-    }
-}
-
-@Composable
-fun TablaCadenaFiel(det: DetallesCadena) {
-    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        HeaderTablaFiel()
-        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje)
-        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
-        FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
-        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
     }
 }
 
@@ -490,11 +438,35 @@ fun TablaGanchoFiel(det: DetallesGancho) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         HeaderTablaFiel()
         FilaTablaFiel("∅1", det.phi1Nominal, det.phi1Actual, det.phi1Porcentaje)
-        FilaTablaFiel("R", det.rNominal, det.rActual, det.rPorcentaje)
-        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
-        FilaTablaFiel("∅2", det.phi2Nominal, det.phi2Actual, det.phi2Porcentaje)
-        FilaTablaFiel("H", det.hNominal, det.hActual, det.hPorcentaje)
-        FilaTablaFiel("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0)
+        FilaTablaFiel("R", det.rNominal, det.rActual, det.rPorcentaje); FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
+        FilaTablaFiel("∅2", det.phi2Nominal, det.phi2Actual, det.phi2Porcentaje, limiteAlerta = 5.0)
+        FilaTablaFiel("H", det.hNominal, det.hActual, det.hPorcentaje); FilaTablaFiel("E", det.eNominal, det.eActual, det.ePorcentaje)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("* ∅2 es crítico si > 5%", fontSize = 12.sp, color = Color.Gray, fontStyle = FontStyle.Italic)
+    }
+}
+
+@Composable
+fun TablaRoldanaFiel(det: DetallesRoldana) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
+        HeaderTablaFiel()
+        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje); FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje); FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
+    }
+}
+
+@Composable
+fun TablaEslabonFiel(det: DetallesEslabon) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
+        HeaderTablaFiel()
+        FilaTablaFiel("K", det.kNominal, det.kActual, det.kPorcentaje); FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje); FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje); FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
+    }
+}
+
+@Composable
+fun TablaCadenaFiel(det: DetallesCadena) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
+        HeaderTablaFiel()
+        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje); FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje); FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje); FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
     }
 }
 
@@ -502,10 +474,7 @@ fun TablaGanchoFiel(det: DetallesGancho) {
 fun TablaTerminalFiel(det: DetallesTerminal) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         HeaderTablaFiel()
-        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje)
-        FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje)
-        FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
-        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje)
-        FilaTablaFiel("E", det.eNominal, det.eActual, det.ePorcentaje)
+        FilaTablaFiel("A", det.aNominal, det.aActual, det.aPorcentaje); FilaTablaFiel("B", det.bNominal, det.bActual, det.bPorcentaje); FilaTablaFiel("C", det.cNominal, det.cActual, det.cPorcentaje)
+        FilaTablaFiel("D", det.dNominal, det.dActual, det.dPorcentaje); FilaTablaFiel("E", det.eNominal, det.eActual, det.ePorcentaje)
     }
 }

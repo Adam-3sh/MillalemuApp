@@ -54,23 +54,18 @@ fun PantallaListaHistorial(
     var lista by remember { mutableStateOf<List<Bitacora>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
 
-    // --- LÓGICA DE ALIAS: RELACIONAR NOMBRE NUEVO CON EL VIEJO ---
     val nombreBuscado = nombreAditamento.trim()
     val nombresValidos = remember(nombreBuscado) {
-        val listaNombres = mutableListOf(nombreBuscado) // Agrega el nombre actual (ej: Grillete 1 Izq)
-
-        // Agrega el nombre antiguo para no perder el historial
+        val listaNombres = mutableListOf(nombreBuscado)
         when (nombreBuscado) {
             "Grillete 1 Izq" -> listaNombres.add("Grillete 1")
             "Grillete 2 Der" -> listaNombres.add("Grillete 2")
             "Grillete 3 Izq" -> listaNombres.add("Grillete 3")
             "Grillete 4 Der" -> listaNombres.add("Grillete 4")
-
             "Eslabón 1 Izq" -> listaNombres.add("Eslabón 1")
             "Eslabón 2 Der" -> listaNombres.add("Eslabón 2")
             "Eslabón 3 Izq" -> listaNombres.add("Eslabón 3")
             "Eslabón 4 Der" -> listaNombres.add("Eslabón 4")
-
             "Cadena 1 Izq" -> listaNombres.add("Cadena 1")
             "Cadena 2 Der" -> listaNombres.add("Cadena 2")
         }
@@ -90,30 +85,22 @@ fun PantallaListaHistorial(
                     cargando = false
                     return@addSnapshotListener
                 }
-
                 if (snapshots != null) {
                     val todos = snapshots.toObjects(Bitacora::class.java)
-
-                    // --- FILTRADO INTELIGENTE ---
                     lista = todos.filter { bitacora ->
                         val maquinaOk = bitacora.identificadorMaquina.trim().equals(idEquipo.trim(), ignoreCase = true)
                         val nombreEnBitacora = bitacora.tipoAditamento.trim()
-
-                        // Si es Cable, usamos la lógica de siempre. Si no, buscamos en la lista de alias.
                         val componenteOk = if (nombreBuscado.startsWith("Cable") || nombreBuscado == "Cable") {
                             nombreEnBitacora.contains("Cable", ignoreCase = true)
                         } else {
                             nombresValidos.any { it.equals(nombreEnBitacora, ignoreCase = true) }
                         }
-
                         val permisosOk = if (esOperador) bitacora.usuarioRut == rutActual else true
-
                         maquinaOk && componenteOk && permisosOk
                     }
                     cargando = false
                 }
             }
-
         onDispose { listener.remove() }
     }
 
@@ -150,10 +137,6 @@ fun PantallaListaHistorial(
                     Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(60.dp))
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("No se encontraron registros.", textAlign = TextAlign.Center, color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text(
-                        text = if (Sesion.rolUsuarioActual.equals("Operador", true)) "(Solo ves tus propios registros)" else "(Sin datos disponibles)",
-                        textAlign = TextAlign.Center, color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp)
-                    )
                 }
             } else {
                 LazyColumn(
@@ -172,11 +155,9 @@ fun PantallaListaHistorial(
 @Composable
 private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
-
     val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--/--/----" }
 
-    // --- LÓGICA DE SEMÁFORO ---
     val (colorEstado, textoEstado, fondoEstado) = when {
         bitacora.tieneFisura -> Triple(Color(0xFFD32F2F), "FISURA", Color(0xFFFFEBEE))
         bitacora.requiereReemplazo -> Triple(Color(0xFFD32F2F), "CAMBIO", Color(0xFFFFEBEE))
@@ -197,13 +178,11 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // CABECERA
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text(text = fechaTexto, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
                     Text(text = "Horómetro: ${bitacora.horometro.toInt()} hrs", fontSize = 15.sp, color = Color.Gray)
                 }
-
                 Surface(color = fondoEstado, shape = RoundedCornerShape(50), modifier = Modifier.border(1.dp, colorEstado.copy(alpha = 0.3f), RoundedCornerShape(50))) {
                     Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = iconoEstado, contentDescription = null, tint = colorEstado, modifier = Modifier.size(18.dp))
@@ -212,10 +191,7 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Barra de Desgaste
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Desgaste General", fontSize = 14.sp, color = Color.Gray)
@@ -229,17 +205,11 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                     trackColor = Color.Transparent
                 )
             }
-
-            // Flecha expandir
             Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
                 Icon(imageVector = if (expandido) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = "Ver más", tint = Color.LightGray, modifier = Modifier.size(28.dp))
             }
-
-            // DETALLE DESPLEGABLE
             if (expandido) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                // 1. INFORMACIÓN CLAVE (Visual y Responsable)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
                         Text("Responsable:", fontSize = 12.sp, color = Color.Gray)
@@ -251,38 +221,17 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("¡FISURA DETECTADA!", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.Red)
+                                Text("¡FISURA!", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.Red)
                             }
                         } else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Check, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("Sin fisuras", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
-                            }
+                            Text("Sin fisuras", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
                         }
                     }
                 }
-
                 if (!bitacora.maquinaAsistencia.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF1565C0), modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Máquina Asistencia: ",
-                            fontSize = 13.sp,
-                            color = Color.Gray,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = bitacora.maquinaAsistencia,
-                            fontSize = 14.sp,
-                            color = Color(0xFF1565C0),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Text(text = "Máquina Asistencia: ${bitacora.maquinaAsistencia}", fontSize = 14.sp, color = Color(0xFF1565C0), fontWeight = FontWeight.Bold)
                 }
-
                 if (bitacora.observacion.isNotBlank()) {
                     Spacer(Modifier.height(12.dp))
                     Surface(color = Color(0xFFFFF8E1), shape = RoundedCornerShape(4.dp), border = BorderStroke(1.dp, Color(0xFFFFE0B2))) {
@@ -292,12 +241,9 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                         }
                     }
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Mediciones Técnicas:", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // SELECTOR DE TABLAS
                 when {
                     bitacora.detallesGrillete != null -> TablaGrillete(bitacora.detallesGrillete)
                     bitacora.detallesRoldana != null -> TablaRoldana(bitacora.detallesRoldana)
@@ -306,7 +252,6 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                     bitacora.detallesGancho != null -> TablaGancho(bitacora.detallesGancho)
                     bitacora.detallesTerminal != null -> TablaTerminal(bitacora.detallesTerminal)
                     bitacora.detallesCable != null -> TablaCable(bitacora.detallesCable)
-                    else -> Text("Sin datos dimensionales", fontSize = 14.sp, fontStyle = FontStyle.Italic, color = Color.Gray)
                 }
             }
         }
@@ -337,14 +282,16 @@ fun HeaderTabla() {
 @Composable
 fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double, limiteAlerta: Double = 10.0) {
     val colorAlerta = if (porc >= limiteAlerta) Color.Red else Color.Black
-    val esA_Critico = (nombre == "A" && porc >= 5.0) // CAMBIO IMPORTANTE
+    // REGLA: A (Grillete) y ∅2 (Gancho) son críticos al 5%
+    val esCriticoEspecial = (nombre == "A" || nombre == "∅2") && porc >= 5.0
 
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text(nombre, Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if(nombre=="A") Color(0xFF1565C0) else Color.Black)
+        // Pintamos el nombre en azul si es una medida especial crítica (A o ∅2)
+        Text(nombre, Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if(nombre=="A" || nombre=="∅2") Color(0xFF1565C0) else Color.Black)
         Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.Center)
         Text("$act", Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.Center)
         Text(
-            text = "${String.format("%.1f", porc)}%${if(esA_Critico) " (!)" else ""}",
+            text = "${String.format("%.1f", porc)}%${if(esCriticoEspecial) " (!)" else ""}",
             Modifier.weight(1f),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
@@ -359,12 +306,10 @@ fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double, limiteAler
 fun TablaGrillete(det: DetallesGrillete) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         HeaderTabla()
-        // --- AQUÍ ESTÁ EL CAMBIO CRÍTICO: ALERTA EN 'A' AL 5% ---
         FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje, limiteAlerta = 5.0)
         FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
         FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
         FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
-        // 'E' vuelve a ser normal (alerta al 10%)
         FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
         FilaTabla("F", det.fNominal, det.fActual, det.fPorcentaje)
         FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
@@ -372,6 +317,21 @@ fun TablaGrillete(det: DetallesGrillete) {
         FilaTabla("N", det.nNominal, det.nActual, det.nPorcentaje)
         Spacer(modifier = Modifier.height(4.dp))
         Text("* A es crítico si > 5%", fontSize = 12.sp, color = Color.Gray, fontStyle = FontStyle.Italic)
+    }
+}
+
+@Composable
+fun TablaGancho(det: DetallesGancho) {
+    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
+        HeaderTabla()
+        FilaTabla("∅1", det.phi1Nominal, det.phi1Actual, det.phi1Porcentaje)
+        FilaTabla("R", det.rNominal, det.rActual, det.rPorcentaje)
+        FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
+        FilaTabla("∅2", det.phi2Nominal, det.phi2Actual, det.phi2Porcentaje, limiteAlerta = 5.0)
+        FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
+        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("* ∅2 es crítico si > 5%", fontSize = 12.sp, color = Color.Gray, fontStyle = FontStyle.Italic)
     }
 }
 
@@ -408,19 +368,6 @@ fun TablaCadena(det: DetallesCadena) {
 }
 
 @Composable
-fun TablaGancho(det: DetallesGancho) {
-    Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        HeaderTabla()
-        FilaTabla("∅1", det.phi1Nominal, det.phi1Actual, det.phi1Porcentaje)
-        FilaTabla("R", det.rNominal, det.rActual, det.rPorcentaje)
-        FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
-        FilaTabla("∅2", det.phi2Nominal, det.phi2Actual, det.phi2Porcentaje)
-        FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
-        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0)
-    }
-}
-
-@Composable
 fun TablaTerminal(det: DetallesTerminal) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         HeaderTabla()
@@ -437,23 +384,18 @@ fun TablaCable(det: DetallesCable) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         Text("Longitudes", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
         DatoFila("Disponible", "${det.metrosDisponible.toInt()} m")
-
-        // --- MOSTRAR CORTADO SI EXISTE (ACTUALIZADO) ---
         if (det.metrosCortados > 0) {
             Row(modifier = Modifier.padding(vertical = 4.dp)) {
                 Text(text = "Cortado", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Red, modifier = Modifier.width(100.dp))
                 Text(text = "${det.metrosCortados.toInt()} m", fontSize = 14.sp, color = Color.Red, fontWeight = FontWeight.Bold)
             }
         }
-
         DatoFila("Revisado", "${det.metrosRevisado.toInt()} m")
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp, color = Color.LightGray)
-
         Text("Alambres Rotos", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
         DatoFila("6d / 1 Paso", "${det.alambresRotos6d.toInt()}")
         DatoFila("30d / 5 Pasos", "${det.alambresRotos30d.toInt()}")
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp, color = Color.LightGray)
-
         Text("Estado del Cable", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
         FilaPorcentajeCable("Reducción Ø", det.porcentajeReduccion)
         FilaPorcentajeCable("Corrosión", det.porcentajeCorrosion)
