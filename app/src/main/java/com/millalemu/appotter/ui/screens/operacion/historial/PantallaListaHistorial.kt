@@ -337,14 +337,14 @@ fun HeaderTabla() {
 @Composable
 fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double, limiteAlerta: Double = 10.0) {
     val colorAlerta = if (porc >= limiteAlerta) Color.Red else Color.Black
-    val esE_Critico = (nombre == "E" && porc >= 5.0)
+    val esA_Critico = (nombre == "A" && porc >= 5.0) // CAMBIO IMPORTANTE
 
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text(nombre, Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if(nombre=="E") Color(0xFF1565C0) else Color.Black)
+        Text(nombre, Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if(nombre=="A") Color(0xFF1565C0) else Color.Black)
         Text("${nom.toInt()}", Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.Center)
         Text("$act", Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.Center)
         Text(
-            text = "${String.format("%.1f", porc)}%${if(esE_Critico) " (!)" else ""}",
+            text = "${String.format("%.1f", porc)}%${if(esA_Critico) " (!)" else ""}",
             Modifier.weight(1f),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
@@ -359,17 +359,19 @@ fun FilaTabla(nombre: String, nom: Double, act: Double, porc: Double, limiteAler
 fun TablaGrillete(det: DetallesGrillete) {
     Column(modifier = Modifier.background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp)).padding(12.dp)) {
         HeaderTabla()
-        FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje)
+        // --- AQUÍ ESTÁ EL CAMBIO CRÍTICO: ALERTA EN 'A' AL 5% ---
+        FilaTabla("A", det.aNominal, det.aActual, det.aPorcentaje, limiteAlerta = 5.0)
         FilaTabla("B", det.bNominal, det.bActual, det.bPorcentaje)
         FilaTabla("C", det.cNominal, det.cActual, det.cPorcentaje)
         FilaTabla("D", det.dNominal, det.dActual, det.dPorcentaje)
-        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje, limiteAlerta = 5.0)
+        // 'E' vuelve a ser normal (alerta al 10%)
+        FilaTabla("E", det.eNominal, det.eActual, det.ePorcentaje)
         FilaTabla("F", det.fNominal, det.fActual, det.fPorcentaje)
         FilaTabla("H", det.hNominal, det.hActual, det.hPorcentaje)
         FilaTabla("L", det.lNominal, det.lActual, det.lPorcentaje)
         FilaTabla("N", det.nNominal, det.nActual, det.nPorcentaje)
         Spacer(modifier = Modifier.height(4.dp))
-        Text("* E es crítico si > 5%", fontSize = 12.sp, color = Color.Gray, fontStyle = FontStyle.Italic)
+        Text("* A es crítico si > 5%", fontSize = 12.sp, color = Color.Gray, fontStyle = FontStyle.Italic)
     }
 }
 

@@ -61,11 +61,11 @@ fun PantallaRegistroGrillete(
     var mostrarEsquema by remember { mutableStateOf(false) }
 
     // --- VARIABLES NOMINALES (9 Medidas: A, B, C, D, E, F, H, L, N) ---
-    var nomA by remember { mutableStateOf("") }
+    var nomA by remember { mutableStateOf("") } // AHORA ES LA CRÍTICA (5%)
     var nomB by remember { mutableStateOf("") }
     var nomC by remember { mutableStateOf("") }
     var nomD by remember { mutableStateOf("") }
-    var nomE by remember { mutableStateOf("") } // Regla 5%
+    var nomE by remember { mutableStateOf("") }
     var nomF by remember { mutableStateOf("") }
     var nomH by remember { mutableStateOf("") }
     var nomL by remember { mutableStateOf("") }
@@ -108,8 +108,8 @@ fun PantallaRegistroGrillete(
 
     var porcentajeDanoGlobal by remember { mutableStateOf("") }
     var maxDanoVal by remember { mutableStateOf(0.0) }
-    // Mostrar resultados si hay cálculo mayor a 0 o si se llenó la medida crítica E
-    val mostrarResultados = maxDanoVal > 0.0 || medE.isNotEmpty()
+    // Mostrar resultados si hay cálculo mayor a 0 o si se llenó la medida crítica A
+    val mostrarResultados = maxDanoVal > 0.0 || medA.isNotEmpty()
 
     var mensajeError by remember { mutableStateOf("") }
     var switchManual by remember { mutableStateOf(false) }
@@ -118,10 +118,14 @@ fun PantallaRegistroGrillete(
     var tieneFisura by remember { mutableStateOf(false) }
 
     // REGLA CRÍTICA ACTUALIZADA:
-    // 1. Si E >= 5.0 -> CRÍTICO
-    // 2. Si cualquier otra >= 10.0 -> CRÍTICO
+    // 1. Si A >= 5.0 -> CRÍTICO (ANTES ERA E)
+    // 2. Si cualquier otra (incluida E) >= 10.0 -> CRÍTICO
     // 3. Si tiene fisura visible -> CRÍTICO
-    val esCritico = (valE >= 5.0) || (maxDanoVal >= 10.0) || tieneFisura
+
+    // Calculamos si alguna de las NO críticas supera el 10%
+    val algunOtroCritico = listOf(valB, valC, valD, valE, valF, valH, valL, valN).any { it >= 10.0 }
+
+    val esCritico = (valA >= 5.0) || algunOtroCritico || tieneFisura
     val requiereReemplazo = esCritico || switchManual
 
     var observacion by remember { mutableStateOf("") }
@@ -228,7 +232,8 @@ fun PantallaRegistroGrillete(
                 // Encabezados Columnas
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text("", Modifier.weight(0.5f))
-                    Text("A", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    // CAMBIO: A tiene el color rojo y el (5%)
+                    Text("A (5%)", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = Color.Red)
                     Text("B", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
                     Text("C", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
@@ -248,7 +253,8 @@ fun PantallaRegistroGrillete(
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text("", Modifier.weight(0.5f))
                     Text("D", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
-                    Text("E (5%)", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = Color.Red) // E es crítico
+                    // CAMBIO: E vuelve a ser azul normal
+                    Text("E", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
                     Text("F", Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
                 // FILA 2: D, E, F
@@ -286,14 +292,16 @@ fun PantallaRegistroGrillete(
                     // Result Fila 1
                     Row(Modifier.fillMaxWidth()) {
                         Spacer(Modifier.weight(0.5f))
-                        CeldaResultado(resA_txt); CeldaResultado(resB_txt); CeldaResultado(resC_txt)
+                        // REGLA CRITICA A (A >= 5.0)
+                        CeldaResultado(resA_txt, esCritica = valA >= 5.0)
+                        CeldaResultado(resB_txt)
+                        CeldaResultado(resC_txt)
                     }
                     // Result Fila 2
                     Row(Modifier.fillMaxWidth()) {
                         Spacer(Modifier.weight(0.5f))
                         CeldaResultado(resD_txt)
-                        // REGLA CRITICA E (E >= 5.0)
-                        CeldaResultado(resE_txt, esCritica = valE >= 5.0)
+                        CeldaResultado(resE_txt) // E vuelve a ser normal (10% por defecto en lógica global)
                         CeldaResultado(resF_txt)
                     }
                     // Result Fila 3
