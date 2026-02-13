@@ -50,7 +50,7 @@ fun PantallaFormularioAditamento(
             ItemAditamento("Grillete CM Lira", R.drawable.grillete_cm_lira)
         )
         "Madereo" -> listOf(
-            // El orden de Madereo se mantiene igual
+            // --- ACTUALIZACIÓN DE NOMBRES Y NUEVOS ÍTEMS ---
             ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
             ItemAditamento("Eslabón Salida", R.drawable.eslabon_articulado),
@@ -59,16 +59,30 @@ fun PantallaFormularioAditamento(
             ItemAditamento("Gancho Ojo Fijo", R.drawable.gancho_ojo_fijo),
             ItemAditamento("Grillete Lira", R.drawable.grillete_cm_lira),
             ItemAditamento("Roldana", R.drawable.roldana),
-            ItemAditamento("Grillete 1", R.drawable.grillete_cm_lira),
-            ItemAditamento("Grillete 2", R.drawable.grillete_cm_lira),
-            ItemAditamento("Eslabón 1", R.drawable.eslabon_entrada),
-            ItemAditamento("Eslabón 2", R.drawable.eslabon_entrada),
-            ItemAditamento("Cadena 1", R.drawable.cadena_asistencia),
-            ItemAditamento("Cadena 2", R.drawable.cadena_asistencia),
-            ItemAditamento("Eslabón 3", R.drawable.eslabon_entrada),
-            ItemAditamento("Eslabón 4", R.drawable.eslabon_entrada),
-            ItemAditamento("Grillete 3", R.drawable.grillete_cm_lira),
-            ItemAditamento("Grillete 4", R.drawable.grillete_cm_lira)
+
+            // Renombrados con Izq/Der
+            ItemAditamento("Grillete 1 Izq", R.drawable.grillete_cm_lira),
+            ItemAditamento("Grillete 2 Der", R.drawable.grillete_cm_lira),
+
+            ItemAditamento("Eslabón 1 Izq", R.drawable.eslabon_entrada),
+            ItemAditamento("Eslabón 2 Der", R.drawable.eslabon_entrada),
+
+            ItemAditamento("Cadena 1 Izq", R.drawable.cadena_asistencia),
+            ItemAditamento("Cadena 2 Der", R.drawable.cadena_asistencia),
+
+            // --- NUEVOS AGREGADOS AQUÍ ---
+            ItemAditamento("Eslabón Adicional Izq", R.drawable.eslabon_entrada),
+            ItemAditamento("Eslabón Adicional Der", R.drawable.eslabon_entrada),
+            // -----------------------------
+
+            ItemAditamento("Eslabón 3 Izq", R.drawable.eslabon_entrada),
+            ItemAditamento("Eslabón 4 Der", R.drawable.eslabon_entrada),
+
+            ItemAditamento("Grillete 3 Izq", R.drawable.grillete_cm_lira),
+            ItemAditamento("Grillete 4 Der", R.drawable.grillete_cm_lira),
+
+            // --- NUEVO AGREGADO AL FINAL ---
+            ItemAditamento("Grillete Polea", R.drawable.grillete_cm_lira)
         )
         else -> emptyList()
     }
@@ -105,13 +119,14 @@ fun PantallaFormularioAditamento(
                 CardAditamento(item = item, onClick = {
                     val nombre = item.nombre
 
+                    // El "startsWith" maneja automáticamente los nuevos nombres
+                    // (ej: "Grillete Polea" entra en el caso "Grillete")
                     when {
                         nombre.startsWith("Eslabón") -> navController.navigate("${AppRoutes.REGISTRO_ESLABON}/$tipoMaquina/$idEquipo/$nombre")
                         nombre.startsWith("Cadena") -> navController.navigate("${AppRoutes.REGISTRO_CADENA}/$tipoMaquina/$idEquipo/$nombre")
                         nombre.startsWith("Grillete") -> navController.navigate("${AppRoutes.REGISTRO_GRILLETE}/$tipoMaquina/$idEquipo/$nombre")
                         nombre.startsWith("Gancho") -> navController.navigate("${AppRoutes.REGISTRO_GANCHO}/$tipoMaquina/$idEquipo/$nombre")
 
-                        // CABLE (Ahora ruta simple)
                         nombre.startsWith("Cable") -> {
                             navController.navigate("${AppRoutes.REGISTRO_CABLE}/$tipoMaquina/$idEquipo")
                         }

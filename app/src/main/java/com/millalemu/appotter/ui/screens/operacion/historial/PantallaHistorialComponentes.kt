@@ -42,24 +42,39 @@ fun PantallaHistorialComponentes(
             ItemAditamento("Grillete CM Lira", R.drawable.grillete_cm_lira)
         )
         "Madereo" -> listOf(
+            // --- LISTA ACTUALIZADA CON NUEVOS NOMBRES Y ELEMENTOS ---
             ItemAditamento("Cable Asistencia", R.drawable.cable_asistencia),
             ItemAditamento("Terminal de Cuña", R.drawable.terminal_de_cuna),
             ItemAditamento("Eslabón Salida", R.drawable.eslabon_articulado),
             ItemAditamento("Cadena Asistencia", R.drawable.cadena_asistencia),
             ItemAditamento("Eslabón Entrada", R.drawable.eslabon_articulado),
-            ItemAditamento("Gancho de Ojo", R.drawable.gancho_ojo_fijo),
+            ItemAditamento("Gancho Ojo Fijo", R.drawable.gancho_ojo_fijo), // Corregido nombre resource si es necesario, o usar gancho_ojo_fijo
             ItemAditamento("Grillete Lira", R.drawable.grillete_cm_lira),
             ItemAditamento("Roldana", R.drawable.roldana),
-            ItemAditamento("Grillete 1", R.drawable.grillete_cm_lira),
-            ItemAditamento("Grillete 2", R.drawable.grillete_cm_lira),
-            ItemAditamento("Eslabón 1", R.drawable.eslabon_entrada),
-            ItemAditamento("Eslabón 2", R.drawable.eslabon_entrada),
-            ItemAditamento("Cadena 1", R.drawable.cadena_asistencia),
-            ItemAditamento("Cadena 2", R.drawable.cadena_asistencia),
-            ItemAditamento("Eslabón 3", R.drawable.eslabon_entrada),
-            ItemAditamento("Eslabón 4", R.drawable.eslabon_entrada),
-            ItemAditamento("Grillete 3", R.drawable.grillete_cm_lira),
-            ItemAditamento("Grillete 4", R.drawable.grillete_cm_lira)
+
+            // Renombrados (Izq/Der)
+            ItemAditamento("Grillete 1 Izq", R.drawable.grillete_cm_lira),
+            ItemAditamento("Grillete 2 Der", R.drawable.grillete_cm_lira),
+
+            ItemAditamento("Eslabón 1 Izq", R.drawable.eslabon_entrada),
+            ItemAditamento("Eslabón 2 Der", R.drawable.eslabon_entrada),
+
+            ItemAditamento("Cadena 1 Izq", R.drawable.cadena_asistencia),
+            ItemAditamento("Cadena 2 Der", R.drawable.cadena_asistencia),
+
+            // --- 2 NUEVOS ESLABONES ---
+            ItemAditamento("Eslabón Adicional Izq", R.drawable.eslabon_entrada),
+            ItemAditamento("Eslabón Adicional Der", R.drawable.eslabon_entrada),
+            // --------------------------
+
+            ItemAditamento("Eslabón 3 Izq", R.drawable.eslabon_entrada),
+            ItemAditamento("Eslabón 4 Der", R.drawable.eslabon_entrada),
+
+            ItemAditamento("Grillete 3 Izq", R.drawable.grillete_cm_lira),
+            ItemAditamento("Grillete 4 Der", R.drawable.grillete_cm_lira),
+
+            // --- 1 NUEVO GRILLETE AL FINAL ---
+            ItemAditamento("Grillete Polea", R.drawable.grillete_cm_lira)
         )
         else -> emptyList()
     }
@@ -108,12 +123,13 @@ fun PantallaHistorialComponentes(
         ) {
             items(listaAditamentos) { item ->
                 CardAditamento(item = item, onClick = {
-
+                    // LÓGICA ORIGINAL CONSERVADA
                     if (item.nombre.contains("Cable", ignoreCase = true)) {
                         // 1. Si es Cable -> Vamos a la pantalla NUEVA dedicada
                         navController.navigate("historial_cable/$idEquipo")
                     } else {
                         // 2. Si es otro componente -> Vamos a la pantalla ANTIGUA genérica
+                        // Esto envía el nombre NUEVO (ej: "Grillete 1 Izq") a la lista.
                         navController.navigate("${AppRoutes.HISTORIAL_LISTA}/$idEquipo/${item.nombre}")
                     }
                 })
