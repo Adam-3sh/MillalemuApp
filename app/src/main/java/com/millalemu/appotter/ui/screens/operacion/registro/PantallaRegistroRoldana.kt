@@ -97,7 +97,10 @@ fun PantallaRegistroRoldana(
     val esCritico = maxDanoVal >= 10.0 || tieneFisura
     val requiereReemplazo = esCritico || switchManual
 
+    // --- LÓGICA OBSERVACIÓN (Actualizada) ---
     var observacion by remember { mutableStateOf("") }
+    var observacionEditable by remember { mutableStateOf(false) }
+
     var isSaving by remember { mutableStateOf(false) }
     var isLoadingHistory by remember { mutableStateOf(true) }
 
@@ -134,17 +137,29 @@ fun PantallaRegistroRoldana(
             .addOnSuccessListener { documents ->
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
+                    // Cargar Nominales
                     ultima?.detallesRoldana?.let { d ->
                         nomA = d.aNominal.toString()
                         nomB = d.bNominal.toString()
                         nomC = d.cNominal.toString()
                     }
-                } else { nominalesEditables = true }
+                    // Cargar Observación y bloquear
+                    ultima?.observacion?.let { obs ->
+                        observacion = obs
+                    }
+                    nominalesEditables = false
+                    observacionEditable = false
+                } else {
+                    nominalesEditables = true
+                    observacionEditable = true
+                }
                 isLoadingHistory = false
             }
             .addOnFailureListener {
                 // Si falla (caché vacía o error), habilitamos manual
-                isLoadingHistory = false; nominalesEditables = true
+                isLoadingHistory = false
+                nominalesEditables = true
+                observacionEditable = true
             }
     }
 
@@ -240,7 +255,7 @@ fun PantallaRegistroRoldana(
                 }
             }
 
-            // INSPECCIÓN VISUAL
+            // INSPECCIÓN VISUAL (ACTUALIZADA)
             CardSeccion(titulo = "Inspección Visual") {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("¿Fisuras visibles?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
@@ -258,7 +273,42 @@ fun PantallaRegistroRoldana(
                     Switch(checked = requiereReemplazo, onCheckedChange = { if (!esCritico) switchManual = it }, enabled = !esCritico, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = if (esCritico) Color.Red else Color(0xFF2E7D32), disabledCheckedTrackColor = Color.Red.copy(alpha = 0.6f)))
                 }
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(value = observacion, onValueChange = { observacion = it }, label = { Text("Observaciones") }, modifier = Modifier.fillMaxWidth().height(100.dp), shape = RoundedCornerShape(8.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AzulOscuro, unfocusedContainerColor = Color.White))
+
+                // --- BOTÓN EDITAR OBSERVACIÓN (Alineado a la IZQUIERDA) ---
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.Start // <--- AHORA A LA IZQUIERDA
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (observacionEditable) Color.Gray else VerdeBoton,
+                        modifier = Modifier.clickable { observacionEditable = !observacionEditable }
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("EDITAR", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = observacion,
+                    onValueChange = { observacion = it },
+                    label = { Text("Observaciones") },
+                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    // CONTROL DE EDICIÓN Y COLORES
+                    readOnly = !observacionEditable,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AzulOscuro,
+                        unfocusedContainerColor = if (observacionEditable) Color.White else Color(0xFFF0F0F0),
+                        focusedContainerColor = if (observacionEditable) Color.White else Color(0xFFF0F0F0)
+                    )
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))

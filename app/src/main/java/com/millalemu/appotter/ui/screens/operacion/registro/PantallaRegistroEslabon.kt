@@ -55,42 +55,37 @@ fun PantallaRegistroEslabon(
 ) {
     val context = LocalContext.current
 
-    // 1. DEFINIR LA CONDICIÓN ESPECÍFICA (Solo Entrada y Salida llevan asistencia)
     val requiereAsistencia = nombreAditamento.equals("Eslabón Entrada", ignoreCase = true) ||
             nombreAditamento.equals("Eslabón Salida", ignoreCase = true)
 
     // --- ESTADOS DE UI Y DATOS ---
     var horometro by remember { mutableStateOf("") }
     val fechaHoy = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()) }
-
-    // --- ESTADO PARA MOSTRAR EL ESQUEMA ---
     var mostrarEsquema by remember { mutableStateOf(false) }
 
-    // --- VARIABLES DE ASISTENCIA ---
     var listaMaquinasAsistencia by remember { mutableStateOf<List<String>>(emptyList()) }
     var maquinaAsistenciaSeleccionada by remember { mutableStateOf("") }
     var expandedAsistencia by remember { mutableStateOf(false) }
 
-    // Variables Nominales (Iniciales) - Eslabón tiene K, A, D, B
+    // Variables Nominales
     var nomK by remember { mutableStateOf("") }
     var nomA by remember { mutableStateOf("") }
     var nomD by remember { mutableStateOf("") }
     var nomB by remember { mutableStateOf("") }
     var nominalesEditables by remember { mutableStateOf(false) }
 
-    // Variables Actuales (Medidas)
+    // Variables Actuales
     var medK by remember { mutableStateOf("") }
     var medA by remember { mutableStateOf("") }
     var medD by remember { mutableStateOf("") }
     var medB by remember { mutableStateOf("") }
 
-    // Variables de Cálculo (Porcentajes)
+    // Variables de Cálculo
     var valK by remember { mutableStateOf(0.0) }
     var valA by remember { mutableStateOf(0.0) }
     var valD by remember { mutableStateOf(0.0) }
     var valB by remember { mutableStateOf(0.0) }
 
-    // Textos para mostrar resultados
     var resK_txt by remember { mutableStateOf("0%") }
     var resA_txt by remember { mutableStateOf("0%") }
     var resD_txt by remember { mutableStateOf("0%") }
@@ -98,21 +93,19 @@ fun PantallaRegistroEslabon(
 
     var porcentajeDanoGlobal by remember { mutableStateOf("") }
     var maxDanoVal by remember { mutableStateOf(0.0) }
-
-    // Mostrar resultados solo si hay datos relevantes (al menos una medida ingresada)
     val mostrarResultados = maxDanoVal > 0.0 || (medK.isNotEmpty() || medA.isNotEmpty())
 
     var mensajeError by remember { mutableStateOf("") }
     var switchManual by remember { mutableStateOf(false) }
-
-    // --- NUEVA LÓGICA DE INSPECCIÓN VISUAL ---
     var tieneFisura by remember { mutableStateOf(false) }
 
-    // Es crítico si el daño es >= 10% O si TIENE FISURA
     val esCritico = maxDanoVal >= 10.0 || tieneFisura
     val requiereReemplazo = esCritico || switchManual
 
+    // --- LÓGICA OBSERVACIÓN ---
     var observacion by remember { mutableStateOf("") }
+    var observacionEditable by remember { mutableStateOf(false) }
+
     var isSaving by remember { mutableStateOf(false) }
     var isLoadingHistory by remember { mutableStateOf(true) }
 
@@ -128,7 +121,6 @@ fun PantallaRegistroEslabon(
                     val id = doc.getString("identificador") ?: ""
                     val modelo = doc.getString("modelo") ?: ""
                     if (id.isNotEmpty()) {
-                        // Formato: MODELO - ID
                         if (modelo.isNotEmpty()) "${modelo.uppercase()} - $id" else id
                     } else null
                 }
@@ -159,7 +151,7 @@ fun PantallaRegistroEslabon(
         porcentajeDanoGlobal = "%.1f%%".format(maxDanoVal)
     }
 
-    // --- CARGA DE HISTORIAL INTELIGENTE (MODO CACHÉ FIRST) ---
+    // --- CARGA DE HISTORIAL INTELIGENTE ---
     LaunchedEffect(Unit) {
         db.collection("bitacoras")
             .whereEqualTo("identificadorMaquina", idEquipo)
@@ -170,20 +162,30 @@ fun PantallaRegistroEslabon(
             .addOnSuccessListener { documents ->
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
+                    // Cargar Nominales
                     ultima?.detallesEslabon?.let { d ->
                         nomK = d.kNominal.toString()
                         nomA = d.aNominal.toString()
                         nomD = d.dNominal.toString()
                         nomB = d.bNominal.toString()
                     }
+                    // Cargar Observación y bloquear
+                    ultima?.observacion?.let { obs ->
+                        observacion = obs
+                    }
+                    nominalesEditables = false
+                    observacionEditable = false
                 } else {
+                    // Si no hay historial, habilitar edición
                     nominalesEditables = true
+                    observacionEditable = true
                 }
                 isLoadingHistory = false
             }
             .addOnFailureListener {
                 isLoadingHistory = false
                 nominalesEditables = true
+                observacionEditable = true
             }
     }
 
@@ -205,7 +207,6 @@ fun PantallaRegistroEslabon(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 20.dp).fillMaxWidth()
             ) {
-                // Lógica de imagen según si es entrada o salida
                 val imgRes = if (nombreAditamento.contains("Salida", ignoreCase = true))
                     R.drawable.eslabon_salida
                 else
@@ -244,9 +245,7 @@ fun PantallaRegistroEslabon(
                 RowItemDato(label = "Equipo", valor = idEquipo)
                 Spacer(Modifier.height(8.dp))
 
-                // 2. ENVOLVER LA UI DEL DROPDOWN CON EL IF (Ya lo tenías bien)
                 if (requiereAsistencia) {
-                    // --- DROPDOWN ASISTENCIA MEJORADO ---
                     Text(
                         text = "Máquina Asistencia (Obligatorio)",
                         fontSize = 14.sp,
@@ -330,19 +329,13 @@ fun PantallaRegistroEslabon(
                             Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                "EDITAR NOMINAL",
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text("EDITAR NOMINAL", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.width(4.dp))
                             Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(12.dp))
                         }
                     }
                 }
             ) {
-                // --- BOTÓN VER IMAGEN DE EXTRAMO A EXTREMO ---
                 Button(
                     onClick = { mostrarEsquema = true },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -354,14 +347,12 @@ fun PantallaRegistroEslabon(
                     Text("VER IMAGEN", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
 
-                // Cabecera de la tabla
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text("", Modifier.weight(0.6f))
                     listOf("K", "A", "D", "B").forEach {
                         Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = AzulOscuro)
                     }
                 }
-                // Fila Inicial
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Nom.", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(nomK, { nomK = it }, nominalesEditables)
@@ -370,7 +361,6 @@ fun PantallaRegistroEslabon(
                     CeldaGrid(nomB, { nomB = it }, nominalesEditables)
                 }
                 Spacer(Modifier.height(8.dp))
-                // Fila Actual
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Real", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     CeldaGrid(medK, { medK = it }, true, true)
@@ -383,7 +373,6 @@ fun PantallaRegistroEslabon(
                     Spacer(Modifier.height(16.dp))
                     Divider(color = Color.LightGray, thickness = 1.dp)
                     Spacer(Modifier.height(8.dp))
-                    // Fila Resultados
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("Daño", Modifier.weight(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Red)
                         CeldaResultado(resK_txt)
@@ -411,7 +400,6 @@ fun PantallaRegistroEslabon(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // MENSAJES DE ERROR
             if (mensajeError.isNotEmpty()) {
                 Surface(
                     color = Color(0xFFFFEBEE),
@@ -426,7 +414,7 @@ fun PantallaRegistroEslabon(
                 }
             }
 
-            // --- INSPECCIÓN VISUAL ---
+            // --- INSPECCIÓN VISUAL (ACTUALIZADA) ---
             CardSeccion(titulo = "Inspección Visual") {
                 Row(
                     Modifier.fillMaxWidth(),
@@ -445,7 +433,6 @@ fun PantallaRegistroEslabon(
                     Column(Modifier.weight(1f)) {
                         Text("¿Requiere reemplazo?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         if (esCritico) {
-                            // --- MENSAJE DINÁMICO SEGÚN LA CAUSA DEL BLOQUEO ---
                             val causaBloqueo = if (tieneFisura) "(Bloqueado por fisura detectada)" else "(Bloqueado por daño crítico)"
                             Text(
                                 text = causaBloqueo,
@@ -466,16 +453,41 @@ fun PantallaRegistroEslabon(
                         )
                     )
                 }
+
                 Spacer(Modifier.height(12.dp))
+
+                // --- BOTÓN EDITAR OBSERVACIÓN (Alineado a la IZQUIERDA) ---
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.Start // <--- AHORA A LA IZQUIERDA
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (observacionEditable) Color.Gray else VerdeBoton,
+                        modifier = Modifier.clickable { observacionEditable = !observacionEditable }
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("EDITAR", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = observacion,
                     onValueChange = { observacion = it },
                     label = { Text("Observaciones") },
                     modifier = Modifier.fillMaxWidth().height(100.dp),
                     shape = RoundedCornerShape(8.dp),
+                    readOnly = !observacionEditable,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = AzulOscuro,
-                        unfocusedContainerColor = Color.White
+                        unfocusedContainerColor = if (observacionEditable) Color.White else Color(0xFFF0F0F0),
+                        focusedContainerColor = if (observacionEditable) Color.White else Color(0xFFF0F0F0)
                     )
                 )
             }
@@ -580,7 +592,7 @@ fun PantallaRegistroEslabon(
             Spacer(Modifier.height(48.dp))
         }
 
-        // --- VENTANA EMERGENTE GRANDE PARA LA IMAGEN ---
+        // --- VENTANA EMERGENTE GRANDE ---
         if (mostrarEsquema) {
             Dialog(
                 onDismissRequest = { mostrarEsquema = false },

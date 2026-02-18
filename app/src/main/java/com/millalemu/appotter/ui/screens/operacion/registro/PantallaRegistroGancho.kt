@@ -113,7 +113,10 @@ fun PantallaRegistroGancho(
     val esCritico = (valPhi2 >= 5.0) || (maxDanoVal >= 10.0) || tieneFisura
     val requiereReemplazo = esCritico || switchManual
 
+    // --- LÓGICA OBSERVACIÓN (Actualizada) ---
     var observacion by remember { mutableStateOf("") }
+    var observacionEditable by remember { mutableStateOf(false) }
+
     var isSaving by remember { mutableStateOf(false) }
     var isLoadingHistory by remember { mutableStateOf(true) }
 
@@ -170,11 +173,22 @@ fun PantallaRegistroGancho(
                         nomPhi1 = d.phi1Nominal.toString(); nomR = d.rNominal.toString(); nomD = d.dNominal.toString()
                         nomPhi2 = d.phi2Nominal.toString(); nomH = d.hNominal.toString(); nomE = d.eNominal.toString()
                     }
-                } else { nominalesEditables = true }
+                    // Cargar Observación y bloquear
+                    ultima?.observacion?.let { obs ->
+                        observacion = obs
+                    }
+                    nominalesEditables = false
+                    observacionEditable = false
+                } else {
+                    nominalesEditables = true
+                    observacionEditable = true
+                }
                 isLoadingHistory = false
             }
             .addOnFailureListener {
-                isLoadingHistory = false; nominalesEditables = true
+                isLoadingHistory = false
+                nominalesEditables = true
+                observacionEditable = true
             }
     }
 
@@ -374,7 +388,42 @@ fun PantallaRegistroGancho(
                     Switch(checked = requiereReemplazo, onCheckedChange = { if (!esCritico) switchManual = it }, enabled = !esCritico, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = if (esCritico) Color.Red else Color(0xFF2E7D32), disabledCheckedTrackColor = Color.Red.copy(alpha = 0.6f)))
                 }
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(value = observacion, onValueChange = { observacion = it }, label = { Text("Observaciones") }, modifier = Modifier.fillMaxWidth().height(100.dp), shape = RoundedCornerShape(8.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = AzulOscuro, unfocusedContainerColor = Color.White))
+
+                // --- BOTÓN EDITAR OBSERVACIÓN ---
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.Start // A la izquierda
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (observacionEditable) Color.Gray else VerdeBoton,
+                        modifier = Modifier.clickable { observacionEditable = !observacionEditable }
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("EDITAR", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = observacion,
+                    onValueChange = { observacion = it },
+                    label = { Text("Observaciones") },
+                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    // CONTROL DE EDICIÓN Y COLORES
+                    readOnly = !observacionEditable,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AzulOscuro,
+                        unfocusedContainerColor = if (observacionEditable) Color.White else Color(0xFFF0F0F0),
+                        focusedContainerColor = if (observacionEditable) Color.White else Color(0xFFF0F0F0)
+                    )
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))

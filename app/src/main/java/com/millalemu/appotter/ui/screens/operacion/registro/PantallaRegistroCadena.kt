@@ -109,7 +109,10 @@ fun PantallaRegistroCadena(
     val esCritico = maxDanoVal >= 10.0 || tieneFisura
     val requiereReemplazo = esCritico || switchManual
 
+    // --- LÓGICA OBSERVACIÓN (Actualizada) ---
     var observacion by remember { mutableStateOf("") }
+    var observacionEditable by remember { mutableStateOf(false) }
+
     var isSaving by remember { mutableStateOf(false) }
     var isLoadingHistory by remember { mutableStateOf(true) }
 
@@ -170,14 +173,22 @@ fun PantallaRegistroCadena(
                         nomC = d.cNominal.toString()
                         nomD = d.dNominal.toString()
                     }
+                    // Cargar Observación y bloquear
+                    ultima?.observacion?.let { obs ->
+                        observacion = obs
+                    }
+                    nominalesEditables = false
+                    observacionEditable = false
                 } else {
                     nominalesEditables = true
+                    observacionEditable = true
                 }
                 isLoadingHistory = false
             }
             .addOnFailureListener {
                 isLoadingHistory = false
                 nominalesEditables = true
+                observacionEditable = true
             }
     }
 
@@ -403,7 +414,7 @@ fun PantallaRegistroCadena(
                 }
             }
 
-            // --- INSPECCIÓN VISUAL ---
+            // --- INSPECCIÓN VISUAL (ACTUALIZADA) ---
             CardSeccion(titulo = "Inspección Visual") {
                 Row(
                     Modifier.fillMaxWidth(),
@@ -444,15 +455,40 @@ fun PantallaRegistroCadena(
                     )
                 }
                 Spacer(Modifier.height(12.dp))
+
+                // --- BOTÓN EDITAR OBSERVACIÓN ---
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.Start // A la izquierda
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (observacionEditable) Color.Gray else VerdeBoton,
+                        modifier = Modifier.clickable { observacionEditable = !observacionEditable }
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("EDITAR", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = observacion,
                     onValueChange = { observacion = it },
                     label = { Text("Observaciones") },
                     modifier = Modifier.fillMaxWidth().height(100.dp),
                     shape = RoundedCornerShape(8.dp),
+                    // CONTROL DE EDICIÓN Y COLORES
+                    readOnly = !observacionEditable,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = AzulOscuro,
-                        unfocusedContainerColor = Color.White
+                        unfocusedContainerColor = if (observacionEditable) Color.White else Color(0xFFF0F0F0),
+                        focusedContainerColor = if (observacionEditable) Color.White else Color(0xFFF0F0F0)
                     )
                 )
             }

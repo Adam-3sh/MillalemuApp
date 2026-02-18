@@ -57,7 +57,7 @@ fun PantallaRegistroCable(
     // --- GESTIÓN DE METROS ---
     var metrosDisponible by remember { mutableStateOf("") }
     var metrosCortados by remember { mutableStateOf("") }
-    var editandoDisponible by remember { mutableStateOf(false) } // Controla si se puede editar el disponible
+    var editandoDisponible by remember { mutableStateOf(false) }
 
     var metrosRevisado by remember { mutableStateOf("") }
 
@@ -68,7 +68,10 @@ fun PantallaRegistroCable(
     var nivelCorrosion by remember { mutableStateOf("") }
 
     var presentaCorte by remember { mutableStateOf<Boolean?>(null) }
+
+    // --- LÓGICA OBSERVACIÓN (Actualizada) ---
     var observacion by remember { mutableStateOf("") }
+    var observacionEditable by remember { mutableStateOf(false) }
 
     // --- VARIABLES DE CÁLCULO ---
     var calcSevAlambres by remember { mutableStateOf(0.0) }
@@ -82,7 +85,6 @@ fun PantallaRegistroCable(
     var estadoColor by remember { mutableStateOf(Color.Gray) }
     var estadoColorTexto by remember { mutableStateOf(Color.White) }
 
-    // Variable para controlar si el corte fue forzado por daño crítico (para revertirlo si se corrige)
     var forzadoPorCritico by remember { mutableStateOf(false) }
 
     // --- VARIABLES DE ASISTENCIA ---
@@ -92,7 +94,7 @@ fun PantallaRegistroCable(
 
     var isLoadingHistory by remember { mutableStateOf(true) }
 
-    // --- CARGAR DATOS (ASISTENCIA + ÚLTIMO METRAJE) ---
+    // --- CARGAR DATOS (ASISTENCIA + HISTORIAL) ---
     LaunchedEffect(Unit) {
         // 1. Cargar Maquinas
         db.collection("maquinaria")
@@ -108,7 +110,7 @@ fun PantallaRegistroCable(
                 }
             }
 
-        // 2. Cargar Historial para obtener Metros Disponibles
+        // 2. Cargar Historial (CACHE FIRST)
         db.collection("bitacoras")
             .whereEqualTo("identificadorMaquina", idEquipo)
             .whereEqualTo("tipoAditamento", "Cable de Asistencia")
@@ -119,16 +121,23 @@ fun PantallaRegistroCable(
                 if (!documents.isEmpty) {
                     val ultima = documents.documents[0].toObject(Bitacora::class.java)
                     ultima?.detallesCable?.let { d ->
-                        // Cargamos lo que quedó disponible la última vez
                         if (d.metrosDisponible > 0) {
                             metrosDisponible = d.metrosDisponible.toString()
                         }
                     }
+                    // Cargar Observación y bloquear
+                    ultima?.observacion?.let { obs ->
+                        observacion = obs
+                    }
+                    observacionEditable = false
+                } else {
+                    observacionEditable = true
                 }
                 isLoadingHistory = false
             }
             .addOnFailureListener {
                 isLoadingHistory = false
+                observacionEditable = true
             }
     }
 
@@ -153,13 +162,11 @@ fun PantallaRegistroCable(
 
         // --- LÓGICA DE CORTE AUTOMÁTICO INTELIGENTE ---
         if (calcTotal >= 100.0) {
-            // Si llega a 100%, forzamos el SÍ y recordamos que fue forzado
             if (presentaCorte != true) {
                 presentaCorte = true
                 forzadoPorCritico = true
             }
         } else {
-            // Si baja de 100% Y fue forzado anteriormente, lo liberamos (volvemos a NO)
             if (forzadoPorCritico) {
                 presentaCorte = false
                 forzadoPorCritico = false
@@ -284,11 +291,8 @@ fun PantallaRegistroCable(
 
             Spacer(Modifier.height(16.dp))
 
-            // --- SECCIÓN INVENTARIO (METROS CORTADOS MOVIDO A CONCLUSIÓN) ---
             CardSeccion(titulo = "Inventario de Cable") {
-                // 1. METROS DISPONIBLES
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    // CORRECCIÓN 1: Etiqueta limpia
                     Text("Metros Disponibles", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AzulOscuro, modifier = Modifier.weight(1f))
 
                     Surface(
@@ -361,7 +365,6 @@ fun PantallaRegistroCable(
 
             Spacer(Modifier.height(24.dp))
 
-            // --- RESUMEN VISUAL ---
             CardResumenEstado(
                 sevAlambres = calcSevAlambres,
                 sevDiametro = calcSevDiametro,
@@ -374,14 +377,12 @@ fun PantallaRegistroCable(
 
             Spacer(Modifier.height(24.dp))
 
-            // --- SECCIÓN CONCLUSIÓN (CON METROS CORTADOS) ---
             CardSeccion(titulo = "Conclusión y Cierre") {
                 EtiquetaCampo("¿Se cortó el cable?")
 
                 val bloqueoCritico = calcTotal >= 100.0
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Botón SÍ
                     BotonSeleccionColor(
                         texto = "SÍ",
                         seleccionado = presentaCorte == true,
@@ -391,7 +392,6 @@ fun PantallaRegistroCable(
                         modifier = Modifier.weight(1f)
                     )
 
-                    // Botón NO (Deshabilitado visualmente si es crítico)
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -422,7 +422,6 @@ fun PantallaRegistroCable(
                     )
                 }
 
-                // CORRECCIÓN 2: INPUT DE METROS CORTADOS AQUÍ
                 if (presentaCorte == true) {
                     Spacer(Modifier.height(16.dp))
                     Divider(color = Color.LightGray)
@@ -458,7 +457,6 @@ fun PantallaRegistroCable(
                     val restante = (disp - cortados).coerceAtLeast(0.0)
 
                     if (metrosCortados.isNotEmpty()) {
-                        // CORRECCIÓN 3: Etiqueta de saldo actualizada
                         Text(
                             text = "Metros Disponibles Actualizados: ${String.format("%.1f", restante)} m",
                             color = if(restante < 50) Color.Red else Color(0xFF2E7D32),
@@ -470,12 +468,39 @@ fun PantallaRegistroCable(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                EtiquetaCampo("Observaciones")
+
+                // --- BOTÓN EDITAR OBSERVACIÓN (Alineado a la IZQUIERDA) ---
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (observacionEditable) Color.Gray else VerdeBoton,
+                        modifier = Modifier.clickable { observacionEditable = !observacionEditable }
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("EDITAR", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = observacion, onValueChange = { observacion = it },
+                    label = { Text("Observaciones") },
                     modifier = Modifier.fillMaxWidth().height(100.dp),
                     shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
+                    readOnly = !observacionEditable,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AzulOscuro,
+                        unfocusedContainerColor = if (observacionEditable) Color.White else Color(0xFFF0F0F0),
+                        focusedContainerColor = if (observacionEditable) Color.White else Color(0xFFF0F0F0)
+                    )
                 )
             }
 
