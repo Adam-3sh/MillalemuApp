@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete // <--- AGREGADO
+import androidx.compose.material.icons.filled.Warning // <--- AGREGADO
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,6 +23,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.millalemu.appotter.data.Bitacora // <--- AGREGADO
+import kotlinx.coroutines.delay // <--- AGREGADO
+import java.text.SimpleDateFormat // <--- AGREGADO
+import java.util.Locale // <--- AGREGADO
 
 
 // --- COLORES COMPARTIDOS ---
@@ -271,5 +278,105 @@ fun DialogoConfirmacion(
             },
             containerColor = Color.White
         )
+    }
+}
+
+// --- NUEVO COMPONENTE: DIÁLOGO DE SEGURIDAD PARA ELIMINAR ---
+// Incluye cuenta regresiva y resumen visual
+@Composable
+fun DialogoSeguridadEliminar(
+    bitacora: Bitacora,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    // Estado para la cuenta regresiva (5 segundos)
+    var segundosRestantes by remember { mutableIntStateOf(5) }
+
+    // Efecto para bajar el contador cada 1 segundo
+    LaunchedEffect(Unit) {
+        while (segundosRestantes > 0) {
+            delay(1000L)
+            segundosRestantes--
+        }
+    }
+
+    val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+    val fecha = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "Fecha desconocida" }
+
+    AlertDialog(
+        onDismissRequest = { if (segundosRestantes == 0) onDismiss() }, // Evita cerrar accidentalmente al inicio
+        icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(48.dp)) },
+        title = {
+            Text(
+                "¿Eliminar Registro?",
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFD32F2F)
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Esta acción es PERMANENTE y no se puede deshacer.",
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // --- RESUMEN DE LA BITÁCORA ---
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text("RESUMEN A ELIMINAR:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Red)
+                        HorizontalDivider(Modifier.padding(vertical = 4.dp), color = Color.Red.copy(alpha = 0.2f))
+
+                        FilaResumen("Equipo:", bitacora.identificadorMaquina)
+                        FilaResumen("Elemento:", bitacora.tipoAditamento)
+                        FilaResumen("Fecha:", fecha)
+                        FilaResumen("Daño:", "${bitacora.porcentajeDesgasteGeneral.toInt()}%")
+                        FilaResumen("Resp:", bitacora.usuarioNombre)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled = segundosRestantes == 0, // Deshabilitado hasta que termine la cuenta
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (segundosRestantes > 0) {
+                    Text("Espere ($segundosRestantes s)...")
+                } else {
+                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("CONFIRMAR ELIMINACIÓN")
+                }
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Cancelar")
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
+@Composable
+private fun FilaResumen(label: String, valor: String) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, fontSize = 12.sp, color = Color.DarkGray)
+        Text(valor, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
     }
 }

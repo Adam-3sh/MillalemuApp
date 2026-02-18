@@ -4,10 +4,13 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.PropertyName
 import androidx.annotation.Keep
+import com.google.firebase.firestore.DocumentId
 
 @Keep
 data class Bitacora(
-    @get:Exclude var id: String = "",
+    //para que funcione borrar
+    @DocumentId
+    var id: String = "",
 
     val usuarioRut: String = "",
     val usuarioNombre: String = "",

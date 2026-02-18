@@ -11,8 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.* // Iconos básicos seguros
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.* import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +25,7 @@ import androidx.navigation.NavController
 import com.google.firebase.firestore.Query
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.db
+import com.millalemu.appotter.ui.components.DialogoSeguridadEliminar // <--- IMPORTANTE
 import com.millalemu.appotter.ui.theme.AzulOscuro
 import com.millalemu.appotter.utils.CableCalculations
 import com.millalemu.appotter.utils.Sesion
@@ -124,6 +124,11 @@ fun PantallaHistorialCable(
 @Composable
 private fun ItemCableExpandible(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
+
+    // --- VARIABLES DE ELIMINACIÓN ---
+    var mostrarDialogoEliminar by remember { mutableStateOf(false) }
+    val esAdmin = Sesion.rolUsuarioActual == "Administrador"
+
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
@@ -133,6 +138,18 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
         porcentajeTotal = bitacora.porcentajeDesgasteGeneral,
         requiereReemplazo = bitacora.requiereReemplazo
     )
+
+    // --- DIÁLOGO DE SEGURIDAD ---
+    if (mostrarDialogoEliminar) {
+        DialogoSeguridadEliminar(
+            bitacora = bitacora,
+            onDismiss = { mostrarDialogoEliminar = false },
+            onConfirm = {
+                db.collection("bitacoras").document(bitacora.id).delete()
+                mostrarDialogoEliminar = false
+            }
+        )
+    }
 
     Card(
         elevation = CardDefaults.cardElevation(3.dp),
@@ -156,6 +173,13 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                 Column(Modifier.weight(1f)) {
                     Text(fechaTexto, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
                     Text("Horómetro: ${bitacora.horometro.toInt()}", fontSize = 13.sp, color = Color.Gray)
+                }
+
+                // BOTÓN ELIMINAR (SOLO ADMIN)
+                if (esAdmin) {
+                    IconButton(onClick = { mostrarDialogoEliminar = true }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Gray.copy(alpha = 0.6f))
+                    }
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
@@ -183,7 +207,6 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                     Text("${det.tipoCable} | ${det.tipoMedicion}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 }
 
-                // >>> NUEVO: CAMPO MAQUINA ASISTENCIA (Solo si existe) <<<
                 if (!bitacora.maquinaAsistencia.isNullOrBlank()) {
                     Spacer(Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -200,7 +223,6 @@ private fun ItemCableExpandible(bitacora: Bitacora) {
                         )
                     }
                 }
-                // >>> FIN NUEVO CAMPO <<<
 
                 Spacer(Modifier.height(8.dp))
 
@@ -279,7 +301,7 @@ private fun FilaDetalle(titulo: String, porcentaje: Double, infoExtra: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(titulo, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = AzulOscuro) // Fuente mejorada
+            Text(titulo, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = AzulOscuro)
             if (infoExtra.isNotEmpty()) {
                 Text(infoExtra, fontSize = 12.sp, color = Color.Gray)
             }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete // <--- AGREGADO
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -40,6 +41,7 @@ import com.millalemu.appotter.data.DetallesGrillete
 import com.millalemu.appotter.data.DetallesRoldana
 import com.millalemu.appotter.data.DetallesTerminal
 import com.millalemu.appotter.db
+import com.millalemu.appotter.ui.components.DialogoSeguridadEliminar // <--- AGREGADO
 import com.millalemu.appotter.utils.Sesion
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -155,6 +157,11 @@ fun PantallaListaHistorial(
 @Composable
 private fun ItemBitacoraExpandible(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
+
+    // --- VARIABLES DE ELIMINACIÓN ---
+    var mostrarDialogoEliminar by remember { mutableStateOf(false) }
+    val esAdmin = Sesion.rolUsuarioActual == "Administrador"
+
     val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--/--/----" }
 
@@ -168,6 +175,18 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
 
     val iconoEstado = if (textoEstado == "OK") Icons.Default.Check else Icons.Default.Warning
 
+    // --- DIÁLOGO DE SEGURIDAD ---
+    if (mostrarDialogoEliminar) {
+        DialogoSeguridadEliminar(
+            bitacora = bitacora,
+            onDismiss = { mostrarDialogoEliminar = false },
+            onConfirm = {
+                db.collection("bitacoras").document(bitacora.id).delete()
+                mostrarDialogoEliminar = false
+            }
+        )
+    }
+
     Card(
         elevation = CardDefaults.cardElevation(4.dp),
         shape = RoundedCornerShape(12.dp),
@@ -178,11 +197,26 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
             .clickable { expandido = !expandido }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // --- HEADER DE LA TARJETA ---
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
+                // Datos Izquierda
+                Column(modifier = Modifier.weight(1f)) {
                     Text(text = fechaTexto, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
                     Text(text = "Horómetro: ${bitacora.horometro.toInt()} hrs", fontSize = 15.sp, color = Color.Gray)
                 }
+
+                // Botón Eliminar (Solo Admin)
+                if (esAdmin) {
+                    IconButton(onClick = { mostrarDialogoEliminar = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Eliminar Registro",
+                            tint = Color.Gray.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                // Semáforo Estado
                 Surface(color = fondoEstado, shape = RoundedCornerShape(50), modifier = Modifier.border(1.dp, colorEstado.copy(alpha = 0.3f), RoundedCornerShape(50))) {
                     Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = iconoEstado, contentDescription = null, tint = colorEstado, modifier = Modifier.size(18.dp))
@@ -191,7 +225,9 @@ private fun ItemBitacoraExpandible(bitacora: Bitacora) {
                     }
                 }
             }
+
             Spacer(modifier = Modifier.height(16.dp))
+
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Desgaste General", fontSize = 14.sp, color = Color.Gray)
