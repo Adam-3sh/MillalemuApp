@@ -30,6 +30,7 @@ import com.google.firebase.firestore.Query
 import com.millalemu.appotter.data.Bitacora
 import com.millalemu.appotter.data.*
 import com.millalemu.appotter.db
+import com.millalemu.appotter.ui.components.DialogoSeguridadEliminar
 import com.millalemu.appotter.utils.CableCalculations
 import com.millalemu.appotter.utils.Sesion
 import java.text.SimpleDateFormat
@@ -68,9 +69,15 @@ fun PantallaHistorialAsistenciaDetalle(
                 }
 
                 if (result != null) {
-                    val todos = result.toObjects(Bitacora::class.java)
-                    lista = todos.filter { bitacora ->
-                        if (esOperador) bitacora.usuarioRut == rutActual else true
+                    // Mapeamos asegurando que el ID del documento se asigne correctamente
+                    val todos = result.documents.mapNotNull { doc ->
+                        doc.toObject(Bitacora::class.java)?.apply { id = doc.id }
+                    }
+
+                    lista = if (esOperador) {
+                        todos.filter { it.usuarioRut == rutActual }
+                    } else {
+                        todos
                     }
                     cargando = false
                 }
@@ -154,11 +161,16 @@ fun PantallaHistorialAsistenciaDetalle(
 }
 
 // =========================================================
-// 1. CARD CABLE (ESTILO "DASHBOARD")
+// 1. CARD CABLE (ESTILO "DASHBOARD" CON BORRAR)
 // =========================================================
 @Composable
 fun ItemCableEstandarizado(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
+
+    // --- LÓGICA DE BORRADO ---
+    var mostrarDialogoEliminar by remember { mutableStateOf(false) }
+    val esAdmin = Sesion.rolUsuarioActual.equals("Administrador", ignoreCase = true)
+
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
@@ -168,6 +180,20 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
         porcentajeTotal = bitacora.porcentajeDesgasteGeneral,
         requiereReemplazo = bitacora.requiereReemplazo
     )
+
+    // DIÁLOGO DE SEGURIDAD
+    if (mostrarDialogoEliminar) {
+        DialogoSeguridadEliminar(
+            bitacora = bitacora,
+            onDismiss = { mostrarDialogoEliminar = false },
+            onConfirm = {
+                if (bitacora.id.isNotEmpty()) {
+                    db.collection("bitacoras").document(bitacora.id).delete()
+                }
+                mostrarDialogoEliminar = false
+            }
+        )
+    }
 
     Card(
         elevation = CardDefaults.cardElevation(3.dp),
@@ -187,7 +213,9 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
                 colorEstado = estado.color,
                 textoEstado = estado.texto,
                 fondoEstado = estado.fondo,
-                iconoEstado = estado.icono
+                iconoEstado = estado.icono,
+                esAdmin = esAdmin,
+                onDelete = { mostrarDialogoEliminar = true }
             )
 
             if (expandido && bitacora.detallesCable != null) {
@@ -261,11 +289,16 @@ fun ItemCableEstandarizado(bitacora: Bitacora) {
 }
 
 // =========================================================
-// 2. CARD GENÉRICA
+// 2. CARD GENÉRICA (CON BORRAR)
 // =========================================================
 @Composable
 fun ItemGenericoEstandarizado(bitacora: Bitacora) {
     var expandido by remember { mutableStateOf(false) }
+
+    // --- LÓGICA DE BORRADO ---
+    var mostrarDialogoEliminar by remember { mutableStateOf(false) }
+    val esAdmin = Sesion.rolUsuarioActual.equals("Administrador", ignoreCase = true)
+
     val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
     val fechaTexto = try { sdf.format(bitacora.fecha.toDate()) } catch (e: Exception) { "--" }
 
@@ -277,6 +310,20 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
         else -> Triple(Color(0xFF2E7D32), "OK", Color(0xFFE8F5E9))
     }
     val iconoEstado = if (textoEstado == "OK") Icons.Default.Check else Icons.Default.Warning
+
+    // DIÁLOGO DE SEGURIDAD
+    if (mostrarDialogoEliminar) {
+        DialogoSeguridadEliminar(
+            bitacora = bitacora,
+            onDismiss = { mostrarDialogoEliminar = false },
+            onConfirm = {
+                if (bitacora.id.isNotEmpty()) {
+                    db.collection("bitacoras").document(bitacora.id).delete()
+                }
+                mostrarDialogoEliminar = false
+            }
+        )
+    }
 
     Card(
         elevation = CardDefaults.cardElevation(3.dp),
@@ -296,7 +343,9 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
                 colorEstado = colorEstado,
                 textoEstado = textoEstado,
                 fondoEstado = fondoEstado,
-                iconoEstado = iconoEstado
+                iconoEstado = iconoEstado,
+                esAdmin = esAdmin,
+                onDelete = { mostrarDialogoEliminar = true }
             )
 
             if (expandido) {
@@ -340,10 +389,15 @@ fun ItemGenericoEstandarizado(bitacora: Bitacora) {
     }
 }
 
+// ==========================================
+// 3. HEADER UNIFICADO (ACTUALIZADO CON BORRAR)
+// ==========================================
 @Composable
 fun HeaderTarjetaUnificada(
     titulo: String, subtitulo: String, metaData: String, porcentaje: Double, colorEstado: Color,
-    textoEstado: String, fondoEstado: Color, iconoEstado: androidx.compose.ui.graphics.vector.ImageVector
+    textoEstado: String, fondoEstado: Color, iconoEstado: androidx.compose.ui.graphics.vector.ImageVector,
+    esAdmin: Boolean = false,
+    onDelete: () -> Unit = {}
 ) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -358,6 +412,14 @@ fun HeaderTarjetaUnificada(
                 Text(text = subtitulo, fontSize = 14.sp, color = Color(0xFF1565C0), fontWeight = FontWeight.Bold)
                 Text(text = metaData, fontSize = 13.sp, color = Color.Gray)
             }
+
+            // --- BOTÓN ELIMINAR (SOLO SI ES ADMIN) ---
+            if (esAdmin) {
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Gray.copy(alpha = 0.6f))
+                }
+            }
+
             Column(horizontalAlignment = Alignment.End) {
                 Text("${porcentaje.toInt()}%", fontSize = 22.sp, fontWeight = FontWeight.Black, color = colorEstado)
                 Text(textoEstado, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colorEstado)
@@ -374,7 +436,7 @@ fun HeaderTarjetaUnificada(
 }
 
 // ==========================================
-// 3. COMPONENTES DE TABLA
+// 4. COMPONENTES DE TABLA (Sin Cambios)
 // ==========================================
 
 @Composable
@@ -408,7 +470,6 @@ fun HeaderTablaFiel() {
 @Composable
 fun FilaTablaFiel(nombre: String, nom: Double, act: Double, porc: Double, limiteAlerta: Double = 10.0) {
     val colorAlerta = if (porc >= limiteAlerta) Color.Red else Color.Black
-    // REGLA: A y ∅2 son críticos al 5%
     val esCriticoEspecial = (nombre == "A" || nombre == "∅2") && porc >= 5.0
 
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
